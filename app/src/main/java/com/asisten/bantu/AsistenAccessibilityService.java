@@ -67,6 +67,7 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         
         @Override
         public void onError(int error) {
+            // Otomatis mulai mendengarkan lagi jika jeda
             startListening();
         }
         
@@ -77,13 +78,12 @@ public class AsistenAccessibilityService extends AccessibilityService implements
                 String spokenText = matches.get(0).toLowerCase();
                 Log.d(TAG, "Mendengar: " + spokenText);
                 
-                // Cek apakah ada kata "kobra" di dalam kalimat
+                // Eksekusi langsung jika kalimat mengandung kata "kobra"
                 if (spokenText.contains("kobra")) {
-                    String command = spokenText.substring(spokenText.indexOf("kobra") + 5).trim();
+                    int index = spokenText.indexOf("kobra");
+                    String command = spokenText.substring(index + 5).trim();
                     
-                    if (command.isEmpty()) {
-                        if (tts != null) tts.speak("Ada yang bisa saya bantu?", TextToSpeech.QUEUE_FLUSH, null, null);
-                    } else {
+                    if (!command.isEmpty()) {
                         executeCommand(command);
                     }
                 }
@@ -110,55 +110,45 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         else if (spokenText.contains("senter") || spokenText.contains("lampu")) {
             toggleFlashlight();
         }
-        // 4. Buka WhatsApp (Mendukung variasi ejaan suara)
-        else if (spokenText.contains("whatsapp") || spokenText.contains("watsap") || spokenText.contains("wa ")) {
+        // 4. Buka WhatsApp
+        else if (spokenText.contains("whatsapp") || spokenText.contains("watsap") || spokenText.contains("wa")) {
             openSpecificApp("com.whatsapp", "WhatsApp");
         }
-        // 5. Buka YouTube
-        else if (spokenText.contains("youtube") && !spokenText.contains("putar") && !spokenText.contains("cari")) {
-            openSpecificApp("com.google.android.youtube", "YouTube");
-        }
-        // 6. Buka Instagram
+        // 5. Buka Instagram
         else if (spokenText.contains("instagram") || spokenText.contains("ig")) {
             openSpecificApp("com.instagram.android", "Instagram");
         }
-        // 7. Buka TikTok
+        // 6. Buka TikTok
         else if (spokenText.contains("tiktok")) {
             openSpecificApp("com.zhiliaoapp.musically", "TikTok");
         }
-        // 8. Putar Musik / Video di YouTube
+        // 7. Putar Musik / Video di YouTube
         else if (spokenText.contains("youtube") || spokenText.contains("putar") || spokenText.contains("cari lagu") || spokenText.contains("putar video")) {
             String query = spokenText.replace("putar", "").replace("cari lagu", "").replace("cari video", "").replace("di youtube", "").replace("youtube", "").trim();
             playYouTube(query);
         } 
-        // 9. Menelepon
+        // 8. Menelepon
         else if (spokenText.startsWith("panggil ") || spokenText.startsWith("telepon ")) {
             String target = spokenText.replace("panggil", "").replace("telepon", "").trim();
             makePhoneCall(target);
         } 
-        // 10. Navigasi Maps
+        // 9. Navigasi Maps
         else if (spokenText.startsWith("arahin ke ") || spokenText.startsWith("navigasi ke ") || spokenText.startsWith("jalan ke ")) {
             String destination = spokenText.replace("arahin ke", "").replace("navigasi ke", "").replace("jalan ke", "").trim();
             openMaps(destination);
         } 
-        // 11. Kembali ke Beranda
+        // 10. Kembali ke Beranda
         else if (spokenText.contains("kembali ke beranda") || spokenText.contains("home")) {
             if (tts != null) tts.speak("Kembali ke beranda", TextToSpeech.QUEUE_FLUSH, null, null);
             performGlobalAction(GLOBAL_ACTION_HOME);
         } 
-        // 12. Aplikasi Umum Lainnya (Pencarian Dinamis)
+        // 11. Aplikasi Umum Lainnya (Pencarian Dinamis)
         else if (spokenText.startsWith("buka ")) {
             String appName = spokenText.replace("buka ", "").trim();
             openAppByName(appName);
         }
-        else {
-            if (tts != null) {
-                tts.speak("Perintah tidak dikenali", TextToSpeech.QUEUE_FLUSH, null, null);
-            }
-        }
     }
 
-    // Fungsi Langsung Membuka Paket Aplikasi Utama
     private void openSpecificApp(String packageName, String appName) {
         if (tts != null) tts.speak("Membuka " + appName, TextToSpeech.QUEUE_FLUSH, null, null);
         Intent intent = getPackageManager().getLaunchIntentForPackage(packageName);
@@ -300,5 +290,4 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         }
         super.onDestroy();
     }
-}
-
+                }
