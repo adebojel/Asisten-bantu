@@ -32,7 +32,6 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         Log.d(TAG, "Layanan Aksesibilitas Terhubung!");
         tts = new TextToSpeech(this, this);
         
-        // Inisialisasi SpeechRecognizer sistem dengan preferensi offline
         speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
         speechRecognizer.setRecognitionListener(new MyRecognitionListener());
         
@@ -68,7 +67,6 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         
         @Override
         public void onError(int error) {
-            // Otomatis mendengarkan ulang saat jeda atau selesai
             startListening();
         }
         
@@ -79,9 +77,7 @@ public class AsistenAccessibilityService extends AccessibilityService implements
                 String spokenText = matches.get(0).toLowerCase();
                 Log.d(TAG, "Mendengar: " + spokenText);
                 
-                // --- WAKE WORD: KOBRA ---
                 if (spokenText.startsWith("kobra")) {
-                    // Buang kata "kobra" di depan, ambil sisa perintahnya
                     String command = spokenText.replaceFirst("kobra", "").trim();
                     
                     if (command.isEmpty()) {
@@ -100,7 +96,6 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         public void onEvent(int eventType, Bundle params) {}
     }
 
-    // --- EKSEKUSI PERINTAH SETELAH DIPANGGIL ---
     private void executeCommand(String spokenText) {
         if (spokenText.contains("wifi") || spokenText.contains("internet") || spokenText.contains("data seluler")) {
             openInternetPanel();
@@ -138,8 +133,6 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         }
     }
 
-    // --- FITUR KONTROL HARDWARE & SISTEM ---
-
     private void openInternetPanel() {
         if (tts != null) tts.speak("Membuka pengaturan internet", TextToSpeech.QUEUE_FLUSH, null, null);
         try {
@@ -155,15 +148,9 @@ public class AsistenAccessibilityService extends AccessibilityService implements
 
     private void openBluetoothPanel() {
         if (tts != null) tts.speak("Membuka pengaturan bluetooth", TextToSpeech.QUEUE_FLUSH, null, null);
-        try {
-            Intent panelIntent = new Intent(Settings.Panel.ACTION_BLUETOOTH);
-            panelIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(panelIntent);
-        } catch (Exception e) {
-            Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        }
+        Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 
     private void toggleFlashlight() {
@@ -205,7 +192,7 @@ public class AsistenAccessibilityService extends AccessibilityService implements
                 startActivity(intent);
             }
         } else {
-            if (tts != null) tts.speak("Aplikasi " + appName + " tidak ditemukan", TextToSpeech.QUEUE_FLUNCH, null, null);
+            if (tts != null) tts.speak("Aplikasi " + appName + " tidak ditemukan", TextToSpeech.QUEUE_FLUSH, null, null);
         }
     }
 
