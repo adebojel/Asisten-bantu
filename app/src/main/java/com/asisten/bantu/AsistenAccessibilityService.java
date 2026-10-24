@@ -22,13 +22,22 @@ public class AsistenAccessibilityService extends AccessibilityService implements
     public void onAccessibilityEvent(AccessibilityEvent event) {
         int eventType = event.getEventType();
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
-            eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
-            CharSequence packageName = event.getPackageName();
-            List<CharSequence> textList = event.getText();
-            CharSequence sourceText = (textList != null && !textList.isEmpty()) ? textList.get(0) : "";
+            eventType == AccessibilityEvent.TYPE_VIEW_CLICKED ||
+            eventType == AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED) {
             
-            // Di sinilah nanti AI membaca teks atau elemen di layar HP
-            Log.d(TAG, "Aplikasi aktif: " + packageName + " | Teks: " + sourceText);
+            List<CharSequence> textList = event.getText();
+            if (textList != null && !textList.isEmpty()) {
+                CharSequence sourceText = textList.get(0);
+                if (sourceText != null && sourceText.length() > 0) {
+                    String spokenText = sourceText.toString();
+                    Log.d(TAG, "Membaca: " + spokenText);
+                    
+                    // Perintah suara otomatis membaca teks di layar
+                    if (tts != null) {
+                        tts.speak(spokenText, TextToSpeech.QUEUE_FLUSH, null, null);
+                    }
+                }
+            }
         }
     }
 
@@ -41,7 +50,7 @@ public class AsistenAccessibilityService extends AccessibilityService implements
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
             tts.setLanguage(new Locale("id", "ID"));
-            tts.speak("Asisten Bantu siap mendampingi.", TextToSpeech.QUEUE_FLUSH, null, null);
+            tts.speak("Asisten Bantu siap membacakan layar.", TextToSpeech.QUEUE_FLUSH, null, null);
         }
     }
 
