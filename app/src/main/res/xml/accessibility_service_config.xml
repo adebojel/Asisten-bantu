@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackSpoken"
+    android:accessibilityFlags="flagDefault|flagRetrieveWindowContent|flagIncludeNotImportantViews"
+    android:canRetrieveWindowContent="true"
+    android:description="Asisten AI offline untuk membantu navigasi tunanetra"
+    android:notificationTimeout="100" />
