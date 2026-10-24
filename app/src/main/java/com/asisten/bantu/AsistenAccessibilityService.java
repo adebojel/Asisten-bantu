@@ -2,9 +2,9 @@ package com.asisten.bantu;
 
 import android.accessibilityservice.AccessibilityService;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.accessibility.AccessibilityNodeInfo;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
+import java.util.List;
 import java.util.Locale;
 
 public class AsistenAccessibilityService extends AccessibilityService implements TextToSpeech.OnInitListener {
@@ -24,7 +24,8 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
             eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
             CharSequence packageName = event.getPackageName();
-            CharSequence sourceText = event.getText();
+            List<CharSequence> textList = event.getText();
+            CharSequence sourceText = (textList != null && !textList.isEmpty()) ? textList.get(0) : "";
             
             // Di sinilah nanti AI membaca teks atau elemen di layar HP
             Log.d(TAG, "Aplikasi aktif: " + packageName + " | Teks: " + sourceText);
@@ -53,4 +54,3 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         super.onDestroy();
     }
 }
-
