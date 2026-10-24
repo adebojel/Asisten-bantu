@@ -13,7 +13,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 import android.net.Uri;
 import android.provider.Settings;
-import android.hardware.camera2.CameraManager;
 import android.content.Context;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +23,6 @@ public class AsistenAccessibilityService extends AccessibilityService implements
     private TextToSpeech tts;
     private SpeechRecognizer speechRecognizer;
     private Intent recognizerIntent;
-    private boolean isFlashlightOn = false;
 
     @Override
     protected void onServiceConnected() {
@@ -67,7 +65,6 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         
         @Override
         public void onError(int error) {
-            // Otomatis mulai mendengarkan lagi jika jeda
             startListening();
         }
         
@@ -78,12 +75,13 @@ public class AsistenAccessibilityService extends AccessibilityService implements
                 String spokenText = matches.get(0).toLowerCase();
                 Log.d(TAG, "Mendengar: " + spokenText);
                 
-                // Eksekusi langsung jika kalimat mengandung kata "kobra"
                 if (spokenText.contains("kobra")) {
                     int index = spokenText.indexOf("kobra");
                     String command = spokenText.substring(index + 5).trim();
                     
-                    if (!command.isEmpty()) {
+                    if (command.isEmpty()) {
+                        if (tts != null) tts.speak("Ada yang bisa saya bantu?", TextToSpeech.QUEUE_FLUSH, null, null);
+                    } else {
                         executeCommand(command);
                     }
                 }
@@ -106,9 +104,9 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         else if (spokenText.contains("bluetooth")) {
             openBluetoothPanel();
         }
-        // 3. Kontrol Senter
+        // 3. Kontrol Senter (Membuka Panel Quick Settings)
         else if (spokenText.contains("senter") || spokenText.contains("lampu")) {
-            toggleFlashlight();
+            openFlashlightPanel();
         }
         // 4. Buka WhatsApp
         else if (spokenText.contains("whatsapp") || spokenText.contains("watsap") || spokenText.contains("wa")) {
@@ -180,21 +178,13 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         startActivity(intent);
     }
 
-    private void toggleFlashlight() {
+    // Membuka Panel Quick Settings untuk akses Senter instan
+    private void openFlashlightPanel() {
+        if (tts != null) tts.speak("Membuka panel cepat", TextToSpeech.QUEUE_FLUSH, null, null);
         try {
-            CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-            String cameraId = cameraManager.getCameraIdList()[0];
-            if (!isFlashlightOn) {
-                cameraManager.setTorchMode(cameraId, true);
-                isFlashlightOn = true;
-                if (tts != null) tts.speak("Senter dinyalakan", TextToSpeech.QUEUE_FLUSH, null, null);
-            } else {
-                cameraManager.setTorchMode(cameraId, false);
-                isFlashlightOn = false;
-                if (tts != null) tts.speak("Senter dimatikan", TextToSpeech.QUEUE_FLUSH, null, null);
-            }
+            performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS);
         } catch (Exception e) {
-            if (tts != null) tts.speak("Gagal mengontrol senter", TextToSpeech.QUEUE_FLUSH, null, null);
+            performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS);
         }
     }
 
@@ -290,4 +280,4 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         }
         super.onDestroy();
     }
-                }
+}
