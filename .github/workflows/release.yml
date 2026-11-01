@@ -1,9 +1,8 @@
-name: Build and Release APK
+name: Auto Build and Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ "main", "master" ]
 
 jobs:
   build:
@@ -19,12 +18,20 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug --no-daemon
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
 
-    - name: Upload Release Asset
-      uses: softprops/action-gh-release@v1
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug
+
+    - name: Publish Release
+      uses: ncipollo/release-action@v1
       with:
-        files: app/build/outputs/apk/debug/app-debug.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: "app/build/outputs/apk/debug/app-debug.apk"
+        tag: "v1.0.${{ github.run_number }}"
+        name: "Asisten Kobra v1.0.${{ github.run_number }}"
+        body: "Update otomatis Asisten Kobra untuk tunanetra - Siap pakai."
+        token: ${{ secrets.GITHUB_TOKEN }}
+        allowUpdates: true
+        replacesArtifacts: true
+        
