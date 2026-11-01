@@ -1,37 +1,19 @@
 name: Auto Build and Release
-
 on:
   push:
-    branches: [ "main", "master" ]
-
+    branches: [ "main" ]
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-
-    - name: Build Debug APK
-      run: gradle assembleDebug
-
-    - name: Publish Release
-      uses: ncipollo/release-action@v1
-      with:
-        artifacts: "app/build/outputs/apk/debug/app-debug.apk"
-        tag: "v1.0.${{ github.run_number }}"
-        name: "Asisten Kobra v1.0.${{ github.run_number }}"
-        body: "Update otomatis Asisten Kobra untuk tunanetra - Siap pakai."
-        token: ${{ secrets.GITHUB_TOKEN }}
-        allowUpdates: true
-        replacesArtifacts: true
-        
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: gradle/actions/setup-gradle@v3
+      - run: gradle assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kobra-OS-V6-APK-FIXED
+          path: app/build/outputs/apk/debug/app-debug.apk
