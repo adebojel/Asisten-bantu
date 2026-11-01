@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#000000">
+<TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🦯 TONGKAT PINTAR" android:textSize="22sp" android:textStyle="bold" android:textColor="#FF9800" android:gravity="center" android:padding="12dp"/>
+<androidx.camera.view.PreviewView android:id="@+id/previewViewNav" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
+<TextView android:id="@+id/tvNavStatus" android:layout_width="match_parent" android:layout_height="120dp" android:background="#222222" android:textColor="#FFFFFF" android:textSize="18sp" android:padding="12dp" android:text="Mode tongkat..."/>
+<TextView android:id="@+id/tvObstacle" android:layout_width="match_parent" android:layout_height="80dp" android:background="#111111" android:textColor="#FF5252" android:textSize="20sp" android:textStyle="bold" android:gravity="center" android:text="Aman"/>
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="8dp">
+<Button android:id="@+id/btnStartNav" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:text="▶️ MULAI"/><Button android:id="@+id/btnStopNav" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:text="⏹️ STOP"/>
+</LinearLayout>
+</LinearLayout>
