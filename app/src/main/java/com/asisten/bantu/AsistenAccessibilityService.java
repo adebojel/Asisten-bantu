@@ -10,6 +10,8 @@ import android.content.Intent;
 import android.speech.RecognizerIntent;
 import android.os.Bundle;
 import android.os.BatteryManager;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
@@ -28,73 +30,103 @@ public class AsistenAccessibilityService extends AccessibilityService implements
     private TextToSpeech tts;
     private SpeechRecognizer speechRecognizer;
     private Intent recognizerIntent;
+    private Handler mainHandler;
     
     // Ikon Melayang (Floating Window)
     private WindowManager windowManager;
     private Button floatingMicButton;
 
-    // State Percakapan Universal Konfirmasi
-    // 0: Normal, 1: Menunggu Konfirmasi Aksi Umum, 2: Tunggu Kontak Pesan, 3: Tunggu Isi Pesan, 4: Konfirmasi Akhir Pesan
+    // State Percakapan Universal Konfirmasi & AI Flow
+    // 0: Standby / Menunggu Wake Word "Kobra"
+    // 1: Menunggu Konfirmasi Universal Aksi Sistem
+    // 2: Menunggu Nama Kontak Pesan
+    // 3: Menunggu Isi Pesan
+    // 4: Konfirmasi Akhir Kirim Pesan
     private int conversationState = 0; 
     
-    // Variabel Pending untuk Eksekusi Setelah Dikonfirmasi
     private String pendingActionType = "";
     private String pendingActionValue = "";
     private String targetContact = "";
     private String messageBody = "";
+    private boolean isSpeaking = false;
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         Log.d(TAG, "Layanan Aksesibilitas Terhubung!");
+        mainHandler = new Handler(Looper.getMainLooper());
         tts = new TextToSpeech(this, this);
         
         setupFloatingWindow();
 
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-        speechRecognizer.setRecognitionListener(new MyRecognitionListener());
-        
-        recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID");
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
-        
-        startListening();
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                initSpeechRecognizer();
+            }
+        });
+    }
+
+    private void initSpeechRecognizer() {
+        try {
+            if (speechRecognizer != null) {
+                speechRecognizer.destroy();
+            }
+            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            speechRecognizer.setRecognitionListener(new MyRecognitionListener());
+            
+            recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID");
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+            recognizerIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+            
+            startListening();
+        } catch (Exception e) {
+            Log.e(TAG, "Gagal inisialisasi SpeechRecognizer: " + e.getMessage());
+        }
     }
 
     private void setupFloatingWindow() {
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-        floatingMicButton = new Button(this);
-        floatingMicButton.setText("🎤 Kobra");
-        floatingMicButton.setBackgroundColor(0xFF00FF00); 
-        floatingMicButton.setTextColor(0xFF000000);
-
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                PixelFormat.TRANSLUCENT
-        );
-
-        params.gravity = Gravity.TOP | Gravity.END;
-        params.x = 50;
-        params.y = 200;
-
         try {
+            windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+            floatingMicButton = new Button(this);
+            floatingMicButton.setText("🎤 Kobra AI");
+            floatingMicButton.setBackgroundColor(0xFF00FF00); 
+            floatingMicButton.setTextColor(0xFF000000);
+
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT,
+                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                    PixelFormat.TRANSLUCENT
+            );
+
+            params.gravity = Gravity.TOP | Gravity.END;
+            params.x = 50;
+            params.y = 200;
+
             windowManager.addView(floatingMicButton, params);
         } catch (Exception e) {
             Log.e(TAG, "Gagal membuat floating window: " + e.getMessage());
         }
     }
 
+    // Fungsi Standby Pendengaran Tanpa Henti (Always Standby)
     private void startListening() {
-        if (speechRecognizer != null) {
-            try {
-                speechRecognizer.startListening(recognizerIntent);
-            } catch (Exception e) {
-                Log.e(TAG, "Gagal mulai mendengar: " + e.getMessage());
-            }
+        if (speechRecognizer != null && !isSpeaking) {
+            mainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        speechRecognizer.stopListening();
+                        speechRecognizer.startListening(recognizerIntent);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Gagal mulai mendengar: " + e.getMessage());
+                    }
+                }
+            });
         }
     }
 
@@ -112,7 +144,13 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         
         @Override
         public void onError(int error) {
-            startListening();
+            // Auto restart mikrofon agar selalu standby mendengarkan
+            mainHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startListening();
+                }
+            }, 500);
         }
         
         @Override
@@ -122,7 +160,6 @@ public class AsistenAccessibilityService extends AccessibilityService implements
                 String spokenText = matches.get(0).toLowerCase();
                 Log.d(TAG, "Mendengar: " + spokenText);
 
-                // Jika sedang dalam mode percakapan interaktif / konfirmasi
                 if (conversationState > 0) {
                     handleConversationFlow(spokenText);
                 } 
@@ -131,7 +168,7 @@ public class AsistenAccessibilityService extends AccessibilityService implements
                     String command = spokenText.substring(index + 5).trim();
                     
                     if (command.isEmpty()) {
-                        if (tts != null) tts.speak("Sistem online, Tuan. Ada yang bisa saya bantu?", TextToSpeech.QUEUE_FLUSH, null, null);
+                        speakText("Sistem Kobra online. Siap mendengarkan perintah, Tuan.");
                     } else {
                         executeCommand(command);
                     }
@@ -146,40 +183,63 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         public void onEvent(int eventType, Bundle params) {}
     }
 
-    // Alur Konfirmasi Universal dan Pesan Bertahap
+    // Sistem Bicara dengan Penundaan Mikrofon agar Tidak Merekam Suara Sendiri
+    private void speakText(final String text) {
+        isSpeaking = true;
+        if (speechRecognizer != null) {
+            try {
+                speechRecognizer.stopListening();
+            } catch (Exception e) {}
+        }
+
+        if (tts != null) {
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, null);
+        }
+
+        // Beri jeda waktu agar TTS selesai bicara, lalu aktifkan kembali mic standby
+        mainHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                isSpeaking = false;
+                startListening();
+            }
+        }, 4000); // Jeda 4 detik untuk memastikan suara selesai dibacakan
+    }
+
+    // Alur Percakapan Interaktif Konfirmasi Bertahap
     private void handleConversationFlow(String spokenText) {
         boolean isConfirmed = spokenText.contains("iya") || spokenText.contains("ya") || spokenText.contains("lanjut") || spokenText.contains("jalankan");
 
         switch (conversationState) {
-            case 1: // Konfirmasi Universal (Aplikasi, Wi-Fi, Senter, Bluetooth, dll)
+            case 1: // Konfirmasi Universal Sistem
                 if (isConfirmed) {
                     executeConfirmedAction(pendingActionType, pendingActionValue);
                 } else {
-                    if (tts != null) tts.speak("Perintah dibatalkan.", TextToSpeech.QUEUE_FLUSH, null, null);
+                    speakText("Perintah dibatalkan.");
                 }
                 resetConversation();
                 break;
 
-            case 2: // Menunggu nama kontak untuk kirim pesan
+            case 2: // Menunggu kontak pesan
                 targetContact = spokenText;
                 conversationState = 3;
-                if (tts != null) tts.speak("Kepada " + targetContact + ". Silahkan sebutkan isi pesan yang ingin dikirim.", TextToSpeech.QUEUE_FLUSH, null, null);
+                speakText("Kepada " + targetContact + ". Silahkan sebutkan isi pesan yang ingin dikirim.");
                 break;
 
             case 3: // Menunggu isi pesan
                 messageBody = spokenText;
                 conversationState = 4;
-                if (tts != null) tts.speak("Pesan berbunyi: " + messageBody + ". Apakah pesan ini mau dikirim sekarang? Katakan iya untuk mengirim.", TextToSpeech.QUEUE_FLUSH, null, null);
+                speakText("Pesan berbunyi: " + messageBody + ". Apakah pesan mau dikirim sekarang? Katakan iya untuk mengirim.");
                 break;
 
             case 4: // Konfirmasi akhir kirim pesan
                 if (isConfirmed) {
-                    if (tts != null) tts.speak("Pesan dikirim sekarang.", TextToSpeech.QUEUE_FLUSH, null, null);
+                    speakText("Pesan dikirim sekarang.");
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://api.whatsapp.com/send?text=" + Uri.encode(messageBody)));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                 } else {
-                    if (tts != null) tts.speak("Pengiriman pesan dibatalkan.", TextToSpeech.QUEUE_FLUSH, null, null);
+                    speakText("Pengiriman pesan dibatalkan.");
                 }
                 resetConversation();
                 break;
@@ -192,70 +252,54 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         pendingActionValue = "";
     }
 
-    // Deteksi Perintah Awal & Minta Konfirmasi Sebelum Eksekusi
     private void executeCommand(String spokenText) {
-        // Baca Layar (Bisa langsung tanpa konfirmasi agar cepat)
         if (spokenText.contains("baca layar") || spokenText.contains("apa di layar") || spokenText.contains("isi layar")) {
             readCurrentScreenContent();
         }
-        // Status Baterai
         else if (spokenText.contains("baterai") || spokenText.contains("status")) {
             checkBatteryStatus();
         }
-        // Internet / Wi-Fi
         else if (spokenText.contains("wifi") || spokenText.contains("internet") || spokenText.contains("data seluler")) {
-            requestConfirmation("WIFI_PANEL", "Pengaturan Internet", "Membuka pengaturan internet");
+            requestConfirmation("WIFI_PANEL", "Pengaturan Internet", "membuka pengaturan internet");
         }
-        // Bluetooth
         else if (spokenText.contains("bluetooth")) {
-            requestConfirmation("BLUETOOTH_PANEL", "Pengaturan Bluetooth", "Membuka pengaturan bluetooth");
+            requestConfirmation("BLUETOOTH_PANEL", "Pengaturan Bluetooth", "membuka pengaturan bluetooth");
         }
-        // Senter (Panel Cepat)
         else if (spokenText.contains("senter") || spokenText.contains("lampu")) {
-            requestConfirmation("FLASHLIGHT_PANEL", "Panel Cepat Senter", "Membuka panel cepat senter");
+            requestConfirmation("FLASHLIGHT_PANEL", "Panel Cepat Senter", "membuka panel cepat senter");
         }
-        // Kirim Pesan (Masuk ke alur bertahap khusus pesan)
         else if (spokenText.contains("kirim pesan") || spokenText.contains("buka chat")) {
             conversationState = 2;
-            if (tts != null) tts.speak("Baik, kepada siapa anda ingin mengirim pesan?", TextToSpeech.QUEUE_FLUSH, null, null);
+            speakText("Baik, kepada siapa anda ingin mengirim pesan?");
         }
-        // Putar YouTube / Media
         else if (spokenText.contains("youtube") || spokenText.contains("putar") || spokenText.contains("cari lagu") || spokenText.contains("cari video")) {
             String query = spokenText.replace("putar", "").replace("cari lagu", "").replace("cari video", "").replace("di youtube", "").replace("youtube", "").trim();
-            requestConfirmation("YOUTUBE", query, "Mencari dan memutar " + query + " di YouTube");
+            requestConfirmation("YOUTUBE", query, "mencari dan memutar " + query + " di YouTube");
         } 
-        // Telepon
         else if (spokenText.startsWith("panggil ") || spokenText.startsWith("telepon ")) {
             String target = spokenText.replace("panggil", "").replace("telepon", "").trim();
-            requestConfirmation("CALL", target, "Menghubungi " + target);
+            requestConfirmation("CALL", target, "menghubungi " + target);
         } 
-        // Navigasi Maps
         else if (spokenText.startsWith("arahin ke ") || spokenText.startsWith("navigasi ke ")) {
             String destination = spokenText.replace("arahin ke", "").replace("navigasi ke", "").trim();
-            requestConfirmation("MAPS", destination, "Mengarahkan navigasi ke " + destination);
+            requestConfirmation("MAPS", destination, "mengarahkan navigasi ke " + destination);
         } 
-        // Kembali ke Beranda
         else if (spokenText.contains("kembali ke beranda") || spokenText.contains("home")) {
-            requestConfirmation("HOME", "Beranda", "Kembali ke beranda perangkat");
+            requestConfirmation("HOME", "Beranda", "kembali ke beranda perangkat");
         } 
-        // Buka Aplikasi Apapun Secara Universal
         else if (spokenText.startsWith("buka ")) {
             String appName = spokenText.replace("buka ", "").trim();
-            requestConfirmation("OPEN_APP", appName, "Membuka aplikasi " + appName);
+            requestConfirmation("OPEN_APP", appName, "membuka aplikasi " + appName);
         }
     }
 
-    // Fungsi Memicu Permintaan Konfirmasi Universal
     private void requestConfirmation(String actionType, String actionValue, String description) {
         pendingActionType = actionType;
         pendingActionValue = actionValue;
-        conversationState = 1; // Masuk mode tunggu konfirmasi universal
-        if (tts != null) {
-            tts.speak("Anda ingin " + description + ". Apakah ingin dijalankan sekarang? Katakan iya.", TextToSpeech.QUEUE_FLUSH, null, null);
-        }
+        conversationState = 1; 
+        speakText("Anda ingin " + description + ". Apakah ingin dijalankan sekarang? Katakan iya.");
     }
 
-    // Eksekusi Nyata Setelah Pengguna Mengatakan "Iya"
     private void executeConfirmedAction(String actionType, String actionValue) {
         switch (actionType) {
             case "WIFI_PANEL":
@@ -345,14 +389,14 @@ public class AsistenAccessibilityService extends AccessibilityService implements
         }
 
         if (targetPackage != null) {
-            if (tts != null) tts.speak("Membuka " + realAppName, TextToSpeech.QUEUE_FLUSH, null, null);
+            speakText("Membuka " + realAppName);
             Intent intent = pm.getLaunchIntentForPackage(targetPackage);
             if (intent != null) {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(intent);
             }
         } else {
-            if (tts != null) tts.speak("Aplikasi " + appName + " tidak ditemukan di perangkat.", TextToSpeech.QUEUE_FLUSH, null, null);
+            speakText("Aplikasi " + appName + " tidak ditemukan.");
         }
     }
 
@@ -364,18 +408,16 @@ public class AsistenAccessibilityService extends AccessibilityService implements
             String resultText = sb.toString().trim();
             
             if (!resultText.isEmpty()) {
-                if (tts != null) {
-                    if (resultText.length() > 300) {
-                        resultText = resultText.substring(0, 300) + "... dan masih banyak lagi.";
-                    }
-                    tts.speak("Isi layar: " + resultText, TextToSpeech.QUEUE_FLUSH, null, null);
+                if (resultText.length() > 300) {
+                    resultText = resultText.substring(0, 300) + "... dan masih banyak lagi.";
                 }
+                speakText("Isi layar: " + resultText);
             } else {
-                if (tts != null) tts.speak("Tidak ada teks terdeteksi di layar.", TextToSpeech.QUEUE_FLUSH, null, null);
+                speakText("Tidak ada teks terdeteksi di layar.");
             }
             rootNode.recycle();
         } else {
-            if (tts != null) tts.speak("Gagal membaca layar.", TextToSpeech.QUEUE_FLUSH, null, null);
+            speakText("Gagal membaca layar.");
         }
     }
 
@@ -394,9 +436,7 @@ public class AsistenAccessibilityService extends AccessibilityService implements
     private void checkBatteryStatus() {
         BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
         int batteryLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-        if (tts != null) {
-            tts.speak("Sisa baterai perangkat saat ini " + batteryLevel + " persen, Tuan.", TextToSpeech.QUEUE_FLUSH, null, null);
-        }
+        speakText("Sisa baterai perangkat saat ini " + batteryLevel + " persen, Tuan.");
     }
 
     @Override
@@ -418,7 +458,7 @@ public class AsistenAccessibilityService extends AccessibilityService implements
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
             tts.setLanguage(new Locale("id", "ID"));
-            tts.speak("Sistem Kobra online. Siap melayani.", TextToSpeech.QUEUE_FLUSH, null, null);
+            speakText("Sistem Kobra AI online. Mikrofon aktif standby.");
         }
     }
 
