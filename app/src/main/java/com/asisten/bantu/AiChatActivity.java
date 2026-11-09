@@ -1,20 +1,43 @@
-
 package com.asisten.bantu;
 
-import android.os.Bundle; import android.os.Handler; import android.os.Looper; import android.speech.RecognitionListener; import android.speech.RecognizerIntent; import android.speech.SpeechRecognizer; import android.speech.tts.TextToSpeech; import android.widget.Button; import android.widget.TextView; import java.util.*;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
+import android.speech.tts.TextToSpeech;
+import android.widget.Button;
+import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
+import java.util.*;
 
 public class AiChatActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
-    private TextView tvHistory; private TextToSpeech tts; private SpeechRecognizer recognizer; private android.content.Intent recognizerIntent; private Handler handler = new Handler(Looper.getMainLooper()); private boolean isListening = false; private StringBuilder chatLog = new StringBuilder();
+    private TextView tvHistory; 
+    private TextToSpeech tts; 
+    private SpeechRecognizer recognizer; 
+    private android.content.Intent recognizerIntent; 
+    private Handler handler = new Handler(Looper.getMainLooper()); 
+    private boolean isListening = false; 
+    private StringBuilder chatLog = new StringBuilder();
     private Map<String, String> knowledgeBase;
 
-    @Override protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState); setContentView(R.layout.activity_ai_chat);
-        tvHistory = findViewById(R.id.tvChatHistory); Button btnListen = findViewById(R.id.btnListenChat); Button btnClose = findViewById(R.id.btnCloseChat);
+    @Override 
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState); 
+        setContentView(R.layout.activity_ai_chat);
+        
+        tvHistory = findViewById(R.id.tvChatHistory); 
+        Button btnListen = findViewById(R.id.btnListenChat); 
+        Button btnClose = findViewById(R.id.btnCloseChat);
+        
         tts = new TextToSpeech(this, this);
         buildKnowledgeBase();
-        chatLog.append("Kobra AI: Halo Tuan! Saya Kobra AI teman ngobrol offline anda. Saya bisa temani curhat, kasih motivasi, jawab pertanyaan, ceritakan lelucon, bantu pakai HP. Semua offline, tanpa internet. Ucapkan sesuatu...
-
-");
+        
+        chatLog.append("Kobra AI: Halo Tuan! Saya Kobra AI teman ngobrol offline anda. ")
+               .append("Saya bisa temani curhat, kasih motivasi, jawab pertanyaan, ceritakan lelucon, bantu pakai HP. ")
+               .append("Semua offline, tanpa internet. Ucapkan sesuatu...\n\n");
+               
         tvHistory.setText(chatLog.toString());
 
         btnListen.setOnClickListener(v -> startListening());
@@ -68,18 +91,16 @@ public class AiChatActivity extends AppCompatActivity implements TextToSpeech.On
     }
 
     private void startListening() {
-        try { tvHistory.append("
-🎤 Mendengarkan...
-"); recognizer.startListening(recognizerIntent); } catch (Exception e) {}
+        try { 
+            tvHistory.append("\n🎤 Mendengarkan...\n"); 
+            recognizer.startListening(recognizerIntent); 
+        } catch (Exception e) {}
     }
 
     private void handleChat(String input) {
-        chatLog.append("Anda: ").append(input).append("
-");
+        chatLog.append("Anda: ").append(input).append("\n");
         String response = generateResponse(input);
-        chatLog.append("Kobra AI: ").append(response).append("
-
-");
+        chatLog.append("Kobra AI: ").append(response).append("\n\n");
         tvHistory.setText(chatLog.toString());
         speak(response);
     }
@@ -102,8 +123,27 @@ public class AiChatActivity extends AppCompatActivity implements TextToSpeech.On
         return "Menarik Tuan, anda bilang: " + input + ". Saya Kobra AI offline, saya coba pahami. Bisa ceritakan lebih detail? Atau tanya: motivasi, cara pakai Kobra, lelucon, doa, cerita, atau curhat apa saja. Saya dengarkan.";
     }
 
-    private void speak(String s) { if (tts != null) tts.speak(s, TextToSpeech.QUEUE_FLUSH, null, null); }
-    @Override public void onInit(int status) { if (status == TextToSpeech.SUCCESS) { tts.setLanguage(new Locale("id","ID")); tts.setSpeechRate(0.9f); speak("Halo Tuan! Saya Kobra AI teman ngobrol offline anda. Saya di sini untuk temani curhat, kasih semangat, jawab pertanyaan. Tekan ngobrol dan bicara apa saja, semua offline."); } }
-    @Override protected void onDestroy() { if (recognizer != null) recognizer.destroy(); if (tts != null) { tts.stop(); tts.shutdown(); } super.onDestroy(); }
+    private void speak(String s) { 
+        if (tts != null) tts.speak(s, TextToSpeech.QUEUE_FLUSH, null, null); 
+    }
+
+    @Override 
+    public void onInit(int status) { 
+        if (status == TextToSpeech.SUCCESS) { 
+            tts.setLanguage(new Locale("id","ID")); 
+            tts.setSpeechRate(0.9f); 
+            speak("Halo Tuan! Saya Kobra AI teman ngobrol offline anda. Saya di sini untuk temani curhat, kasih semangat, jawab pertanyaan. Tekan ngobrol dan bicara apa saja, semua offline."); 
+        } 
+    }
+
+    @Override 
+    protected void onDestroy() { 
+        if (recognizer != null) recognizer.destroy(); 
+        if (tts != null) { 
+            tts.stop(); 
+            tts.shutdown(); 
+        } 
+        super.onDestroy(); 
+    }
 }
 
