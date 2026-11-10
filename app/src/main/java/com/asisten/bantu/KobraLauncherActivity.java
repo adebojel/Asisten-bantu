@@ -1,28 +1,137 @@
-
 package com.asisten.bantu;
 
-import android.content.Intent; import android.content.pm.ApplicationInfo; import android.content.pm.PackageManager; import android.os.Bundle; import android.os.Handler; import android.os.Looper; import android.speech.tts.TextToSpeech; import android.widget.Button; import android.widget.TextView; import androidx.appcompat.app.AppCompatActivity; import androidx.recyclerview.widget.LinearLayoutManager; import androidx.recyclerview.widget.RecyclerView; import java.text.SimpleDateFormat; import java.util.*;
+import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
-public class KobraLauncherActivity extends AppCompatActivity implements TextToSpeech.OnInitListener {
-    private TextToSpeech tts; private TextView tvClock, tvListen, tvScreenReader; private Handler handler = new Handler(Looper.getMainLooper()); private Runnable clockRunnable; private List<ApplicationInfo> appList = new ArrayList<>();
+/** Layar utama Kobra: tombol besar dan daftar aplikasi, semuanya bisa dijalankan lewat suara. */
+public class KobraLauncherActivity extends AppCompatActivity {
+
+    private TextView tvClock, tvListen, tvScreenReader;
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable clockTick = new Runnable() {
+        @Override public void run() {
+            tvClock.setText(new SimpleDateFormat("HH:mm - EEEE, dd MMMM", new Locale("id", "ID")).format(new Date()));
+            handler.postDelayed(this, 30000);
+        }
+    };
+
     @Override protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState); setContentView(R.layout.activity_launcher);
-        tvClock = findViewById(R.id.tvClock); tvListen = findViewById(R.id.tvListen); tvScreenReader = findViewById(R.id.tvScreenReader); RecyclerView rv = findViewById(R.id.rvApps); rv.setLayoutManager(new LinearLayoutManager(this));
-        tts = new TextToSpeech(this, this); loadApps(rv);
-        clockRunnable = new Runnable() { @Override public void run() { SimpleDateFormat sdf = new SimpleDateFormat("HH:mm - EEEE, dd MMMM", new Locale("id","ID")); tvClock.setText(sdf.format(new Date())); handler.postDelayed(this, 60000); } }; handler.post(clockRunnable);
-        findViewById(R.id.btnReadScreen).setOnClickListener(v -> { if (AsistenAccessibilityService.getInstance() != null) { String text = AsistenAccessibilityService.getInstance().readCurrentScreenContentForLauncher(); tvScreenReader.setText(text); speak(text); } else speak("Aktifkan aksesibilitas dulu"); });
-        findViewById(R.id.btnMic).setOnClickListener(v -> speak("Ucapkan Kobra. Contoh: baca KTP, mode tongkat, teman ngobrol, baca uang, tolong"));
-        findViewById(R.id.btnVisionMoney).setOnClickListener(v -> openVision("money")); findViewById(R.id.btnVisionColor).setOnClickListener(v -> openVision("color")); findViewById(R.id.btnVisionFace).setOnClickListener(v -> openVision("face")); findViewById(R.id.btnVisionKtp).setOnClickListener(v -> openVision("ktp"));
-        findViewById(R.id.btnNavStick).setOnClickListener(v -> { Intent i = new Intent(this, NavigationActivity.class); startActivity(i); speak("Membuka mode tongkat pintar. Arahkan kamera ke depan."); });
-        findViewById(R.id.btnAiChat).setOnClickListener(v -> { Intent i = new Intent(this, AiChatActivity.class); startActivity(i); speak("Membuka teman ngobrol AI offline."); });
-        findViewById(R.id.btnSosEmergency).setOnClickListener(v -> { if (AsistenAccessibilityService.getInstance() != null) AsistenAccessibilityService.getInstance().triggerSosFromLauncher(); else speak("SOS butuh aksesibilitas aktif"); });
-        Intent fg = new Intent(this, KobraForegroundService.class); if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) startForegroundService(fg); else startService(fg);
-    }
-    private void openVision(String mode) { Intent intent = new Intent(this, VisionActivity.class); intent.putExtra("mode", mode); startActivity(intent); }
-    private void loadApps(RecyclerView rv) { PackageManager pm = getPackageManager(); List<ApplicationInfo> all = pm.getInstalledApplications(PackageManager.GET_META_DATA); for (ApplicationInfo ai : all) if (pm.getLaunchIntentForPackage(ai.packageName) != null) appList.add(ai); appList.sort((a,b) -> pm.getApplicationLabel(a).toString().compareToIgnoreCase(pm.getApplicationLabel(b).toString())); rv.setAdapter(new AppAdapter()); }
-    class AppAdapter extends RecyclerView.Adapter<AppAdapter.VH> { @Override public VH onCreateViewHolder(android.view.ViewGroup p, int t) { android.view.View v = getLayoutInflater().inflate(R.layout.item_app, p, false); return new VH(v); } @Override public void onBindViewHolder(VH h, int pos) { ApplicationInfo ai = appList.get(pos); String name = getPackageManager().getApplicationLabel(ai).toString(); h.tv.setText(name); h.itemView.setOnClickListener(v -> { Intent intent = getPackageManager().getLaunchIntentForPackage(ai.packageName); if (intent != null) { startActivity(intent); speak("Membuka " + name); } }); } @Override public int getItemCount() { return appList.size(); } class VH extends RecyclerView.ViewHolder { TextView tv; VH(android.view.View v) { super(v); tv = v.findViewById(R.id.tvAppName); } } }
-    @Override public void onInit(int status) { if (status == TextToSpeech.SUCCESS) { tts.setLanguage(new Locale("id","ID")); tts.setSpeechRate(0.9f); speak("Halo. Kobra OS V6 Otak Super aktif. Baru: baca KTP KK dokumen, mode tongkat pintar deteksi halangan getar, dan teman ngobrol AI offline. Ucapkan Kobra baca KTP, Kobra mode tongkat, atau Kobra teman ngobrol."); } }
-    private void speak(String s){ if (tts != null) tts.speak(s, TextToSpeech.QUEUE_FLUSH, null, null); tvListen.setText("🗣️ " + s); }
-    @Override protected void onDestroy(){ if (handler != null && clockRunnable != null) handler.removeCallbacks(clockRunnable); if (tts != null){ tts.stop(); tts.shutdown(); } super.onDestroy(); }
-}
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_launcher);
+        tvClock = findViewById(R.id.tvClock);
+        tvListen = findViewById(R.id.tvListen);
+        tvScreenReader = findViewById(R.id.tvScreenReader);
 
+        RecyclerView rv = findViewById(R.id.rvApps);
+        rv.setLayoutManager(new LinearLayoutManager(this));
+        rv.setAdapter(new AppAdapter(loadApps()));
+
+        findViewById(R.id.btnReadScreen).setOnClickListener(v -> readScreen());
+        findViewById(R.id.btnMic).setOnClickListener(v -> {
+            if (AsistenAccessibilityService.getInstance() == null) speak("Aktifkan aksesibilitas Kobra dulu di menu Setup.");
+            else AsistenAccessibilityService.requestListen();
+        });
+        findViewById(R.id.btnVisionMoney).setOnClickListener(v -> openVision("money"));
+        findViewById(R.id.btnVisionColor).setOnClickListener(v -> openVision("color"));
+        findViewById(R.id.btnVisionFace).setOnClickListener(v -> openVision("face"));
+        findViewById(R.id.btnVisionKtp).setOnClickListener(v -> openVision("ktp"));
+        findViewById(R.id.btnNavStick).setOnClickListener(v -> startActivity(new Intent(this, NavigationActivity.class)));
+        findViewById(R.id.btnAiChat).setOnClickListener(v -> startActivity(new Intent(this, AiChatActivity.class)));
+        findViewById(R.id.btnSosEmergency).setOnClickListener(v -> {
+            AsistenAccessibilityService s = AsistenAccessibilityService.getInstance();
+            if (s == null) speak("Aktifkan aksesibilitas Kobra dulu di menu Setup.");
+            else s.triggerSos();
+        });
+
+        if (!Perms.hasAll(this, Perms.required())) ActivityCompat.requestPermissions(this, Perms.required(), 100);
+        KobraForegroundService.start(this);
+        handler.post(clockTick);
+    }
+
+    @Override protected void onDestroy() {
+        handler.removeCallbacks(clockTick);
+        super.onDestroy();
+    }
+
+    private void readScreen() {
+        AsistenAccessibilityService s = AsistenAccessibilityService.getInstance();
+        if (s == null) { speak("Aktifkan aksesibilitas Kobra dulu di menu Setup."); return; }
+        String text = s.readScreenText();
+        tvScreenReader.setText(text);
+        speak(text);
+    }
+
+    private void openVision(String mode) {
+        Intent i = new Intent(this, VisionActivity.class);
+        i.putExtra("mode", mode);
+        startActivity(i);
+    }
+
+    private void speak(String text) {
+        tvListen.setText("🗣️ " + text);
+        Speaker.get(this).speak(text);
+    }
+
+    private List<ApplicationInfo> loadApps() {
+        PackageManager pm = getPackageManager();
+        List<ApplicationInfo> out = new ArrayList<>();
+        for (ApplicationInfo ai : pm.getInstalledApplications(PackageManager.GET_META_DATA)) {
+            if (pm.getLaunchIntentForPackage(ai.packageName) != null) out.add(ai);
+        }
+        Collections.sort(out, (a, b) -> pm.getApplicationLabel(a).toString()
+                .compareToIgnoreCase(pm.getApplicationLabel(b).toString()));
+        return out;
+    }
+
+    private class AppAdapter extends RecyclerView.Adapter<AppAdapter.VH> {
+        private final List<ApplicationInfo> items;
+        private final PackageManager pm = getPackageManager();
+
+        AppAdapter(List<ApplicationInfo> items) { this.items = items; }
+
+        @Override public VH onCreateViewHolder(ViewGroup parent, int viewType) {
+            View v = getLayoutInflater().inflate(R.layout.item_app, parent, false);
+            return new VH(v);
+        }
+
+        @Override public void onBindViewHolder(VH holder, int position) {
+            ApplicationInfo app = items.get(position);
+            String label = pm.getApplicationLabel(app).toString();
+            holder.tv.setText(label);
+            holder.itemView.setOnClickListener(v -> {
+                Intent i = pm.getLaunchIntentForPackage(app.packageName);
+                if (i != null) {
+                    startActivity(i);
+                    speak("Membuka " + label);
+                }
+            });
+        }
+
+        @Override public int getItemCount() { return items.size(); }
+
+        class VH extends RecyclerView.ViewHolder {
+            final TextView tv;
+            VH(View v) {
+                super(v);
+                tv = v.findViewById(R.id.tvAppName);
+            }
+        }
+    }
+}

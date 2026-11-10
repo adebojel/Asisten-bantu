@@ -1,10 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#000000">
-    <androidx.camera.view.PreviewView android:id="@+id/previewView" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
-    <TextView android:id="@+id/tvVisionResult" android:layout_width="match_parent" android:layout_height="200dp" android:background="#111111" android:textColor="#00E676" android:textSize="16sp" android:padding="14dp" android:text="Arahkan kamera..."/>
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="8dp">
-        <Button android:id="@+id/btnCapture" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:text="📸 SCAN" android:layout_marginEnd="4dp"/>
-        <Button android:id="@+id/btnClose" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:text="TUTUP" android:layout_marginStart="4dp"/>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:orientation="vertical">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewViewVision"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/tvVisionStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:textColor="#00E676"
+        android:textSize="18sp"
+        android:text="Memuat..." />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="140dp">
+        <TextView
+            android:id="@+id/tvVisionResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="12dp"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="Hasil akan muncul di sini." />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button
+            android:id="@+id/btnScanVision"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="64dp"
+            android:text="SCAN"
+            android:contentDescription="Ambil foto dan baca" />
+        <Button
+            android:id="@+id/btnBackVision"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="64dp"
+            android:text="KEMBALI"
+            android:contentDescription="Kembali ke layar utama" />
     </LinearLayout>
 </LinearLayout>
-

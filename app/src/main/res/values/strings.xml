@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Kobra OS V6</string>
-    <string name="accessibility_desc">Kobra OS V6 Otak Super. Baca KTP KK dokumen, navigasi tongkat deteksi halangan getar, teman ngobrol AI offline, baca uang warna orang SOS. Launcher utama offline no bug.</string>
+    <string name="app_name">Kobra OS</string>
+    <string name="setup_title">Setup Kobra OS</string>
+    <string name="accessibility_desc">Kobra OS membantu tunanetra dengan perintah suara, membaca layar, dan menekan tombol lewat suara.</string>
 </resources>
-
