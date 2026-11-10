@@ -1,0 +1,27 @@
+# Basis pengetahuan offline Kobra OS.
+# Format: kunci1|kunci2 => jawaban. Awalan ~ = hanya cocok untuk ucapan pendek (maksimal 4 kata).
+# Kunci ditulis huruf kecil tanpa tanda baca. Jawaban dibacakan lewat suara, jadi tulis kalimat pendek.
+
+pertolongan pertama|p3k => Saya bisa memberi panduan dasar untuk: tersedak, luka berdarah, luka bakar, pingsan, serangan jantung, stroke, keracunan, kejang, dan patah tulang. Sebutkan salah satunya. Untuk keadaan gawat, hubungi 112.
+tersedak|keselak|tercekik makanan => Jika orang dewasa tersedak dan tidak bisa bicara atau batuk, minta orang lain menghubungi 112. Berdiri di belakangnya, beri lima tepukan keras di punggung antara tulang belikat, lalu lima hentakan perut ke atas. Ulangi sampai benda keluar.
+luka berdarah|pendarahan|berdarah banyak|darah keluar => Tekan luka kuat-kuat dengan kain bersih dan jangan dilepas. Angkat bagian yang terluka lebih tinggi dari jantung bila bisa. Jika darah tidak berhenti dalam sepuluh menit atau lukanya dalam, hubungi 112.
+luka bakar|terbakar|tersiram air panas => Alirkan air biasa pada luka selama dua puluh menit. Jangan oleskan odol, mentega, atau es. Tutup longgar dengan kain bersih. Jika lukanya luas, melepuh besar, atau di wajah, hubungi 112.
+pingsan|tidak sadar|tak sadarkan diri => Baringkan orangnya, tinggikan kakinya, dan longgarkan pakaian. Periksa napasnya. Jika tidak sadar lebih dari satu menit atau tidak bernapas, hubungi 112 segera.
+serangan jantung|nyeri dada|dada sakit => Nyeri dada bisa tanda gawat. Hubungi 112 sekarang, duduk tenang, dan jangan banyak bergerak. Jangan menunggu sampai nyerinya hilang.
+stroke|wajah miring|bicara pelo => Tanda stroke: wajah miring, lengan lemah, bicara pelo. Segera hubungi 112 dan catat jam mulainya.
+keracunan|minum racun|menelan bahan kimia => Jangan dipaksa muntah. Hubungi 112 dan sebutkan zat yang tertelan.
+kejang|ayan|epilepsi kambuh => Jangan menahan gerakannya dan jangan memasukkan apa pun ke mulut. Singkirkan benda berbahaya di sekitarnya, lalu miringkan badannya setelah kejang berhenti. Hubungi 112 jika kejang lebih dari lima menit.
+patah tulang|tulang patah|terkilir => Jangan digerakkan atau diluruskan. Topang bagian yang cedera, kompres es yang dibungkus kain, lalu hubungi 112 atau pergi ke fasilitas kesehatan.
+nomor darurat|nomor ambulans|telepon darurat => Nomor darurat nasional adalah 112. Bilang Kobra SOS untuk mengirim lokasi ke kontak darurat Anda.
+menyeberang|nyeberang jalan => Berhenti di tepi jalan, dengarkan kendaraan dari kedua arah, dan menyeberang hanya jika benar-benar sepi atau minta bantuan orang sekitar. Mode tongkat Kobra hanya pembantu, bukan pengganti tongkat putih.
+tersesat|nyasar|salah jalan => Berhenti dan tetap tenang. Bilang Kobra arahkan ke tujuan Anda untuk membuka navigasi, atau minta bantuan orang sekitar. Jika dalam bahaya, bilang Kobra SOS.
+uang palsu|ciri uang asli => Uang rupiah punya tanda khusus untuk perabaan dan benang pengaman. Pastikan keasliannya dengan bantuan orang yang dipercaya atau bank.
+hemat baterai|baterai boros => Kurangi kecerahan layar, matikan Bluetooth yang tidak dipakai, dan matikan mikrofon Kobra saat tidak dibutuhkan dengan perintah Kobra matikan mikrofon.
+cara pakai|apa itu kobra|siapa kamu|nama kamu => Saya Kobra, asisten suara untuk membantu mengendalikan HP. Sebut kata Kobra lalu perintah. Bilang Kobra bantuan untuk daftar perintah.
+sedih|galau|kesepian|murung => Saya mendengarkan. Tidak apa-apa merasa seperti ini. Tarik napas pelan-pelan. Jika perasaan ini berat dan berlangsung lama, ceritakan ke orang yang Anda percaya atau tenaga profesional.
+cemas|takut|khawatir|panik => Tarik napas dalam lewat hidung selama empat hitungan, tahan sebentar, lalu hembuskan pelan. Ulangi beberapa kali. Saya di sini.
+semangat|motivasi|lelah|capek|menyerah => Anda sudah berusaha dengan baik. Istirahat sebentar tidak apa-apa, lalu lanjutkan satu langkah kecil berikutnya.
+lelucon|lucu|joke|humor => Kenapa ikan tidak bisa main komputer? Karena takut kena jaring.
+~halo|hai|selamat pagi|selamat siang|selamat sore|selamat malam => Halo. Ada yang bisa saya bantu?
+~terima kasih|makasih|thanks => Sama-sama. Senang bisa membantu.
+~apa kabar|gimana kabarmu => Baik, terima kasih. Bagaimana dengan Anda?

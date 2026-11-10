@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="API key OpenRouter (gratis, daftar di openrouter.ai)" />
+
+        <EditText
+            android:id="@+id/etApiKey"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Tempel API key di sini"
+            android:inputType="textVisiblePassword"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:minHeight="56dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="16dp"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="Model AI (kosongkan untuk otomatis memakai model gratis bawaan)" />
+
+        <EditText
+            android:id="@+id/etModel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="contoh: meta-llama/llama-3.3-70b-instruct:free"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:minHeight="56dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="16dp"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:text="Webhook n8n (opsional, kosongkan jika tidak dipakai)" />
+
+        <EditText
+            android:id="@+id/etN8nUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="https://nama-anda.app.n8n.cloud/webhook/kobra"
+            android:inputType="textUri"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:minHeight="56dp" />
+
+        <Button
+            android:id="@+id/btnSaveSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="SIMPAN"
+            android:contentDescription="Simpan pengaturan AI" />
+
+        <Button
+            android:id="@+id/btnTestAi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="TES AI"
+            android:contentDescription="Tes koneksi ke AI" />
+
+        <TextView
+            android:id="@+id/tvSettingsStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="16dp"
+            android:textColor="#00E676"
+            android:textSize="18sp"
+            android:text="" />
+
+        <Button
+            android:id="@+id/btnBackSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="KEMBALI"
+            android:contentDescription="Kembali" />
+    </LinearLayout>
+</ScrollView>

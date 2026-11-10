@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:paddingBottom="16dp"
+            android:text="Memuat status..." />
+
+        <Button
+            android:id="@+id/btnPermissions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="1. Beri izin (mikrofon, kamera, lokasi, kontak, SMS, telepon)"
+            android:contentDescription="Beri izin aplikasi" />
+
+        <Button
+            android:id="@+id/btnAccessibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="2. Aktifkan layanan aksesibilitas Kobra"
+            android:contentDescription="Buka pengaturan aksesibilitas" />
+
+        <Button
+            android:id="@+id/btnNotifAccess"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="3. Aktifkan akses notifikasi (baca notifikasi dan telepon masuk)"
+            android:contentDescription="Buka pengaturan akses notifikasi" />
+
+        <Button
+            android:id="@+id/btnSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="4. Pengaturan AI (OpenRouter dan n8n)"
+            android:contentDescription="Buka pengaturan AI" />
+
+        <Button
+            android:id="@+id/btnSos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="5. Kontak darurat SOS"
+            android:contentDescription="Atur kontak darurat" />
+
+        <Button
+            android:id="@+id/btnBattery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="6. Jangan matikan Kobra saat baterai hemat"
+            android:contentDescription="Izinkan berjalan di latar belakang" />
+
+        <Button
+            android:id="@+id/btnStartService"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="7. Jalankan Kobra di latar belakang"
+            android:contentDescription="Jalankan layanan Kobra" />
+
+        <Button
+            android:id="@+id/btnLauncher"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:text="8. Jadikan Kobra sebagai layar utama"
+            android:contentDescription="Pilih layar utama" />
+    </LinearLayout>
+</ScrollView>

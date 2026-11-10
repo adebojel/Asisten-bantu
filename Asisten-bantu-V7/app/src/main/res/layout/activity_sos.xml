@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="#000000" android:padding="24dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="🆘 KONTAK DARURAT" android:textSize="24sp" android:textStyle="bold" android:textColor="#FF5252" android:gravity="center" android:layout_marginBottom="16dp"/>
+    <EditText android:id="@+id/etName1" android:layout_width="match_parent" android:layout_height="55dp" android:hint="Nama Kontak 1" android:textColor="#FFFFFF" android:background="#222222" android:padding="12dp" android:layout_marginBottom="10dp"/>
+    <EditText android:id="@+id/etPhone1" android:layout_width="match_parent" android:layout_height="55dp" android:hint="No HP 1" android:inputType="phone" android:textColor="#FFFFFF" android:background="#222222" android:padding="12dp" android:layout_marginBottom="10dp"/>
+    <EditText android:id="@+id/etName2" android:layout_width="match_parent" android:layout_height="55dp" android:hint="Nama Kontak 2" android:textColor="#FFFFFF" android:background="#222222" android:padding="12dp" android:layout_marginBottom="10dp"/>
+    <EditText android:id="@+id/etPhone2" android:layout_width="match_parent" android:layout_height="55dp" android:hint="No HP 2" android:inputType="phone" android:textColor="#FFFFFF" android:background="#222222" android:padding="12dp" android:layout_marginBottom="20dp"/>
+    <Button android:id="@+id/btnSaveSos" android:layout_width="match_parent" android:layout_height="65dp" android:text="💾 SIMPAN" android:backgroundTint="#00C853"/>
+    <TextView android:id="@+id/tvSosStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:layout_marginTop="16dp"/>
+</LinearLayout>
+

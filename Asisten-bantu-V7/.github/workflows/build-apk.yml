@@ -1,0 +1,33 @@
+name: Build Kobra OS APK
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Uji logika murni (OfflineBrain, AppMatcher, PhoneFormat)
+        run: |
+          mkdir -p /tmp/ob
+          J=app/src/main/java/com/asisten/bantu
+          javac -encoding UTF-8 -d /tmp/ob $J/OfflineBrain.java $J/AppMatcher.java $J/PhoneFormat.java tools/OfflineBrainCheck.java tools/AppMatcherCheck.java
+          java -cp /tmp/ob com.asisten.bantu.OfflineBrainCheck
+          java -cp /tmp/ob com.asisten.bantu.AppMatcherCheck
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
+      - name: Build Debug APK
+        run: gradle assembleDebug --stacktrace
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Kobra-OS-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
