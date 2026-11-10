@@ -79,6 +79,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private KobraConfig config;
     private Speaker speaker;
+    private LocalLlmEngine localLlmEngine;
     private Handler main;
     private SpeechRecognizer recognizer;
     private Intent recognizerIntent;
@@ -120,6 +121,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
         speaker.addListener(speechListener);
+
+        // Inisialisasi Mesin LLM Offline pada Thread Latar Belakang
+        localLlmEngine = new LocalLlmEngine(this);
+        new Thread(() -> {
+            if (localLlmEngine.isModelPresent()) {
+                localLlmEngine.initEngine();
+            }
+        }).start();
+
         NetworkState.watch(this, online -> main.post(() -> say(online
                 ? "Internet tersambung. Fitur online aktif."
                 : "Internet terputus. Fitur dasar tetap jalan offline.")));
@@ -138,6 +148,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
         instance = null;
         stopMic();
         destroyRecognizer();
+        if (localLlmEngine != null) {
+            localLlmEngine.close();
+            localLlmEngine = null;
+        }
         try {
             if (windowManager != null && floatingButton != null) windowManager.removeView(floatingButton);
         } catch (Exception ignored) { }
@@ -509,9 +523,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
         String local = OfflineAi.get(this).answer(c);
         if (local != null) { say(local); return; }
 
-        // Sisanya: n8n (jika webhook diatur), lalu AI (jika API key diisi), lalu jawaban offline
+        // Sisanya: MediaPipe LLM Offline (bila offline), n8n (jika webhook diatur), lalu AI OpenRouter
         if (!NetworkState.isOnline(this)) {
-            say("Perintah itu butuh internet, dan saat ini internet terputus. Coba lagi saat tersambung.");
+            if (localLlmEngine != null && localLlmEngine.isModelPresent()) {
+                say("Memproses dengan otak offline...");
+                localLlmEngine.generateResponseAsync(c, speaker);
+            } else {
+                say("Perintah itu butuh internet, dan saat ini internet terputus. Coba lagi saat tersambung.");
+            }
             return;
         }
         if (!config.getN8nUrl().isEmpty()) {
