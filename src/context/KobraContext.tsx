@@ -303,7 +303,7 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     for (const w of wakes) {
       const idx = text.indexOf(w);
       if (idx >= 0) {
-        cmd = text.substring(idx + w.length()).trim();
+        cmd = text.substring(idx + w.length).trim();
         matchedWake = true;
         break;
       }

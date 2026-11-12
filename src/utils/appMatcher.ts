@@ -63,7 +63,7 @@ function distance(a: string, b: string): number {
     }
     for (let j = 0; j <= b.length; j++) prev[j] = cur[j];
   }
-  return prev[b.length()];
+  return prev[b.length];
 }
 
 function isClose(a: string, b: string): boolean {
