@@ -11,13 +11,15 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession;
 import java.io.File;
 
 /**
- * Pengelola LLM Offline (MediaPipe LLM Inference API) untuk Kobra OS.
- * Memuat berkas .task dari direktori internal /data/data/com.asisten.bantu/files/
+ * Pengelola Mesin LLM Offline (MediaPipe LLM Inference API) untuk Kobra OS.
+ * Menggunakan model Gemma 3 1B terkuantisasi dari direktori internal HP.
  */
 public class LocalLlmEngine {
 
-    private static final String TAG = "LocalLlmEngine";
-    private static final String MODEL_FILENAME = "gemma-2b-it-gpu-int4.task"; // Atau gemma-3-270m-it-gpu-int4.task
+    private static final String TAG = "KobraLocalLLM";
+    
+    // Nama berkas model Gemma 3 1B di penyimpanan internal (/data/data/com.asisten.bantu/files/)
+    private static final String MODEL_FILENAME = "gemma3-1b-it-int4.task";
 
     private LlmInference llmInference;
     private LlmInferenceSession session;
@@ -31,7 +33,7 @@ public class LocalLlmEngine {
     }
 
     /**
-     * Mengecek apakah berkas model .task tersedia di penyimpanan internal.
+     * Memeriksa keberadaan berkas model terkuantisasi di penyimpanan internal.
      */
     public boolean isModelPresent() {
         File modelFile = new File(context.getFilesDir(), MODEL_FILENAME);
@@ -39,8 +41,7 @@ public class LocalLlmEngine {
     }
 
     /**
-     * Memuat dan menginisialisasi model bahasa offline di memori.
-     * Sebaiknya dipanggil pada thread latar belakang (Background Thread).
+     * Memuat model bahasa offline ke memori. Dipanggil pada thread latar belakang.
      */
     public synchronized boolean initEngine() {
         if (isInitialized && llmInference != null) {
@@ -49,31 +50,31 @@ public class LocalLlmEngine {
 
         File modelFile = new File(context.getFilesDir(), MODEL_FILENAME);
         if (!modelFile.exists()) {
-            Log.e(TAG, "Berkas model tidak ditemukan di: " + modelFile.getAbsolutePath());
+            Log.w(TAG, "Berkas model Gemma 3 1B belum ditemukan di: " + modelFile.getAbsolutePath());
             return false;
         }
 
         try {
-            Log.d(TAG, "Mulai memuat model dari: " + modelFile.getAbsolutePath());
+            Log.d(TAG, "Mulai menginisialisasi Gemma 3 1B dari: " + modelFile.getAbsolutePath());
 
-            // 1. Konfigurasi Tingkat Model (LlmInferenceOptions)
+            // 1. Konfigurasi Opsi Dasar Model
             LlmInference.LlmInferenceOptions options = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(modelFile.getAbsolutePath())
                     .setMaxTokens(512) // Membatasi konteks agar hemat RAM
-                    .setPreferredBackend(LlmInference.Backend.GPU) // Akselerasi GPU
+                    .setPreferredBackend(LlmInference.Backend.GPU) // Akselerasi Grafis
                     .build();
 
             llmInference = LlmInference.createFromOptions(context, options);
 
-            // 2. Konfigurasi Sesi Percakapan (LlmInferenceSessionOptions)
+            // 2. Konfigurasi Sesi Percakapan
             LlmInferenceSession.LlmInferenceSessionOptions sessionOptions = LlmInferenceSession.LlmInferenceSessionOptions.builder()
-                    .setTemperature(0.3f) // Nilai rendah agar respons faktual dan ringkas
+                    .setTemperature(0.3f) // Respon faktual, jelas, dan singkat
                     .setTopK(40)
                     .build();
 
             session = LlmInferenceSession.createFromOptions(llmInference, sessionOptions);
             isInitialized = true;
-            Log.i(TAG, "Model LLM Offline berhasil diinisialisasi.");
+            Log.i(TAG, "Mesin LLM Offline (Gemma 3 1B) berhasil diinisialisasi.");
             return true;
 
         } catch (Exception e) {
@@ -84,21 +85,17 @@ public class LocalLlmEngine {
     }
 
     /**
-     * Mengirimkan pertanyaan ke model offline secara terstreaming
-     * dan mengalirkan kalimat ke Speaker TTS Kobra OS.
-     *
-     * @param prompt Frasa pertanyaan dari pengguna
-     * @param speaker Objek Speaker TTS utama Kobra OS
+     * Mengirimkan instruksi/pertanyaan pengguna ke model offline
+     * dan mengalirkan teks balasan ke antrean pembacaan TTS Speaker.
      */
     public void generateResponseAsync(String prompt, Speaker speaker) {
         if (!isInitialized || session == null) {
             if (speaker != null) {
-                speaker.speak("Otak offline belum siap atau berkas model belum diunduh.");
+                speaker.speak("Otak offline Gemma tiga belum siap atau berkas model belum tersedia.");
             }
             return;
         }
 
-        // Penyangga teks untuk menggabungkan token terstream menjadi frasa utuh sebelum dibaca TTS
         StringBuilder sentenceBuffer = new StringBuilder();
 
         try {
@@ -107,48 +104,46 @@ public class LocalLlmEngine {
                 if (partialResult != null && !partialResult.isEmpty()) {
                     sentenceBuffer.append(partialResult);
 
-                    // Mengirimkan teks ke TTS setiap kali menemukan tanda baca (titik/koma/ganti baris)
                     String currentText = sentenceBuffer.toString();
                     if (currentText.contains(".") || currentText.contains(",") || currentText.contains("\n")) {
-                        String sentenceToSpeak = cleanTextForTts(currentText);
-                        sentenceBuffer.setLength(0); // Kosongkan penyangga
+                        String textToSpeak = cleanTextForTts(currentText);
+                        sentenceBuffer.setLength(0);
 
-                        if (!sentenceToSpeak.isEmpty() && speaker != null) {
-                            mainHandler.post(() -> speaker.speakQueued(sentenceToSpeak));
+                        if (!textToSpeak.isEmpty() && speaker != null) {
+                            mainHandler.post(() -> speaker.speakQueued(textToSpeak));
                         }
                     }
                 }
 
-                // Saat generasi token selesai
                 if (done) {
                     String remainingText = cleanTextForTts(sentenceBuffer.toString());
                     if (!remainingText.isEmpty() && speaker != null) {
                         mainHandler.post(() -> speaker.speakQueued(remainingText));
                     }
-                    Log.d(TAG, "Generasi respons LLM selesai.");
+                    Log.d(TAG, "Generasi respons Gemma 3 1B selesai.");
                 }
             });
 
         } catch (Exception e) {
-            Log.e(TAG, "Galat saat menghasilkan respons LLM", e);
+            Log.e(TAG, "Galat saat mengeksekusi inferensi LLM offline", e);
             if (speaker != null) {
-                mainHandler.post(() -> speaker.speak("Maaf, terjadi masalah saat memproses jawaban offline."));
+                mainHandler.post(() -> speaker.speak("Terjadi kendala saat memproses jawaban offline."));
             }
         }
     }
 
     /**
-     * Membersihkan simbol markdown atau karakter khusus sesuai aturan Kobra OS.
+     * Membersihkan simbol markdown dan karakter khusus agar pengucapan TTS tidak terganggu.
      */
     private String cleanTextForTts(String text) {
         if (text == null) return "";
-        return text.replaceAll("[*#_`~\\-]", "") // Hapus markdown
-                   .replaceAll("\\s+", " ")     // Rapikan spasi ganda
+        return text.replaceAll("[*#_`~\\-]", "")
+                   .replaceAll("\\s+", " ")
                    .trim();
     }
 
     /**
-     * Membersihkan sumber daya memori saat service dihentikan.
+     * Membebaskan memori sistem saat service dihentikan.
      */
     public void close() {
         if (session != null) {
