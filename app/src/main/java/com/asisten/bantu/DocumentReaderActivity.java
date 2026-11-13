@@ -232,7 +232,7 @@ public class DocumentReaderActivity extends AppCompatActivity {
         });
     }
 
-    private void translateCurrentParagraph() {
+    public void translateCurrentParagraph() {
         HapticFeedback.vibrateAction(this);
         if (paragraphs.isEmpty()) {
             speaker.speak("Belum ada paragraf untuk diterjemahkan.");

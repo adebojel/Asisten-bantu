@@ -309,30 +309,28 @@ public class LocalLlmEngine {
             mainHandler.post(() -> cb.onSummary("Tidak ada teks atau notifikasi untuk diringkas."));
             return;
         }
-        String clipped = longText.trim();
-        if (clipped.length() > 1500) {
-            clipped = clipped.substring(0, 1500);
-        }
-        String instruction = "Ringkas " + title + " berikut menjadi 2 hingga 3 kalimat Bahasa Indonesia yang jelas, "
-                + "sebutkan inti pesan, nama pengirim, atau angka pentingnya tanpa format markdown:\n\n" + clipped;
+        String trimmed = longText.trim();
+        final String finalClipped = trimmed.length() > 1500 ? trimmed.substring(0, 1500) : trimmed;
+        final String finalInstruction = "Ringkas " + title + " berikut menjadi 2 hingga 3 kalimat Bahasa Indonesia yang jelas, "
+                + "sebutkan inti pesan, nama pengirim, atau angka pentingnya tanpa format markdown:\n\n" + finalClipped;
 
         if (isInitialized()) {
-            runSummaryOnGemma(instruction, title, clipped, speaker, cb);
+            runSummaryOnGemma(finalInstruction, title, finalClipped, speaker, cb);
             return;
         }
 
         if (isModelPresent() && !isSafeMode()) {
             new Thread(() -> {
                 if (initEngine()) {
-                    mainHandler.post(() -> runSummaryOnGemma(instruction, title, clipped, speaker, cb));
+                    mainHandler.post(() -> runSummaryOnGemma(finalInstruction, title, finalClipped, speaker, cb));
                 } else {
-                    fallbackSummarize(instruction, title, clipped, onlineFallback, cb);
+                    fallbackSummarize(finalInstruction, title, finalClipped, onlineFallback, cb);
                 }
             }).start();
             return;
         }
 
-        fallbackSummarize(instruction, title, clipped, onlineFallback, cb);
+        fallbackSummarize(finalInstruction, title, finalClipped, onlineFallback, cb);
     }
 
     private void runSummaryOnGemma(String instruction, String title, String rawText, Speaker speaker, SummaryCallback cb) {
