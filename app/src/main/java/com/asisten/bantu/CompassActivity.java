@@ -7,6 +7,8 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,6 +27,7 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
     private EditText etPlaceLabel;
     private KobraConfig config;
     private Speaker speaker;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private int currentHeading = -1;
     private String currentCardinal = "";
 
@@ -173,5 +176,15 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
         } else {
             tvSavedPlaces.setText("Lokasi tersimpan: " + String.join(", ", places));
         }
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 }

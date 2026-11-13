@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ScrollView;
@@ -26,6 +28,7 @@ public class AiChatActivity extends AppCompatActivity {
     private Speaker speaker;
     private KobraConfig config;
     private AiClient ai;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final StringBuilder transcript = new StringBuilder();
     private final ArrayList<String> recent = new ArrayList<>();
@@ -68,6 +71,16 @@ public class AiChatActivity extends AppCompatActivity {
         }
         append("Kobra", greeting);
         speaker.speak(greeting);
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override protected void onResume() {

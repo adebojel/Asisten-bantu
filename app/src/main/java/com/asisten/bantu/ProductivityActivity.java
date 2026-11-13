@@ -1,6 +1,8 @@
 package com.asisten.bantu;
 
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,6 +16,7 @@ public class ProductivityActivity extends AppCompatActivity {
 
     private ProductivityManager manager;
     private Speaker speaker;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
 
     private TextView tvDateHijri, tvMemoPreview, tvItemPreview, tvExpensePreview, tvMedSchedList;
     private EditText etMemoInput, etItemName, etItemLoc, etExpenseAmount, etExpenseNote, etMedSchedName, etMedSchedTime;
@@ -162,5 +165,15 @@ public class ProductivityActivity extends AppCompatActivity {
         tvItemPreview.setText(manager.listAllItems());
         tvExpensePreview.setText(manager.getExpenseSummary());
         tvMedSchedList.setText(manager.listMedSchedulesSpeech());
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 }

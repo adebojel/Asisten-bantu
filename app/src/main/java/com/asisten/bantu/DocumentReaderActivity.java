@@ -9,6 +9,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
@@ -43,7 +45,7 @@ public class DocumentReaderActivity extends AppCompatActivity {
     private Button btnPlayPause;
     private Speaker speaker;
     private AiClient aiClient;
-
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final List<String> paragraphs = new ArrayList<>();
@@ -114,6 +116,16 @@ public class DocumentReaderActivity extends AppCompatActivity {
         });
 
         speaker.speak("Pembaca dokumen siap. Tekan Pilih Dokumen untuk membuka file teks atau PDF.");
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override protected void onResume() {

@@ -1269,6 +1269,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
             say("Membuka mode pendamping.");
             return true;
         }
+        if (has(c, "cek pembaruan", "cek update", "pembaruan kobra", "update kobra")) {
+            launch(SettingsActivity.class, null);
+            say("Membuka pengaturan. Ketuk tombol Cek Pembaruan Kobra OS di bagian bawah.");
+            return true;
+        }
+        if (has(c, "pembaca layar global", "aktifkan pembaca global")) {
+            openSettings(Settings.ACTION_ACCESSIBILITY_SETTINGS, "Pengaturan aksesibilitas dibuka. Pilih Kobra Pembaca Layar Global bila ingin membacakan aplikasi pihak ketiga.");
+            return true;
+        }
 
         if (has(c, "kunci layar", "kunci hp")) { global(GLOBAL_ACTION_LOCK_SCREEN, "Layar dikunci."); return true; }
         if (has(c, "screenshot", "tangkapan layar", "tangkap layar")) { global(GLOBAL_ACTION_TAKE_SCREENSHOT, "Tangkapan layar diambil."); return true; }

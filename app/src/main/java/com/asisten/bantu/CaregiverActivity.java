@@ -2,6 +2,8 @@ package com.asisten.bantu;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -20,6 +22,7 @@ public class CaregiverActivity extends AppCompatActivity {
     private KobraConfig config;
     private ProductivityManager productivity;
     private Speaker speaker;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
 
     private View rootView;
     private TextView tvPinStatus, tvCareMedList, tvCareSummary;
@@ -169,5 +172,15 @@ public class CaregiverActivity extends AppCompatActivity {
 
     private void toast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 }

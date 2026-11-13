@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.util.Size;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -42,6 +44,7 @@ public class NavigationActivity extends AppCompatActivity {
     private ObjectDetector detector;
     private Speaker speaker;
     private Vibrator vibrator;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private final ExecutorService analyzerExec = Executors.newSingleThreadExecutor();
     private volatile boolean navigating = false;
     private volatile boolean processing = false;
@@ -79,6 +82,16 @@ public class NavigationActivity extends AppCompatActivity {
         speaker.speak("Mode tongkat siap. Bilang Kobra mulai untuk mulai, atau Kobra berhenti.");
         if (Perms.has(this, Manifest.permission.CAMERA)) startCamera();
         else ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 202);
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override protected void onResume() {

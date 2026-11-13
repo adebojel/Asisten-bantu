@@ -14,6 +14,8 @@ import android.media.ToneGenerator;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Size;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
@@ -83,6 +85,7 @@ public class VisionActivity extends AppCompatActivity {
     private KobraConfig config;
     private AiClient ai;
     private boolean busy = false;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private final ExecutorService cameraExec = Executors.newSingleThreadExecutor();
     private final TextRecognizer ocr = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private BarcodeScanner barcodeScanner;
@@ -152,6 +155,16 @@ public class VisionActivity extends AppCompatActivity {
 
         if (Perms.has(this, Manifest.permission.CAMERA)) startCamera();
         else ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 201);
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override protected void onResume() {

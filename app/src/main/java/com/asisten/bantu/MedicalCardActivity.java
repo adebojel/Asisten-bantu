@@ -3,6 +3,8 @@ package com.asisten.bantu;
 import android.content.Context;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -18,6 +20,7 @@ public class MedicalCardActivity extends AppCompatActivity {
 
     private KobraConfig config;
     private Speaker speaker;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private EditText etName, etBlood, etAllergy, etCondition, etFamily;
     private TextView tvSummary;
 
@@ -109,5 +112,15 @@ public class MedicalCardActivity extends AppCompatActivity {
             }
         } catch (Exception ignored) {}
         speaker.speak(config.getMedicalCardSpeech());
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 }

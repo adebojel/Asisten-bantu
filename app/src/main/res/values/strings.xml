@@ -2,4 +2,6 @@
     <string name="app_name">Kobra OS</string>
     <string name="setup_title">Setup Kobra OS</string>
     <string name="accessibility_desc">Kobra OS membantu tunanetra dengan perintah suara, membaca layar, dan menekan tombol lewat suara.</string>
+    <string name="global_reader_name">Kobra Pembaca Layar Global</string>
+    <string name="global_reader_desc">Pembaca layar opsional untuk membacakan tombol dan menu di aplikasi pihak ketiga di luar Kobra OS serta mendukung gestur dua jari.</string>
 </resources>

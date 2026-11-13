@@ -2,6 +2,8 @@ package com.asisten.bantu;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -10,6 +12,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 /** Kontak darurat untuk SOS, Mode Latihan SOS (simulasi), dan akses Kartu Identitas Medis. */
 public class SosSetupActivity extends AppCompatActivity {
+
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -99,5 +103,15 @@ public class SosSetupActivity extends AppCompatActivity {
             }
             tvStatus.setText(sb.toString());
         }
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, Speaker.get(this))) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, Speaker.get(this))) return true;
+        return super.dispatchTouchEvent(ev);
     }
 }

@@ -328,6 +328,41 @@
             android:textSize="15sp"
             android:text="" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#00E676"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:text="🔄 Pembaruan Aplikasi Mandiri (GitHub Releases)" />
+
+        <Button
+            android:id="@+id/btnCheckUpdate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="60dp"
+            android:backgroundTint="#1565C0"
+            android:textColor="#FFFFFF"
+            android:text="⬇️ CEK PEMBARUAN KOBRA OS"
+            android:contentDescription="Periksa pembaruan Kobra OS terbaru dari GitHub Releases dan unduh paket APK" />
+
+        <TextView
+            android:id="@+id/tvUpdateStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="#FFFFEB3B"
+            android:textSize="15sp"
+            android:text="" />
+
         <Button
             android:id="@+id/btnBackSettings"
             android:layout_width="match_parent"

@@ -9,6 +9,8 @@ import android.location.Location;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
@@ -25,6 +27,7 @@ public class PrayerActivity extends AppCompatActivity implements SensorEventList
 
     private KobraConfig config;
     private Speaker speaker;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private SensorManager sensorManager;
     private Sensor rotationSensor;
     private ToneGenerator toneGenerator;
@@ -92,6 +95,16 @@ public class PrayerActivity extends AppCompatActivity implements SensorEventList
         });
 
         fetchGpsAndUpdate(false);
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override protected void onResume() {

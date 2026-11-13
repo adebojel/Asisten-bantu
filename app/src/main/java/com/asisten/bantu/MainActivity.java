@@ -7,6 +7,8 @@ import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.StatFs;
 import android.provider.Settings;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
@@ -18,6 +20,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TextView tvStatus;
     private Speaker speaker;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -126,6 +129,16 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
+    }
+
     @Override protected void onResume() {
         super.onResume();
         showStatus();
@@ -149,7 +162,8 @@ public class MainActivity extends AppCompatActivity {
                 + "Tersedia juga tombol Kompas Suara dan Rute Pulang, Kartu Identitas Medis Darurat, "
                 + "Produktivitas untuk memo, pengingat barang, pengeluaran dan jadwal obat, Jadwal Sholat dan Kiblat offline, "
                 + "Mode Pendamping untuk PIN keamanan dan keluarga, menu Mata Kedua untuk hitung uang tunai, padu padan pakaian, layar ATM, struk transfer, barcode, dan cari objek, "
-                + "serta Pembaca Dokumen untuk file teks dan PDF.";
+                + "serta Pembaca Dokumen untuk file teks dan PDF. "
+                + "Anda juga bisa mengusap dua jari ke bawah untuk membaca notifikasi, usap dua jari ke atas untuk menghentikan suara, ketuk dua kali di mana saja untuk mulai bicara, atau memakai tombol arah pada keyboard Bluetooth.";
         speaker.speak(guide);
     }
 
@@ -178,7 +192,8 @@ public class MainActivity extends AppCompatActivity {
         String text = "Status Kobra OS\n"
                 + "Mikrofon: " + (Perms.has(this, android.Manifest.permission.RECORD_AUDIO) ? "siap" : "belum diizinkan") + "\n"
                 + "Kamera: " + (Perms.has(this, android.Manifest.permission.CAMERA) ? "siap" : "belum diizinkan") + "\n"
-                + "Aksesibilitas: " + (AsistenAccessibilityService.getInstance() != null ? "aktif" : "belum aktif") + "\n"
+                + "Aksesibilitas: " + (AsistenAccessibilityService.getInstance() != null ? "aktif" : "belum aktif")
+                + " | Pembaca Global: " + (KobraAccessibilityService.getInstance() != null ? "aktif" : "opsional/mati") + "\n"
                 + "Akses notifikasi: " + (KobraNotificationService.isConnected() ? "aktif" : "belum aktif") + "\n"
                 + "Internet (" + NetworkState.connectionType(this) + "): " + (NetworkState.isOnline(this) ? "tersambung" : "mode offline") + "\n"
                 + "AI Offline: " + llmStatus + "\n"

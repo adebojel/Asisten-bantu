@@ -6,6 +6,8 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -24,6 +26,7 @@ import java.util.Locale;
 public class KobraLauncherActivity extends AppCompatActivity {
 
     private TextView tvClock, tvListen, tvScreenReader;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable clockTick = new Runnable() {
         @Override public void run() {
@@ -63,6 +66,16 @@ public class KobraLauncherActivity extends AppCompatActivity {
         if (!Perms.hasAll(this, Perms.required())) ActivityCompat.requestPermissions(this, Perms.required(), 100);
         KobraForegroundService.start(this);
         handler.post(clockTick);
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, Speaker.get(this))) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, Speaker.get(this))) return true;
+        return super.dispatchTouchEvent(ev);
     }
 
     @Override protected void onDestroy() {

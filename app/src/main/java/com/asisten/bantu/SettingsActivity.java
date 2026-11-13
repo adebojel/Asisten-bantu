@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.OpenableColumns;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -16,6 +18,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
 import java.io.ByteArrayOutputStream;
@@ -36,8 +39,8 @@ import java.util.concurrent.Executors;
 public class SettingsActivity extends AppCompatActivity {
 
     private EditText etKey, etModel, etN8n, etNotes;
-    private TextView tvStatus, tvModelStatus, tvImportProgress, tvSpeechRate, tvSpeechPitch, tvBackupStatus;
-    private Button btnImportModel, btnTestTts, btnBackupData, btnRestoreData;
+    private TextView tvStatus, tvModelStatus, tvImportProgress, tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus;
+    private Button btnImportModel, btnTestTts, btnBackupData, btnRestoreData, btnCheckUpdate;
     private ProgressBar pbImportModel;
     private SeekBar sbSpeechRate, sbSpeechPitch;
     private SwitchCompat swHighContrast;
@@ -46,6 +49,9 @@ public class SettingsActivity extends AppCompatActivity {
     private boolean loadingFields = false;
     private KobraConfig config;
     private Speaker speaker;
+    private AppUpdater appUpdater;
+    private Uri pendingInstallUri = null;
+    private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -112,6 +118,10 @@ public class SettingsActivity extends AppCompatActivity {
         btnTestTts = findViewById(R.id.btnTestTts);
         btnBackupData = findViewById(R.id.btnBackupData);
         btnRestoreData = findViewById(R.id.btnRestoreData);
+        btnCheckUpdate = findViewById(R.id.btnCheckUpdate);
+        tvUpdateStatus = findViewById(R.id.tvUpdateStatus);
+        appUpdater = new AppUpdater(this);
+        tvUpdateStatus.setText("Versi terpasang: " + BuildConfig.VERSION_NAME);
 
         loadFieldsFromConfig();
 
@@ -220,18 +230,114 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
+        btnCheckUpdate.setOnClickListener(v -> startOtaUpdateCheck());
+
         back.setOnClickListener(v -> {
             saveFields();
             finish();
         });
     }
 
+    private void startOtaUpdateCheck() {
+        btnCheckUpdate.setEnabled(false);
+        tvUpdateStatus.setTextColor(0xFFFFFF00);
+        tvUpdateStatus.setText("Memeriksa rilis terbaru Kobra OS (versi saat ini " + BuildConfig.VERSION_NAME + ")...");
+        speaker.speak("Memeriksa pembaruan Kobra OS dari GitHub.");
+
+        appUpdater.checkLatestRelease(new AppUpdater.CheckCallback() {
+            @Override public void onUpdateAvailable(AppUpdater.ReleaseInfo info) {
+                if (isFinishing() || isDestroyed()) return;
+                btnCheckUpdate.setEnabled(true);
+                tvUpdateStatus.setTextColor(0xFF00E676);
+                tvUpdateStatus.setText("Tersedia versi baru: " + info.tagName + " — " + info.releaseNotesForSpeech);
+                speaker.speak("Pembaruan Kobra OS tersedia, versi " + info.tagName
+                        + ". Catatan rilis: " + info.releaseNotesForSpeech);
+
+                new AlertDialog.Builder(SettingsActivity.this)
+                        .setTitle("Pembaruan Kobra OS " + info.tagName)
+                        .setMessage("Versi baru " + info.tagName + " tersedia.\n\nCatatan rilis:\n" + info.releaseNotesForSpeech)
+                        .setPositiveButton("Unduh & Pasang", (d, w) -> beginApkDownload(info))
+                        .setNegativeButton("Nanti", null)
+                        .show();
+            }
+
+            @Override public void onUpToDate(String currentVersion, String latestTag) {
+                if (isFinishing() || isDestroyed()) return;
+                btnCheckUpdate.setEnabled(true);
+                tvUpdateStatus.setTextColor(0xFF00E676);
+                String msg = "Kobra OS sudah menggunakan versi terbaru (" + currentVersion
+                        + (latestTag.isEmpty() ? "" : ", rilis: " + latestTag) + ").";
+                tvUpdateStatus.setText(msg);
+                speaker.speak(msg);
+            }
+
+            @Override public void onError(String message) {
+                if (isFinishing() || isDestroyed()) return;
+                btnCheckUpdate.setEnabled(true);
+                tvUpdateStatus.setTextColor(0xFFFF5252);
+                tvUpdateStatus.setText(message);
+                speaker.speak(message);
+            }
+        });
+    }
+
+    private void beginApkDownload(AppUpdater.ReleaseInfo info) {
+        tvUpdateStatus.setTextColor(0xFFFFFF00);
+        tvUpdateStatus.setText("Mengunduh APK " + info.tagName + "...");
+        appUpdater.downloadAndInstall(info, new AppUpdater.DownloadCallback() {
+            @Override public void onStarted(long downloadId, String fileName) {
+                if (isFinishing() || isDestroyed()) return;
+                tvUpdateStatus.setText("Mengunduh " + fileName + " lewat DownloadManager...");
+                speaker.speak("Mengunduh paket pembaruan Kobra OS. Harap tunggu hingga unduhan selesai.");
+            }
+
+            @Override public void onCompleted(Uri apkUri, File apkFile) {
+                if (isFinishing() || isDestroyed()) return;
+                tvUpdateStatus.setTextColor(0xFF00E676);
+                tvUpdateStatus.setText("Unduhan selesai. Membuka installer paket...");
+                boolean launched = AppUpdater.launchPackageInstaller(SettingsActivity.this, apkUri);
+                if (!launched) {
+                    pendingInstallUri = apkUri;
+                    tvUpdateStatus.setTextColor(0xFFFFAB40);
+                    tvUpdateStatus.setText("Aktifkan izin instal aplikasi untuk Kobra OS lalu kembali ke halaman ini.");
+                    speaker.speak("Aktifkan izin instal aplikasi dari sumber ini untuk Kobra OS, lalu kembali untuk melanjutkan pemasangan.");
+                } else {
+                    pendingInstallUri = null;
+                    speaker.speak("Installer pembaruan Kobra OS dibuka.");
+                }
+            }
+
+            @Override public void onError(String message) {
+                if (isFinishing() || isDestroyed()) return;
+                tvUpdateStatus.setTextColor(0xFFFF5252);
+                tvUpdateStatus.setText(message);
+                speaker.speak(message);
+            }
+        });
+    }
+
+    @Override public boolean dispatchKeyEvent(KeyEvent event) {
+        if (screenHelper.handleKeyEvent(this, event, speaker)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (screenHelper.handleTouchEvent(this, ev, speaker)) return true;
+        return super.dispatchTouchEvent(ev);
+    }
+
     @Override protected void onResume() {
         super.onResume();
         updateModelStatus();
+        if (pendingInstallUri != null && getPackageManager().canRequestPackageInstalls()) {
+            Uri uri = pendingInstallUri;
+            pendingInstallUri = null;
+            AppUpdater.launchPackageInstaller(this, uri);
+        }
     }
 
     @Override protected void onDestroy() {
+        if (appUpdater != null) appUpdater.unregisterReceiver();
         executor.shutdown();
         super.onDestroy();
     }
