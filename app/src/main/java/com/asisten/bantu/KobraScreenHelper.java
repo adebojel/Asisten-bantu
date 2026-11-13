@@ -1,6 +1,8 @@
 package com.asisten.bantu;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.KeyEvent;
@@ -8,6 +10,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.TextView;
+import android.widget.Toast;
 import java.util.Locale;
 
 /**
@@ -20,6 +23,39 @@ import java.util.Locale;
  *    - Ketuk dua kali di mana saja: mulai mendengarkan perintah suara.
  */
 public final class KobraScreenHelper {
+
+    public static boolean safeStartActivity(Context ctx, Intent intent, Speaker speaker, String fallbackMsg) {
+        if (ctx == null || intent == null) {
+            notifyLaunchError(ctx, speaker, fallbackMsg);
+            return false;
+        }
+        try {
+            if (!(ctx instanceof Activity)) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            }
+            ctx.startActivity(intent);
+            return true;
+        } catch (Throwable t) {
+            notifyLaunchError(ctx, speaker, fallbackMsg);
+            return false;
+        }
+    }
+
+    private static void notifyLaunchError(Context ctx, Speaker speaker, String fallbackMsg) {
+        String msg = (fallbackMsg != null && !fallbackMsg.trim().isEmpty())
+                ? fallbackMsg
+                : "Halaman atau aplikasi tersebut tidak tersedia di perangkat ini.";
+        if (ctx != null) {
+            try {
+                Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show();
+            } catch (Throwable ignored) {}
+        }
+        if (speaker != null) {
+            try {
+                speaker.speak(msg);
+            } catch (Throwable ignored) {}
+        }
+    }
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private boolean twoFingerActive = false;

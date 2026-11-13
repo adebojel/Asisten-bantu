@@ -57,45 +57,75 @@ public final class CompassLocationHelper {
 
     /** Membaca kompas sekali lewat Sensor.TYPE_ROTATION_VECTOR secara offline. */
     public static void readHeadingOnce(Context context, HeadingCallback callback) {
-        SensorManager sm = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-        if (sm == null) {
+        if (callback == null) return;
+        if (context == null) {
             callback.onUnavailable();
             return;
         }
-        Sensor rot = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        if (rot == null) {
-            callback.onUnavailable();
-            return;
-        }
-        Handler main = new Handler(Looper.getMainLooper());
-        final boolean[] delivered = {false};
-        SensorEventListener listener = new SensorEventListener() {
-            @Override public void onSensorChanged(SensorEvent event) {
-                if (delivered[0] || event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) return;
-                delivered[0] = true;
-                sm.unregisterListener(this);
-                int deg = rotationVectorToDegrees(event.values);
-                callback.onHeading(deg, cardinalDirection(deg));
-            }
-            @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
-        };
-        sm.registerListener(listener, rot, SensorManager.SENSOR_DELAY_UI);
-        main.postDelayed(() -> {
-            if (!delivered[0]) {
-                delivered[0] = true;
-                sm.unregisterListener(listener);
+        try {
+            SensorManager sm = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+            if (sm == null) {
                 callback.onUnavailable();
+                return;
             }
-        }, 1800L);
+            Sensor rot = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+            if (rot == null) {
+                callback.onUnavailable();
+                return;
+            }
+            Handler main = new Handler(Looper.getMainLooper());
+            final boolean[] delivered = {false};
+            SensorEventListener listener = new SensorEventListener() {
+                @Override public void onSensorChanged(SensorEvent event) {
+                    try {
+                        if (delivered[0] || event == null || event.sensor == null
+                                || event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR
+                                || event.values == null || event.values.length < 3) {
+                            return;
+                        }
+                        delivered[0] = true;
+                        try { sm.unregisterListener(this); } catch (Throwable ignored) {}
+                        int deg = rotationVectorToDegrees(event.values);
+                        callback.onHeading(deg, cardinalDirection(deg));
+                    } catch (Throwable ignored) {
+                        if (!delivered[0]) {
+                            delivered[0] = true;
+                            try { sm.unregisterListener(this); } catch (Throwable ignored2) {}
+                            callback.onUnavailable();
+                        }
+                    }
+                }
+                @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+            };
+            boolean registered = sm.registerListener(listener, rot, SensorManager.SENSOR_DELAY_UI);
+            if (!registered) {
+                callback.onUnavailable();
+                return;
+            }
+            main.postDelayed(() -> {
+                if (!delivered[0]) {
+                    delivered[0] = true;
+                    try { sm.unregisterListener(listener); } catch (Throwable ignored) {}
+                    callback.onUnavailable();
+                }
+            }, 1800L);
+        } catch (Throwable t) {
+            callback.onUnavailable();
+        }
     }
 
     public static int rotationVectorToDegrees(float[] values) {
-        float[] rotationMatrix = new float[9];
-        float[] orientation = new float[3];
-        SensorManager.getRotationMatrixFromVector(rotationMatrix, values);
-        SensorManager.getOrientation(rotationMatrix, orientation);
-        int deg = (int) Math.round(Math.toDegrees(orientation[0]));
-        return ((deg % 360) + 360) % 360;
+        if (values == null || values.length < 3) return 0;
+        try {
+            float[] rotationMatrix = new float[9];
+            float[] orientation = new float[3];
+            SensorManager.getRotationMatrixFromVector(rotationMatrix, values);
+            SensorManager.getOrientation(rotationMatrix, orientation);
+            int deg = (int) Math.round(Math.toDegrees(orientation[0]));
+            return ((deg % 360) + 360) % 360;
+        } catch (Throwable t) {
+            return 0;
+        }
     }
 
     /** Mengambil lokasi terbaik (atau permintaan GPS aktif) dan menerjemahkan ke alamat via Geocoder. */

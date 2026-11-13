@@ -2002,13 +2002,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
     // ----------------------------------------------------------------- aplikasi, WhatsApp, telepon
 
     private boolean openWhatsApp() {
-        PackageManager pm = getPackageManager();
-        Intent i = pm.getLaunchIntentForPackage("com.whatsapp");
-        if (i == null) i = pm.getLaunchIntentForPackage("com.whatsapp.w4b");
-        if (i == null) { say("WhatsApp tidak terpasang di HP ini."); return false; }
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(i);
-        return true;
+        try {
+            PackageManager pm = getPackageManager();
+            Intent i = pm.getLaunchIntentForPackage("com.whatsapp");
+            if (i == null) i = pm.getLaunchIntentForPackage("com.whatsapp.w4b");
+            if (i == null) { say("WhatsApp tidak terpasang di HP ini."); return false; }
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+            return true;
+        } catch (Throwable t) {
+            say("Tidak dapat membuka WhatsApp di perangkat ini.");
+            return false;
+        }
     }
 
     private void openChatByName(String name) {
@@ -2150,6 +2155,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         } catch (ActivityNotFoundException e) {
             openUrl("https://www.youtube.com/results?search_query=" + Uri.encode(clean));
             say("Mencari " + clean + " di YouTube.");
+        } catch (Throwable t) {
+            openUrl("https://www.youtube.com/results?search_query=" + Uri.encode(clean));
+            say("Membuka pencarian YouTube.");
         }
     }
 
@@ -2162,6 +2170,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
             startActivity(i);
             say("Membuka navigasi ke " + dest + ".");
         } catch (ActivityNotFoundException e) {
+            openUrl("https://www.google.com/maps/search/?api=1&query=" + Uri.encode(dest));
+            say("Membuka peta untuk " + dest + ".");
+        } catch (Throwable t) {
             openUrl("https://www.google.com/maps/search/?api=1&query=" + Uri.encode(dest));
             say("Membuka peta untuk " + dest + ".");
         }
@@ -2367,47 +2378,59 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void initHardwareSensors() {
-        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-        if (sensorManager == null) return;
-        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
-        if (accelSensor != null) {
-            sensorManager.registerListener(hardwareSensorListener, accelSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        try {
+            sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+            if (sensorManager == null) return;
+            accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+            if (accelSensor != null) {
+                sensorManager.registerListener(hardwareSensorListener, accelSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+            if (proximitySensor != null) {
+                sensorManager.registerListener(hardwareSensorListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+            ensureStepSensorRegistered();
+        } catch (Throwable t) {
+            Log.w(TAG, "Inisialisasi sensor perangkat keras dibatasi", t);
         }
-        if (proximitySensor != null) {
-            sensorManager.registerListener(hardwareSensorListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
-        }
-        ensureStepSensorRegistered();
     }
 
     private void ensureStepSensorRegistered() {
-        if (sensorManager == null || hasHardwareStepSensor) return;
-        if (Build.VERSION.SDK_INT >= 29 && !Perms.has(this, Manifest.permission.ACTIVITY_RECOGNITION)) return;
-        stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-        if (stepCounterSensor != null) {
-            hasHardwareStepSensor = sensorManager.registerListener(
-                    hardwareSensorListener, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
-            return;
-        }
-        stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
-        if (stepDetectorSensor != null) {
-            hasHardwareStepSensor = sensorManager.registerListener(
-                    hardwareSensorListener, stepDetectorSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        try {
+            if (sensorManager == null || hasHardwareStepSensor) return;
+            if (Build.VERSION.SDK_INT >= 29 && !Perms.has(this, Manifest.permission.ACTIVITY_RECOGNITION)) return;
+            stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            if (stepCounterSensor != null) {
+                hasHardwareStepSensor = sensorManager.registerListener(
+                        hardwareSensorListener, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
+                return;
+            }
+            stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+            if (stepDetectorSensor != null) {
+                hasHardwareStepSensor = sensorManager.registerListener(
+                        hardwareSensorListener, stepDetectorSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            }
+        } catch (Throwable t) {
+            hasHardwareStepSensor = false;
+            Log.w(TAG, "Sensor langkah tidak dapat didaftarkan", t);
         }
     }
 
     private final SensorEventListener hardwareSensorListener = new SensorEventListener() {
         @Override public void onSensorChanged(SensorEvent event) {
-            int type = event.sensor.getType();
-            if (type == Sensor.TYPE_ACCELEROMETER) {
-                handleAccelerometer(event.values[0], event.values[1], event.values[2]);
-            } else if (type == Sensor.TYPE_PROXIMITY) {
-                handleProximity(event.values[0], event.sensor.getMaximumRange());
-            } else if (type == Sensor.TYPE_STEP_COUNTER && config != null) {
-                config.onStepCounterEvent(Math.round(event.values[0]));
-            } else if (type == Sensor.TYPE_STEP_DETECTOR && config != null) {
-                config.addDailySteps(Math.max(1, Math.round(event.values[0])));
-            }
+            try {
+                if (event == null || event.sensor == null || event.values == null) return;
+                int type = event.sensor.getType();
+                if (type == Sensor.TYPE_ACCELEROMETER && event.values.length >= 3) {
+                    handleAccelerometer(event.values[0], event.values[1], event.values[2]);
+                } else if (type == Sensor.TYPE_PROXIMITY && event.values.length >= 1) {
+                    handleProximity(event.values[0], event.sensor.getMaximumRange());
+                } else if (type == Sensor.TYPE_STEP_COUNTER && event.values.length >= 1 && config != null) {
+                    config.onStepCounterEvent(Math.round(event.values[0]));
+                } else if (type == Sensor.TYPE_STEP_DETECTOR && event.values.length >= 1 && config != null) {
+                    config.addDailySteps(Math.max(1, Math.round(event.values[0])));
+                }
+            } catch (Throwable ignored) {}
         }
         @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
@@ -2680,37 +2703,41 @@ public class AsistenAccessibilityService extends AccessibilityService {
         try {
             registerReceiver(phoneStateReceiver, new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED));
             phoneStateReceiverRegistered = true;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             Log.w(TAG, "Gagal mendaftarkan pemantau telepon masuk", e);
         }
     }
 
     private final BroadcastReceiver phoneStateReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
-            if (intent == null || !TelephonyManager.ACTION_PHONE_STATE_CHANGED.equals(intent.getAction())) return;
-            String state = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
-            if (!TelephonyManager.EXTRA_STATE_RINGING.equals(state)) return;
-            @SuppressWarnings("deprecation")
-            String incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
-            if (incomingNumber == null || incomingNumber.trim().isEmpty()) return;
-            String cleanNum = incomingNumber.trim();
-            long now = System.currentTimeMillis();
-            if (cleanNum.equals(lastAnnouncedRingNumber) && now - lastAnnouncedRingAt < 10_000L) return;
-            lastAnnouncedRingNumber = cleanNum;
-            lastAnnouncedRingAt = now;
+            try {
+                if (intent == null || !TelephonyManager.ACTION_PHONE_STATE_CHANGED.equals(intent.getAction())) return;
+                String state = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
+                if (!TelephonyManager.EXTRA_STATE_RINGING.equals(state)) return;
+                @SuppressWarnings("deprecation")
+                String incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
+                if (incomingNumber == null || incomingNumber.trim().isEmpty()) return;
+                String cleanNum = incomingNumber.trim();
+                long now = System.currentTimeMillis();
+                if (cleanNum.equals(lastAnnouncedRingNumber) && now - lastAnnouncedRingAt < 10_000L) return;
+                lastAnnouncedRingNumber = cleanNum;
+                lastAnnouncedRingAt = now;
 
-            String callerName = cleanNum;
-            if (Perms.has(AsistenAccessibilityService.this, Manifest.permission.READ_CONTACTS)) {
-                try (Cursor cur = getContentResolver().query(
-                        Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(cleanNum)),
-                        new String[]{ContactsContract.PhoneLookup.DISPLAY_NAME}, null, null, null)) {
-                    if (cur != null && cur.moveToFirst()) {
-                        String n = cur.getString(0);
-                        if (n != null && !n.trim().isEmpty()) callerName = n.trim();
-                    }
-                } catch (Exception ignored) {}
-            }
-            speaker.speakQueued("Telepon masuk dari " + callerName + ". Bilang Kobra angkat telepon atau tolak telepon.");
+                String callerName = cleanNum;
+                if (Perms.has(AsistenAccessibilityService.this, Manifest.permission.READ_CONTACTS)) {
+                    try (Cursor cur = getContentResolver().query(
+                            Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(cleanNum)),
+                            new String[]{ContactsContract.PhoneLookup.DISPLAY_NAME}, null, null, null)) {
+                        if (cur != null && cur.moveToFirst()) {
+                            String n = cur.getString(0);
+                            if (n != null && !n.trim().isEmpty()) callerName = n.trim();
+                        }
+                    } catch (Throwable ignored) {}
+                }
+                if (speaker != null) {
+                    speaker.speakQueued("Telepon masuk dari " + callerName + ". Bilang Kobra angkat telepon atau tolak telepon.");
+                }
+            } catch (Throwable ignored) {}
         }
     };
 

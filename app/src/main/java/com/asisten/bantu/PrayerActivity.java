@@ -50,13 +50,17 @@ public class PrayerActivity extends AppCompatActivity implements SensorEventList
 
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        if (sensorManager != null) {
-            rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        try {
+            sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            if (sensorManager != null) {
+                rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+            }
+        } catch (Throwable t) {
+            rotationSensor = null;
         }
         try {
             toneGenerator = new ToneGenerator(AudioManager.STREAM_MUSIC, 80);
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {}
 
         tvCoords = findViewById(R.id.tvPrayerCoords);
         tvPrayerTimes = findViewById(R.id.tvPrayerTimes);
@@ -109,16 +113,20 @@ public class PrayerActivity extends AppCompatActivity implements SensorEventList
 
     @Override protected void onResume() {
         super.onResume();
-        if (sensorManager != null && rotationSensor != null) {
-            sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_UI);
-        }
+        try {
+            if (sensorManager != null && rotationSensor != null) {
+                sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_UI);
+            }
+        } catch (Throwable ignored) {}
     }
 
     @Override protected void onPause() {
         super.onPause();
-        if (sensorManager != null) {
-            sensorManager.unregisterListener(this);
-        }
+        try {
+            if (sensorManager != null) {
+                sensorManager.unregisterListener(this);
+            }
+        } catch (Throwable ignored) {}
     }
 
     @Override protected void onDestroy() {
@@ -238,9 +246,15 @@ public class PrayerActivity extends AppCompatActivity implements SensorEventList
     }
 
     @Override public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) return;
-        currentHeading = CompassLocationHelper.rotationVectorToDegrees(event.values);
-        updateQiblaHeadingUi();
+        try {
+            if (event == null || event.sensor == null
+                    || event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR
+                    || event.values == null || event.values.length < 3) {
+                return;
+            }
+            currentHeading = CompassLocationHelper.rotationVectorToDegrees(event.values);
+            updateQiblaHeadingUi();
+        } catch (Throwable ignored) {}
     }
 
     @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}

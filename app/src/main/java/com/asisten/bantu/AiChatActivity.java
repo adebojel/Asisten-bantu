@@ -52,7 +52,8 @@ public class AiChatActivity extends AppCompatActivity {
         btnClose.setOnClickListener(v -> finish());
         btnImportModelChat.setOnClickListener(v -> {
             speaker.speak("Membuka pengaturan AI untuk mengimpor model offline.");
-            startActivity(new Intent(this, SettingsActivity.class));
+            KobraScreenHelper.safeStartActivity(this, new Intent(this, SettingsActivity.class),
+                    speaker, "Gagal membuka Pengaturan AI.");
         });
 
         checkModelStatus();

@@ -216,18 +216,24 @@ public final class AppUpdater {
     }
 
     public static boolean launchPackageInstaller(Context context, Uri apkContentUri) {
-        if (!context.getPackageManager().canRequestPackageInstalls()) {
-            Intent permIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:" + context.getPackageName()));
-            permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(permIntent);
+        if (context == null) return false;
+        try {
+            if (!context.getPackageManager().canRequestPackageInstalls()) {
+                Intent permIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + context.getPackageName()));
+                permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                KobraScreenHelper.safeStartActivity(context, permIntent, null,
+                        "Tidak dapat membuka izin instal aplikasi pada HP ini.");
+                return false;
+            }
+            Intent install = new Intent(Intent.ACTION_VIEW);
+            install.setDataAndType(apkContentUri, "application/vnd.android.package-archive");
+            install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            return KobraScreenHelper.safeStartActivity(context, install, null,
+                    "Tidak dapat membuka pemasang paket APK.");
+        } catch (Throwable t) {
             return false;
         }
-        Intent install = new Intent(Intent.ACTION_VIEW);
-        install.setDataAndType(apkContentUri, "application/vnd.android.package-archive");
-        install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(install);
-        return true;
     }
 
     public void unregisterReceiver() {

@@ -1,5 +1,8 @@
 package com.asisten.bantu;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -16,6 +19,7 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
@@ -40,7 +44,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private EditText etKey, etModel, etN8n, etNotes;
     private TextView tvStatus, tvModelStatus, tvImportProgress, tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus;
-    private Button btnImportModel, btnDeleteModel, btnLoadModel, btnTestTts, btnBackupData, btnRestoreData, btnCheckUpdate;
+    private Button btnImportModel, btnDeleteModel, btnLoadModel, btnTestTts, btnBackupData, btnRestoreData, btnCheckUpdate, btnViewCrashLog;
     private ProgressBar pbImportModel;
     private SeekBar sbSpeechRate, sbSpeechPitch;
     private SwitchCompat swHighContrast;
@@ -121,6 +125,7 @@ public class SettingsActivity extends AppCompatActivity {
         btnBackupData = findViewById(R.id.btnBackupData);
         btnRestoreData = findViewById(R.id.btnRestoreData);
         btnCheckUpdate = findViewById(R.id.btnCheckUpdate);
+        btnViewCrashLog = findViewById(R.id.btnViewCrashLog);
         tvUpdateStatus = findViewById(R.id.tvUpdateStatus);
         appUpdater = new AppUpdater(this);
         tvUpdateStatus.setText("Versi terpasang: " + BuildConfig.VERSION_NAME);
@@ -237,10 +242,50 @@ public class SettingsActivity extends AppCompatActivity {
 
         btnCheckUpdate.setOnClickListener(v -> startOtaUpdateCheck());
 
+        if (btnViewCrashLog != null) {
+            btnViewCrashLog.setOnClickListener(v -> showLastCrashLogDialog());
+        }
+
         back.setOnClickListener(v -> {
             saveFields();
             finish();
         });
+    }
+
+    private void showLastCrashLogDialog() {
+        String log = config != null ? config.getLastCrashLog() : "";
+        if (log == null || log.trim().isEmpty()) {
+            String msg = "Belum ada catatan crash error yang terekam. Aplikasi berjalan normal.";
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+            speaker.speak(msg);
+            new AlertDialog.Builder(this)
+                    .setTitle("Log Crash Terakhir")
+                    .setMessage(msg)
+                    .setPositiveButton("Tutup", null)
+                    .show();
+            return;
+        }
+        speaker.speak("Menampilkan catatan log crash terakhir.");
+        new AlertDialog.Builder(this)
+                .setTitle("Log Crash Terakhir")
+                .setMessage(log)
+                .setPositiveButton("Salin Log Error", (d, w) -> {
+                    try {
+                        ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                        if (cm != null) {
+                            cm.setPrimaryClip(ClipData.newPlainText("KobraCrashLog", log));
+                            Toast.makeText(this, "Log error disalin ke clipboard.", Toast.LENGTH_SHORT).show();
+                            speaker.speak("Log error berhasil disalin.");
+                        }
+                    } catch (Throwable ignored) {}
+                })
+                .setNeutralButton("Hapus Log", (d, w) -> {
+                    config.clearLastCrashLog();
+                    Toast.makeText(this, "Log crash dibersihkan.", Toast.LENGTH_SHORT).show();
+                    speaker.speak("Log crash telah dibersihkan.");
+                })
+                .setNegativeButton("Tutup", null)
+                .show();
     }
 
     private void startOtaUpdateCheck() {

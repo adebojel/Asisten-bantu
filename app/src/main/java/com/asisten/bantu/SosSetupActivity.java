@@ -81,7 +81,8 @@ public class SosSetupActivity extends AppCompatActivity {
 
         btnMedical.setOnClickListener(v -> {
             HapticFeedback.vibrateAction(this);
-            startActivity(new Intent(this, MedicalCardActivity.class));
+            KobraScreenHelper.safeStartActivity(this, new Intent(this, MedicalCardActivity.class),
+                    Speaker.get(this), "Gagal membuka Kartu Medis.");
         });
     }
 

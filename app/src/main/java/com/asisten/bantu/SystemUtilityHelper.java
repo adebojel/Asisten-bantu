@@ -218,8 +218,11 @@ public final class SystemUtilityHelper {
         long triggerMs = target.getTimeInMillis();
         config.addPlannerItem(id, hour, minute, title, triggerMs);
 
-        scheduleAlarm(context, id, hour, minute, title, triggerMs);
+        boolean exactOrFallbackScheduled = scheduleAlarm(context, id, hour, minute, title, triggerMs);
         String timeStr = String.format(Locale.US, "%02d:%02d", hour, minute);
+        if (!exactOrFallbackScheduled) {
+            return "Agenda dicatat untuk pukul " + timeStr + ", namun izin alarm tepat belum aktif di HP ini.";
+        }
         return "Agenda dicatat dan pengingat dipasang untuk "
                 + (tomorrow ? "besok " : "") + "pukul " + timeStr + ": " + title + ".";
     }
@@ -241,33 +244,43 @@ public final class SystemUtilityHelper {
         try { return Integer.parseInt(s); } catch (Exception e) { return fallback; }
     }
 
-    private static void scheduleAlarm(Context context, int id, int hour, int minute, String title, long triggerMs) {
-        AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        if (am == null) return;
-        Intent intent = new Intent(context, PlannerAlarmReceiver.class);
-        intent.putExtra(PlannerAlarmReceiver.EXTRA_ID, id);
-        intent.putExtra(PlannerAlarmReceiver.EXTRA_TITLE, title);
-        intent.putExtra(PlannerAlarmReceiver.EXTRA_HOUR, hour);
-        intent.putExtra(PlannerAlarmReceiver.EXTRA_MINUTE, minute);
-        PendingIntent pi = PendingIntent.getBroadcast(
-                context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    private static boolean scheduleAlarm(Context context, int id, int hour, int minute, String title, long triggerMs) {
         try {
-            if (Build.VERSION.SDK_INT >= 31) {
-                if (am.canScheduleExactAlarms()) {
+            AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (am == null) return false;
+            Intent intent = new Intent(context, PlannerAlarmReceiver.class);
+            intent.putExtra(PlannerAlarmReceiver.EXTRA_ID, id);
+            intent.putExtra(PlannerAlarmReceiver.EXTRA_TITLE, title);
+            intent.putExtra(PlannerAlarmReceiver.EXTRA_HOUR, hour);
+            intent.putExtra(PlannerAlarmReceiver.EXTRA_MINUTE, minute);
+            PendingIntent pi = PendingIntent.getBroadcast(
+                    context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            try {
+                if (Build.VERSION.SDK_INT >= 31) {
+                    if (am.canScheduleExactAlarms()) {
+                        am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pi);
+                    } else {
+                        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pi);
+                    }
+                } else if (Build.VERSION.SDK_INT >= 23) {
                     am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pi);
                 } else {
-                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pi);
+                    am.setExact(AlarmManager.RTC_WAKEUP, triggerMs, pi);
                 }
-            } else if (Build.VERSION.SDK_INT >= 23) {
-                am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pi);
-            } else {
-                am.setExact(AlarmManager.RTC_WAKEUP, triggerMs, pi);
+                return true;
+            } catch (SecurityException se) {
+                try {
+                    am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pi);
+                    return true;
+                } catch (Throwable ignored) {
+                    return false;
+                }
+            } catch (Throwable ignored) {
+                return false;
             }
-        } catch (SecurityException se) {
-            try {
-                am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pi);
-            } catch (Exception ignored) {}
-        } catch (Exception ignored) {}
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     public static String cancelAllPlannerAlarms(Context context, KobraConfig config) {
@@ -347,7 +360,9 @@ public final class SystemUtilityHelper {
                 Uri uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id);
                 localPlaylist.add(new AudioTrack(uri, label));
             }
-        } catch (Exception e) {
+        } catch (SecurityException se) {
+            return "Izin akses musik lokal ditolak sistem. Berikan izin audio terlebih dahulu.";
+        } catch (Throwable t) {
             return "Gagal memindai berkas musik di penyimpanan HP.";
         }
 
@@ -439,11 +454,13 @@ public final class SystemUtilityHelper {
 
     public static void dispatchMediaKey(Context context, int keyCode) {
         if (context == null) return;
-        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        if (am == null) return;
-        long now = SystemClock.uptimeMillis();
-        am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0));
-        am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0));
+        try {
+            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            if (am == null) return;
+            long now = SystemClock.uptimeMillis();
+            am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0));
+            am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0));
+        } catch (Throwable ignored) {}
     }
 
     // =========================================================================
@@ -451,41 +468,46 @@ public final class SystemUtilityHelper {
     // =========================================================================
 
     public static String buildSignalAndCarrierReport(Context context) {
+        if (context == null) return "Konteks sistem tidak tersedia.";
         StringBuilder sb = new StringBuilder("Status sinyal dan jaringan. ");
 
         // 1. Operator & status seluler
-        TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-        if (tm != null) {
-            String operator = "";
-            try {
-                operator = tm.getNetworkOperatorName();
-            } catch (Exception ignored) {}
-            if (operator == null || operator.trim().isEmpty()) {
+        try {
+            TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            if (tm != null) {
+                String operator = "";
                 try {
-                    operator = tm.getSimOperatorName();
-                } catch (Exception ignored) {}
-            }
-            int simState = TelephonyManager.SIM_STATE_UNKNOWN;
-            try {
-                simState = tm.getSimState();
-            } catch (Exception ignored) {}
-
-            if (simState == TelephonyManager.SIM_STATE_ABSENT) {
-                sb.append("Kartu SIM tidak terpasang. ");
-            } else if (operator != null && !operator.trim().isEmpty()) {
-                sb.append("Operator seluler: ").append(operator.trim()).append(". ");
-            } else {
-                sb.append("Operator seluler belum terdeteksi. ");
-            }
-
-            try {
-                int dataState = tm.getDataState();
-                if (dataState == TelephonyManager.DATA_CONNECTED) {
-                    sb.append("Data seluler tersambung. ");
-                } else if (dataState == TelephonyManager.DATA_DISCONNECTED) {
-                    sb.append("Data seluler tidak aktif. ");
+                    operator = tm.getNetworkOperatorName();
+                } catch (Throwable ignored) {}
+                if (operator == null || operator.trim().isEmpty()) {
+                    try {
+                        operator = tm.getSimOperatorName();
+                    } catch (Throwable ignored) {}
                 }
-            } catch (SecurityException ignored) {}
+                int simState = TelephonyManager.SIM_STATE_UNKNOWN;
+                try {
+                    simState = tm.getSimState();
+                } catch (Throwable ignored) {}
+
+                if (simState == TelephonyManager.SIM_STATE_ABSENT) {
+                    sb.append("Kartu SIM tidak terpasang. ");
+                } else if (operator != null && !operator.trim().isEmpty()) {
+                    sb.append("Operator seluler: ").append(operator.trim()).append(". ");
+                } else {
+                    sb.append("Operator seluler belum terdeteksi. ");
+                }
+
+                try {
+                    int dataState = tm.getDataState();
+                    if (dataState == TelephonyManager.DATA_CONNECTED) {
+                        sb.append("Data seluler tersambung. ");
+                    } else if (dataState == TelephonyManager.DATA_DISCONNECTED) {
+                        sb.append("Data seluler tidak aktif. ");
+                    }
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {
+            sb.append("Status operator seluler belum dapat dibaca karena pembatasan izin. ");
         }
 
         // 2. Status Wi-Fi dan kekuatan sinyal

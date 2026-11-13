@@ -55,8 +55,10 @@ public class KobraLauncherActivity extends AppCompatActivity {
         findViewById(R.id.btnVisionColor).setOnClickListener(v -> openVision("color"));
         findViewById(R.id.btnVisionFace).setOnClickListener(v -> openVision("face"));
         findViewById(R.id.btnVisionKtp).setOnClickListener(v -> openVision("ktp"));
-        findViewById(R.id.btnNavStick).setOnClickListener(v -> startActivity(new Intent(this, NavigationActivity.class)));
-        findViewById(R.id.btnAiChat).setOnClickListener(v -> startActivity(new Intent(this, AiChatActivity.class)));
+        findViewById(R.id.btnNavStick).setOnClickListener(v ->
+                KobraScreenHelper.safeStartActivity(this, new Intent(this, NavigationActivity.class), Speaker.get(this), "Gagal membuka Mode Tongkat."));
+        findViewById(R.id.btnAiChat).setOnClickListener(v ->
+                KobraScreenHelper.safeStartActivity(this, new Intent(this, AiChatActivity.class), Speaker.get(this), "Gagal membuka Teman Ngobrol AI."));
         findViewById(R.id.btnSosEmergency).setOnClickListener(v -> {
             AsistenAccessibilityService s = AsistenAccessibilityService.getInstance();
             if (s == null) speak("Aktifkan aksesibilitas Kobra dulu di menu Setup.");
@@ -94,7 +96,7 @@ public class KobraLauncherActivity extends AppCompatActivity {
     private void openVision(String mode) {
         Intent i = new Intent(this, VisionActivity.class);
         i.putExtra("mode", mode);
-        startActivity(i);
+        KobraScreenHelper.safeStartActivity(this, i, Speaker.get(this), "Gagal membuka kamera Mata Kedua.");
     }
 
     private void speak(String text) {
@@ -130,8 +132,8 @@ public class KobraLauncherActivity extends AppCompatActivity {
             holder.tv.setText(label);
             holder.itemView.setOnClickListener(v -> {
                 Intent i = pm.getLaunchIntentForPackage(app.packageName);
-                if (i != null) {
-                    startActivity(i);
+                if (i != null && KobraScreenHelper.safeStartActivity(KobraLauncherActivity.this, i,
+                        Speaker.get(KobraLauncherActivity.this), "Tidak dapat membuka " + label + ".")) {
                     speak("Membuka " + label);
                 }
             });

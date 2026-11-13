@@ -37,9 +37,13 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
 
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        if (sensorManager != null) {
-            rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        try {
+            sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            if (sensorManager != null) {
+                rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+            }
+        } catch (Throwable t) {
+            rotationSensor = null;
         }
 
         tvHeading = findViewById(R.id.tvCompassHeading);
@@ -147,24 +151,38 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
 
     @Override protected void onResume() {
         super.onResume();
-        if (sensorManager != null && rotationSensor != null) {
-            sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_UI);
+        try {
+            if (sensorManager != null && rotationSensor != null) {
+                sensorManager.registerListener(this, rotationSensor, SensorManager.SENSOR_DELAY_UI);
+            }
+        } catch (Throwable t) {
+            if (tvHeading != null) tvHeading.setText("Izin atau akses sensor kompas dibatasi.");
         }
         refreshSavedPlaces();
     }
 
     @Override protected void onPause() {
         super.onPause();
-        if (sensorManager != null) {
-            sensorManager.unregisterListener(this);
-        }
+        try {
+            if (sensorManager != null) {
+                sensorManager.unregisterListener(this);
+            }
+        } catch (Throwable ignored) {}
     }
 
     @Override public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR) return;
-        currentHeading = CompassLocationHelper.rotationVectorToDegrees(event.values);
-        currentCardinal = CompassLocationHelper.cardinalDirection(currentHeading);
-        tvHeading.setText(currentCardinal + " (" + currentHeading + "°)");
+        try {
+            if (event == null || event.sensor == null
+                    || event.sensor.getType() != Sensor.TYPE_ROTATION_VECTOR
+                    || event.values == null || event.values.length < 3) {
+                return;
+            }
+            currentHeading = CompassLocationHelper.rotationVectorToDegrees(event.values);
+            currentCardinal = CompassLocationHelper.cardinalDirection(currentHeading);
+            if (tvHeading != null) {
+                tvHeading.setText(currentCardinal + " (" + currentHeading + "°)");
+            }
+        } catch (Throwable ignored) {}
     }
 
     @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}

@@ -436,6 +436,22 @@ public final class KobraConfig {
                 .commit();
     }
 
+    public boolean saveLastCrashLog(String logText) {
+        String safe = logText == null ? "" : logText;
+        if (safe.length() > 24_000) {
+            safe = safe.substring(0, 24_000) + "\n... (dipotong)";
+        }
+        return crashGuard.edit().putString("last_crash_log", safe).commit();
+    }
+
+    public String getLastCrashLog() {
+        return crashGuard.getString("last_crash_log", "");
+    }
+
+    public boolean clearLastCrashLog() {
+        return crashGuard.edit().remove("last_crash_log").commit();
+    }
+
     private static float clampTts(float v) {
         return Math.max(0.5f, Math.min(2.0f, v));
     }

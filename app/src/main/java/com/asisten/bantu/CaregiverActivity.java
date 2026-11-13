@@ -139,13 +139,19 @@ public class CaregiverActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.btnCareSos).setOnClickListener(v ->
-                startActivity(new Intent(this, SosSetupActivity.class).putExtra(EXTRA_PIN_UNLOCKED, true)));
+                KobraScreenHelper.safeStartActivity(this,
+                        new Intent(this, SosSetupActivity.class).putExtra(EXTRA_PIN_UNLOCKED, true),
+                        speaker, "Gagal membuka Kontak Darurat SOS."));
 
         findViewById(R.id.btnCareMedCard).setOnClickListener(v ->
-                startActivity(new Intent(this, MedicalCardActivity.class).putExtra(EXTRA_PIN_UNLOCKED, true)));
+                KobraScreenHelper.safeStartActivity(this,
+                        new Intent(this, MedicalCardActivity.class).putExtra(EXTRA_PIN_UNLOCKED, true),
+                        speaker, "Gagal membuka Kartu Medis."));
 
         findViewById(R.id.btnCareSettings).setOnClickListener(v ->
-                startActivity(new Intent(this, SettingsActivity.class).putExtra(EXTRA_PIN_UNLOCKED, true)));
+                KobraScreenHelper.safeStartActivity(this,
+                        new Intent(this, SettingsActivity.class).putExtra(EXTRA_PIN_UNLOCKED, true),
+                        speaker, "Gagal membuka Pengaturan AI."));
 
         findViewById(R.id.btnCareBack).setOnClickListener(v -> finish());
 

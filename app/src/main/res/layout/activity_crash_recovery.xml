@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0E17"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_card_hero"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚠️ PEMULIHAN SISTEM KOBRA OS"
+            android:textColor="#EF4444"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Aplikasi menangkap error tak terduga dan mencegah penutupan paksa berulang. Anda dapat menyalin detail error di bawah ini atau kembali ke beranda."
+            android:textColor="#CBD5E1"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tvCrashSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_pill_dark"
+            android:padding="12dp"
+            android:textColor="#FBBF24"
+            android:textSize="13sp"
+            android:text="Memuat ringkasan error..." />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@drawable/bg_card_dark"
+        android:padding="12dp"
+        android:layout_marginBottom="12dp">
+
+        <TextView
+            android:id="@+id/tvCrashDetails"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="#E2E8F0"
+            android:textIsSelectable="true"
+            android:textSize="12sp"
+            android:text="" />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btnCopyCrashLog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        android:layout_marginBottom="8dp"
+        android:backgroundTint="#38BDF8"
+        android:textColor="#04120D"
+        android:textStyle="bold"
+        android:text="📋 SALIN LOG ERROR"
+        android:contentDescription="Salin seluruh log error ke papan klip" />
+
+    <Button
+        android:id="@+id/btnReturnHome"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="60dp"
+        android:backgroundTint="#10B981"
+        android:textColor="#04120D"
+        android:textStyle="bold"
+        android:text="🏠 KEMBALI KE BERANDA"
+        android:contentDescription="Kembali ke beranda utama Kobra OS" />
+</LinearLayout>

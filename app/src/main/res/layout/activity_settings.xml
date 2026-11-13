@@ -394,10 +394,22 @@
             android:text="" />
 
         <Button
+            android:id="@+id/btnViewCrashLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:minHeight="48dp"
+            android:backgroundTint="#1E293B"
+            android:textColor="#FBBF24"
+            android:textSize="13sp"
+            android:text="🐞 LIHAT LOG CRASH TERAKHIR"
+            android:contentDescription="Tampilkan log error crash terakhir yang tersimpan untuk disalin atau diperiksa" />
+
+        <Button
             android:id="@+id/btnBackSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="12dp"
             android:minHeight="64dp"
             android:text="KEMBALI"
             android:contentDescription="Kembali" />
