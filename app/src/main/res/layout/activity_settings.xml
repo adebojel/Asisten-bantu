@@ -142,6 +142,145 @@
             android:textSize="15sp"
             android:visibility="gone" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#00E676"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:text="🔊 Aksesibilitas, Suara TTS &amp; Kontras" />
+
+        <TextView
+            android:id="@+id/tvSpeechRate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="12dp"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:text="Kecepatan Suara (Rate): 0.9x" />
+
+        <SeekBar
+            android:id="@+id/sbSpeechRate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:max="15"
+            android:progress="4"
+            android:contentDescription="Atur kecepatan bicara suara asisten dari 0 koma 5 hingga 2 kali" />
+
+        <TextView
+            android:id="@+id/tvSpeechPitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="10dp"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:text="Nada Suara (Pitch): 1.0x" />
+
+        <SeekBar
+            android:id="@+id/sbSpeechPitch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:max="15"
+            android:progress="5"
+            android:contentDescription="Atur nada suara asisten dari rendah hingga tinggi" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swHighContrast"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:layout_marginTop="8dp"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:text="Mode Kontras Tinggi"
+            android:contentDescription="Aktifkan atau matikan mode kontras tinggi pada tampilan" />
+
+        <Button
+            android:id="@+id/btnTestTts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#7C4DFF"
+            android:textColor="#FFFFFF"
+            android:text="🔊 TES SUARA TTS"
+            android:contentDescription="Uji kecepatan dan nada suara asisten saat ini" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="16dp"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:text="Catatan Pribadi (ikut dicadangkan offline)" />
+
+        <EditText
+            android:id="@+id/etNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="80dp"
+            android:gravity="top|start"
+            android:hint="Tulis catatan pribadi atau pengingat..."
+            android:inputType="textMultiLine"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:contentDescription="Kolom catatan pribadi yang ikut dicadangkan" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#00E676"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:text="💾 Portabilitas Data Offline (JSON)" />
+
+        <Button
+            android:id="@+id/btnBackupData"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="60dp"
+            android:backgroundTint="#00897B"
+            android:textColor="#FFFFFF"
+            android:text="📤 CADANGKAN DATA (EKSPOR)"
+            android:contentDescription="Cadangkan seluruh pengaturan dan kontak darurat ke berkas JSON tanpa file model" />
+
+        <Button
+            android:id="@+id/btnRestoreData"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="60dp"
+            android:backgroundTint="#EF6C00"
+            android:textColor="#FFFFFF"
+            android:text="📥 PULIHKAN DATA (IMPOR)"
+            android:contentDescription="Pulihkan seluruh pengaturan dan kontak darurat dari berkas cadangan JSON" />
+
+        <TextView
+            android:id="@+id/tvBackupStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="#FFFFEB3B"
+            android:textSize="15sp"
+            android:text="" />
+
         <Button
             android:id="@+id/btnBackSettings"
             android:layout_width="match_parent"

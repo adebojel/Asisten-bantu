@@ -52,14 +52,17 @@ public class AiChatActivity extends AppCompatActivity {
 
         checkModelStatus();
 
-        boolean hasLocal = LocalLlmEngine.getInstance(this).isModelPresent();
+        LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
+        boolean hasLocal = engine.isModelPresent();
         String greeting;
         if (config.hasAi()) {
             greeting = "Halo. Saya Kobra, teman ngobrol Anda. Silakan bicara.";
-        } else if (hasLocal) {
+        } else if (hasLocal && !engine.isSafeMode()) {
             greeting = "Halo. Saya Kobra. Mesin AI offline Gemma 3 1B aktif dan siap digunakan. Silakan bicara.";
+        } else if (hasLocal) {
+            greeting = "Halo. Saya Kobra dalam Mode Aman perintah lokal karena mesin AI offline belum dapat dimuat ke memori. Silakan bicara.";
         } else {
-            greeting = "Halo. Saya Kobra. Belum ada API key AI online atau berkas model offline. Anda dapat mengimpor model offline .task atau mengisi API key di Pengaturan AI.";
+            greeting = "Halo. Saya Kobra dalam Mode Aman. Belum ada API key AI online atau berkas model offline. Anda dapat mengimpor model offline .task atau mengisi API key di Pengaturan AI.";
         }
         append("Kobra", greeting);
         speaker.speak(greeting);
@@ -76,11 +79,17 @@ public class AiChatActivity extends AppCompatActivity {
         boolean hasModel = engine.isModelPresent();
         if (hasModel) {
             long mb = engine.getModelFile().length() / (1024 * 1024);
-            tvModelStatusChat.setText("🧠 Model offline: Gemma 3 1B siap (" + mb + " MB)");
-            tvModelStatusChat.setTextColor(0xFF00E676);
-            btnImportModelChat.setVisibility(View.GONE);
+            if (engine.isSafeMode() && !engine.getLastError().isEmpty()) {
+                tvModelStatusChat.setText("⚠️ Mode Aman: " + engine.getLastError() + " (" + mb + " MB)");
+                tvModelStatusChat.setTextColor(0xFFFFAB40);
+                btnImportModelChat.setVisibility(View.VISIBLE);
+            } else {
+                tvModelStatusChat.setText("🧠 Model offline: Gemma 3 1B siap (" + mb + " MB)");
+                tvModelStatusChat.setTextColor(0xFF00E676);
+                btnImportModelChat.setVisibility(View.GONE);
+            }
         } else {
-            tvModelStatusChat.setText("⚠️ Model offline (.task) belum terpasang");
+            tvModelStatusChat.setText("⚠️ Mode Aman: Model offline (.task) belum terpasang");
             tvModelStatusChat.setTextColor(0xFFFFEB3B);
             btnImportModelChat.setVisibility(View.VISIBLE);
         }
@@ -110,7 +119,7 @@ public class AiChatActivity extends AppCompatActivity {
                     askOfflineLlm(text, localLlm);
                     return;
                 }
-                respond("Internet sedang terputus, dan model offline belum dipasang. Silakan impor model .task di Pengaturan AI.");
+                respond("Mode Aman aktif karena internet terputus dan model offline belum dipasang. Anda tetap bisa memakai kalkulator suara dan perintah sistem.");
                 return;
             }
             if (!config.hasAi()) {
@@ -118,7 +127,7 @@ public class AiChatActivity extends AppCompatActivity {
                     askOfflineLlm(text, localLlm);
                     return;
                 }
-                respond("Saya belum bisa menjawab itu tanpa AI. Anda dapat mengimpor model offline .task atau mengisi API key di Pengaturan AI.");
+                respond("Mode Aman aktif. Saya belum bisa menjawab pertanyaan bebas tanpa AI. Impor model offline .task atau isi API key di Pengaturan AI.");
                 return;
             }
             respond("Sebentar, saya pikirkan dulu.");
@@ -132,6 +141,10 @@ public class AiChatActivity extends AppCompatActivity {
     }
 
     private void askOfflineLlm(String text, LocalLlmEngine localLlm) {
+        if (localLlm.isSafeMode() && !localLlm.getLastError().isEmpty()) {
+            fallbackSafeMode(localLlm.getLastError());
+            return;
+        }
         append("Kobra", "Sedang berpikir offline (Gemma 3)...");
         LocalLlmEngine.StreamingCallback cb = new LocalLlmEngine.StreamingCallback() {
             private final StringBuilder buffer = new StringBuilder();
@@ -146,7 +159,8 @@ public class AiChatActivity extends AppCompatActivity {
                 }
             }
             @Override public void onError(String message) {
-                respond("Terjadi kendala pada model offline: " + message);
+                checkModelStatus();
+                respond("Beralih ke Mode Aman perintah lokal: " + message);
             }
         };
 
@@ -157,10 +171,18 @@ public class AiChatActivity extends AppCompatActivity {
                 if (localLlm.initEngine()) {
                     localLlm.generateResponseAsync(text, speaker, cb);
                 } else {
-                    main.post(() -> respond("Gagal memuat model offline. Pastikan berkas model Gemma 3 kompatibel."));
+                    main.post(() -> {
+                        checkModelStatus();
+                        fallbackSafeMode(localLlm.getLastError());
+                    });
                 }
             }).start();
         }
+    }
+
+    private void fallbackSafeMode(String reason) {
+        String detail = (reason == null || reason.isEmpty()) ? "Model tidak dapat dimuat" : reason;
+        respond("Model offline tidak dapat dimuat (" + detail + "). Kobra beralih ke Mode Aman untuk perintah sistem dan kalkulator lokal.");
     }
 
     private void respond(String reply) {

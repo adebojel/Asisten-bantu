@@ -4,7 +4,10 @@ import android.Manifest;
 import android.accessibilityservice.AccessibilityService;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -14,12 +17,14 @@ import android.hardware.camera2.CameraManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.AudioManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.StatFs;
 import android.provider.AlarmClock;
 import android.provider.ContactsContract;
 import android.provider.Settings;
@@ -92,6 +97,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private WindowManager windowManager;
     private Button floatingButton;
     private String torchId;
+    private ConnectivityManager.NetworkCallback networkCallback;
+    private boolean batteryReceiverRegistered = false;
+    private boolean warnedLow20 = false;
+    private boolean warnedCritical10 = false;
 
     private static final class Pending {
         final String kind;
@@ -126,21 +135,31 @@ public class AsistenAccessibilityService extends AccessibilityService {
         speaker = Speaker.get(this);
         speaker.addListener(speechListener);
 
-        // Inisialisasi Mesin LLM Offline pada Thread Latar Belakang
+        // Inisialisasi Mesin LLM Offline pada Thread Latar Belakang (dengan Safe Mode Fallback)
         localLlmEngine = LocalLlmEngine.getInstance(this);
         new Thread(() -> {
             if (localLlmEngine.isModelPresent()) {
-                localLlmEngine.initEngine();
+                boolean ok = localLlmEngine.initEngine();
+                if (!ok && main != null) {
+                    main.post(() -> speaker.speak("Model AI offline tidak dapat dimuat ke memori. Kobra berjalan di Mode Aman perintah sistem lokal."));
+                }
             }
         }).start();
 
-        NetworkState.watch(this, online -> main.post(() -> say(online
-                ? "Internet tersambung. Fitur online aktif."
-                : "Internet terputus. Fitur dasar tetap jalan offline.")));
+        networkCallback = NetworkState.watch(this, online -> main.post(() -> {
+            if (online) {
+                String type = NetworkState.connectionType(this);
+                say("Koneksi " + type + " tersambung. Fitur online aktif.");
+            } else {
+                say("Koneksi Wi-Fi dan data seluler terputus. Fitur dasar tetap jalan offline.");
+            }
+        }));
+        registerBatteryMonitor();
         initTorch();
         setupFloatingButton();
         speaker.speak("Kobra OS aktif. Sebut kata Kobra lalu perintah. Bilang Kobra bantuan untuk daftar perintah.");
         main.postDelayed(this::startListening, 2000);
+        main.postDelayed(this::checkLowStorageOnStart, 8000);
         main.postDelayed(watchdog, WATCHDOG_MS);
     }
 
@@ -152,6 +171,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
         instance = null;
         stopMic();
         destroyRecognizer();
+        NetworkState.unwatch(this, networkCallback);
+        networkCallback = null;
+        if (batteryReceiverRegistered) {
+            try { unregisterReceiver(batteryReceiver); } catch (Exception ignored) { }
+            batteryReceiverRegistered = false;
+        }
         if (localLlmEngine != null) {
             localLlmEngine.close();
             localLlmEngine = null;
@@ -488,8 +513,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (has(c, "baca layar", "isi layar", "apa di layar")) { say(readScreenText()); return; }
         if (has(c, "yang dipilih", "fokus")) { say(readFocus()); return; }
 
-        // Info HP
-        if (has(c, "baterai")) { say("Baterai " + batteryPercent() + " persen."); return; }
+        // Info HP dan diagnostik sistem
+        if (has(c, "periksa sistem", "cek sistem", "diagnostik sistem", "status sistem", "kesehatan sistem")) {
+            diagnoseSystem();
+            return;
+        }
+        if (has(c, "baterai")) {
+            int bat = batteryPercent();
+            BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
+            boolean charging = bm != null && bm.isCharging();
+            say("Baterai " + bat + " persen" + (charging ? ", sedang diisi daya." : "."));
+            return;
+        }
         if (has(c, "jam berapa", "pukul berapa") || word(c, "jam")) {
             say("Sekarang pukul " + new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date()) + ".");
             return;
@@ -527,11 +562,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
         String local = OfflineAi.get(this).answer(c);
         if (local != null) { say(local); return; }
 
-        // Sisanya: MediaPipe LLM Offline (bila offline), n8n (jika webhook diatur), lalu AI OpenRouter
+        // Sisanya: MediaPipe LLM Offline (bila offline, dengan Safe Mode Fallback), n8n (jika webhook diatur), lalu AI OpenRouter
         if (!NetworkState.isOnline(this)) {
             LocalLlmEngine engine = getLocalLlmEngine();
             if (engine != null && engine.isModelPresent()) {
-                if (engine.isInitialized()) {
+                if (engine.isSafeMode() && !engine.getLastError().isEmpty()) {
+                    say("Mode Aman aktif karena " + engine.getLastError() + ". Anda tetap bisa memakai kalkulator suara dan perintah sistem lokal.");
+                } else if (engine.isInitialized()) {
                     say("Memproses dengan otak offline...");
                     engine.generateResponseAsync(c, speaker);
                 } else {
@@ -540,12 +577,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
                         if (engine.initEngine()) {
                             engine.generateResponseAsync(c, speaker);
                         } else {
-                            main.post(() -> say("Gagal memuat model offline. Periksa berkas model di Pengaturan AI."));
+                            main.post(() -> say("Gagal memuat model offline. Beralih ke Mode Aman perintah sistem lokal."));
                         }
                     }).start();
                 }
             } else {
-                say("Perintah itu butuh internet, dan saat ini internet terputus. Coba lagi saat tersambung.");
+                say("Mode Aman aktif. Perintah itu butuh internet atau model offline titik task, dan saat ini internet terputus.");
             }
             return;
         }
@@ -638,7 +675,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "timer", "hitung mundur")) { setTimer(c); return true; }
-        if (has(c, "pasang alarm", "set alarm", "alarm jam", "bangunkan")) { setAlarm(c); return true; }
+        if (has(c, "pasang alarm", "set alarm", "setel alarm", "atur alarm", "alarm jam", "alarm pukul", "bangunkan")) { setAlarm(c); return true; }
         if (has(c, "mode getar")) { setRinger(AudioManager.RINGER_MODE_VIBRATE, "Mode getar aktif."); return true; }
         if (has(c, "mode normal", "mode berdering")) { setRinger(AudioManager.RINGER_MODE_NORMAL, "Mode berdering aktif."); return true; }
         if (c.equals("buka pengaturan") || c.equals("pengaturan")) { openSettings(Settings.ACTION_SETTINGS, "Pengaturan dibuka."); return true; }
@@ -1421,5 +1458,121 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private int batteryPercent() {
         BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
         return bm == null ? -1 : bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+    }
+
+    private void registerBatteryMonitor() {
+        try {
+            registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+            batteryReceiverRegistered = true;
+        } catch (Exception e) {
+            Log.w(TAG, "Gagal mendaftarkan pemantau baterai", e);
+        }
+    }
+
+    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (intent == null || !Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) return;
+            int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+            int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+            if (level < 0 || scale <= 0) return;
+
+            int percent = (level * 100) / scale;
+            boolean charging = status == BatteryManager.BATTERY_STATUS_CHARGING
+                    || status == BatteryManager.BATTERY_STATUS_FULL;
+
+            if (charging) {
+                warnedLow20 = false;
+                warnedCritical10 = false;
+                return;
+            }
+            if (percent < 10 && !warnedCritical10) {
+                warnedCritical10 = true;
+                warnedLow20 = true;
+                say("Peringatan baterai kritis, tersisa " + percent + " persen. Segera sambungkan pengisi daya.");
+            } else if (percent < 20 && !warnedLow20) {
+                warnedLow20 = true;
+                say("Peringatan baterai lemah, tersisa " + percent + " persen. Sebaiknya segera isi daya HP.");
+            }
+        }
+    };
+
+    private void checkLowStorageOnStart() {
+        try {
+            StatFs stat = new StatFs(getFilesDir().getAbsolutePath());
+            long availBytes = stat.getAvailableBytes();
+            if (availBytes < 1024L * 1024L * 1024L) {
+                long mb = availBytes / (1024L * 1024L);
+                say("Peringatan penyimpanan internal di bawah satu gigabita, tersisa " + mb + " megabita. Kosongkan ruang agar sistem dan model AI tetap lancar.");
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Gagal memeriksa sisa penyimpanan", e);
+        }
+    }
+
+    private void diagnoseSystem() {
+        StringBuilder missingPerms = new StringBuilder();
+        if (!Perms.has(this, Manifest.permission.RECORD_AUDIO)) missingPerms.append("mikrofon, ");
+        if (!Perms.has(this, Manifest.permission.CAMERA)) missingPerms.append("kamera, ");
+        if (!Perms.has(this, Manifest.permission.ACCESS_FINE_LOCATION)) missingPerms.append("lokasi, ");
+        if (!Perms.has(this, Manifest.permission.READ_CONTACTS)) missingPerms.append("kontak, ");
+        if (!Perms.has(this, Manifest.permission.CALL_PHONE)) missingPerms.append("telepon, ");
+        if (!Perms.has(this, Manifest.permission.SEND_SMS)) missingPerms.append("SMS, ");
+
+        String permReport = missingPerms.length() == 0
+                ? "Semua izin utama aktif"
+                : "Izin yang belum aktif: " + missingPerms.substring(0, missingPerms.length() - 2);
+
+        String notifReport = KobraNotificationService.isConnected()
+                ? "Akses notifikasi aktif"
+                : "Akses notifikasi belum aktif";
+
+        LocalLlmEngine llm = getLocalLlmEngine();
+        String aiReport;
+        if (llm != null && llm.isInitialized()) {
+            aiReport = "Model AI offline Gemma 3 aktif";
+        } else if (llm != null && llm.isModelPresent()) {
+            aiReport = "AI offline dalam Mode Aman karena " + (llm.getLastError().isEmpty() ? "belum dimuat" : llm.getLastError());
+        } else {
+            aiReport = "Model AI offline belum diimpor, Mode Aman aktif";
+        }
+
+        String netType = NetworkState.connectionType(this);
+        String netReport = NetworkState.isOnline(this)
+                ? "Internet tersambung melalui " + netType
+                : "Internet terputus, mode offline";
+
+        BatteryManager bm = (BatteryManager) getSystemService(BATTERY_SERVICE);
+        int bat = batteryPercent();
+        boolean charging = bm != null && bm.isCharging();
+        String batReport = bat >= 0
+                ? "Baterai " + bat + " persen" + (charging ? " dan sedang mengisi daya" : "")
+                : "Status baterai tidak terbaca";
+
+        String storageReport;
+        try {
+            StatFs stat = new StatFs(getFilesDir().getAbsolutePath());
+            long freeMb = stat.getAvailableBytes() / (1024L * 1024L);
+            if (freeMb >= 1024) {
+                storageReport = String.format(new Locale("id", "ID"), "Sisa penyimpanan %.1f gigabita", freeMb / 1024.0);
+            } else {
+                storageReport = "Peringatan, sisa penyimpanan rendah " + freeMb + " megabita";
+            }
+        } catch (Exception e) {
+            storageReport = "Penyimpanan tidak terbaca";
+        }
+
+        String sosReport = config.hasSosContact()
+                ? "Kontak darurat SOS sudah diatur"
+                : "Kontak darurat SOS belum diatur, bawaan menghubungi 112";
+
+        say("Laporan diagnostik sistem Kobra OS. "
+                + permReport + ". "
+                + notifReport + ". "
+                + aiReport + ". "
+                + netReport + ". "
+                + batReport + ". "
+                + storageReport + ". "
+                + sosReport + ".");
     }
 }

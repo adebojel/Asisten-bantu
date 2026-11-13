@@ -26,6 +26,7 @@ public class SosSetupActivity extends AppCompatActivity {
         etPhone1.setText(config.getSos("phone1"));
         etName2.setText(config.getSos("name2"));
         etPhone2.setText(config.getSos("phone2"));
+        updateStatusText(config, tvStatus);
 
         btnSave.setOnClickListener(v -> {
             String p1 = etPhone1.getText().toString().trim();
@@ -38,9 +39,29 @@ public class SosSetupActivity extends AppCompatActivity {
             config.setSos("phone1", p1);
             config.setSos("name2", etName2.getText().toString());
             config.setSos("phone2", p2);
-            tvStatus.setText("Kontak darurat disimpan.");
+            updateStatusText(config, tvStatus);
             Toast.makeText(this, "Kontak SOS disimpan", Toast.LENGTH_SHORT).show();
             Speaker.get(this).speak("Kontak darurat disimpan.");
         });
+    }
+
+    private void updateStatusText(KobraConfig config, TextView tvStatus) {
+        String n1 = config.getSos("name1");
+        String p1 = config.getSos("phone1");
+        String n2 = config.getSos("name2");
+        String p2 = config.getSos("phone2");
+        if (p1.isEmpty() && p2.isEmpty()) {
+            tvStatus.setText("Belum diatur (Default: 112)");
+        } else {
+            StringBuilder sb = new StringBuilder("Tersimpan: ");
+            if (!p1.isEmpty()) {
+                sb.append(n1.isEmpty() ? "Kontak 1" : n1).append(" (").append(p1).append(")");
+            }
+            if (!p2.isEmpty()) {
+                if (!p1.isEmpty()) sb.append(", ");
+                sb.append(n2.isEmpty() ? "Kontak 2" : n2).append(" (").append(p2).append(")");
+            }
+            tvStatus.setText(sb.toString());
+        }
     }
 }

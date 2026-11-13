@@ -83,7 +83,7 @@ public class Speaker implements TextToSpeech.OnInitListener {
         if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
             tts.setLanguage(Locale.getDefault());
         }
-        tts.setSpeechRate(new KobraConfig(context).getSpeechRate());
+        applyVoiceSettings();
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
@@ -100,6 +100,20 @@ public class Speaker implements TextToSpeech.OnInitListener {
                 mainHandler.post(() -> notifySpeechEnd());
             }
         });
+    }
+
+    public void applyVoiceSettings() {
+        KobraConfig cfg = new KobraConfig(context);
+        updateVoiceSettings(cfg.getSpeechRate(), cfg.getSpeechPitch());
+    }
+
+    public void updateVoiceSettings(float speechRate, float pitch) {
+        if (tts != null && ready) {
+            try {
+                tts.setSpeechRate(Math.max(0.5f, Math.min(2.0f, speechRate)));
+                tts.setPitch(Math.max(0.5f, Math.min(2.0f, pitch)));
+            } catch (Exception ignored) {}
+        }
     }
 
     public void speak(String teks) {

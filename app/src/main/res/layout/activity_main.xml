@@ -16,9 +16,20 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="#FFFFFF"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:paddingBottom="16dp"
             android:text="Memuat status..." />
+
+        <Button
+            android:id="@+id/btnVoiceGuide"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:layout_marginBottom="10dp"
+            android:backgroundTint="#2962FF"
+            android:textColor="#FFFFFF"
+            android:text="🔊 Panduan Suara Aplikasi"
+            android:contentDescription="Panduan Suara Aplikasi. Ketuk untuk mendengarkan fungsi setiap tombol utama." />
 
         <Button
             android:id="@+id/btnPermissions"

@@ -29,6 +29,8 @@ public class LocalLlmEngine {
 
     private LlmInference llmInference;
     private boolean isInitialized = false;
+    private boolean safeMode = false;
+    private String lastError = "";
     private final Context context;
     private final Handler mainHandler;
     private Speaker activeSpeaker;
@@ -58,7 +60,18 @@ public class LocalLlmEngine {
      * Memeriksa apakah mesin LLM sudah berhasil diinisialisasi dan siap di memori.
      */
     public synchronized boolean isInitialized() {
-        return isInitialized && llmInference != null;
+        return isInitialized && llmInference != null && !safeMode;
+    }
+
+    /**
+     * True jika aplikasi berjalan di Mode Aman karena model belum tersedia atau memori penuh.
+     */
+    public synchronized boolean isSafeMode() {
+        return safeMode || !isModelPresent();
+    }
+
+    public synchronized String getLastError() {
+        return lastError;
     }
 
     /**
@@ -71,15 +84,19 @@ public class LocalLlmEngine {
 
     /**
      * Memuat model bahasa offline ke memori. Dipanggil pada thread latar belakang.
+     * Menangani OOM / memori penuh dengan masuk ke Mode Aman tanpa crash.
      */
     public synchronized boolean initEngine() {
         if (isInitialized && llmInference != null) {
+            safeMode = false;
             return true;
         }
 
         File modelFile = getModelFile();
-        if (!modelFile.exists()) {
+        if (!modelFile.exists() || modelFile.length() <= 1024 * 1024) {
             Log.w(TAG, "Berkas model Gemma 3 1B belum ditemukan di: " + modelFile.getAbsolutePath());
+            safeMode = true;
+            lastError = "Model belum terpasang";
             return false;
         }
 
@@ -130,21 +147,39 @@ public class LocalLlmEngine {
                         }
                         if (activeSpeaker != null) {
                             final Speaker spk = activeSpeaker;
-                            mainHandler.post(() -> spk.speak("Terjadi kendala saat memproses jawaban offline."));
+                            mainHandler.post(() -> spk.speak("Terjadi kendala saat memproses jawaban offline. Beralih ke Mode Aman."));
                         }
                     })
                     .build();
 
             llmInference = LlmInference.createFromOptions(context, options);
             isInitialized = true;
+            safeMode = false;
+            lastError = "";
             Log.i(TAG, "Mesin LLM Offline (Gemma 3 1B) berhasil diinisialisasi.");
             return true;
 
-        } catch (Exception e) {
-            Log.e(TAG, "Gagal menginisialisasi MediaPipe LLM Inference", e);
-            isInitialized = false;
+        } catch (OutOfMemoryError oom) {
+            Log.e(TAG, "Memori penuh (OOM) saat memuat model LLM offline. Masuk ke Mode Aman.", oom);
+            cleanupPartialInference();
+            safeMode = true;
+            lastError = "Memori HP tidak cukup (OOM)";
+            return false;
+        } catch (Throwable t) {
+            Log.e(TAG, "Gagal menginisialisasi MediaPipe LLM Inference. Masuk ke Mode Aman.", t);
+            cleanupPartialInference();
+            safeMode = true;
+            lastError = t.getMessage() != null ? t.getMessage() : "Gagal memuat model";
             return false;
         }
+    }
+
+    private void cleanupPartialInference() {
+        if (llmInference != null) {
+            try { llmInference.close(); } catch (Throwable ignored) {}
+            llmInference = null;
+        }
+        isInitialized = false;
     }
 
     /**
@@ -165,14 +200,17 @@ public class LocalLlmEngine {
 
     /**
      * Mengirimkan instruksi ke model offline dengan dukungan callback streaming untuk UI.
+     * Jika mesin gagal atau memori penuh, langsung masuk ke Mode Aman tanpa crash.
      */
     public synchronized void generateResponseAsync(String prompt, Speaker speaker, StreamingCallback callback) {
-        if (!isInitialized || llmInference == null) {
+        if (!isInitialized || llmInference == null || safeMode) {
+            safeMode = true;
+            String msg = "Model AI offline belum tersedia atau memori penuh. Beralih ke Mode Aman perintah sistem lokal.";
             if (speaker != null) {
-                speaker.speak("Otak offline Gemma tiga belum siap atau berkas model belum tersedia.");
+                mainHandler.post(() -> speaker.speak(msg));
             }
             if (callback != null) {
-                mainHandler.post(() -> callback.onError("Otak offline Gemma 3 belum siap atau berkas model belum diimpor."));
+                mainHandler.post(() -> callback.onError(msg));
             }
             return;
         }
@@ -182,13 +220,28 @@ public class LocalLlmEngine {
             this.activeCallback = callback;
             this.sentenceBuffer.setLength(0);
             llmInference.generateResponseAsync(prompt);
-        } catch (Exception e) {
-            Log.e(TAG, "Galat saat mengeksekusi inferensi LLM offline", e);
+        } catch (OutOfMemoryError oom) {
+            Log.e(TAG, "Memori penuh saat inferensi LLM offline", oom);
+            cleanupPartialInference();
+            safeMode = true;
+            lastError = "Memori penuh saat inferensi";
+            String msg = "Memori HP penuh saat memproses model offline. Beralih ke Mode Aman perintah sistem lokal.";
             if (speaker != null) {
-                mainHandler.post(() -> speaker.speak("Terjadi kendala saat memproses jawaban offline."));
+                mainHandler.post(() -> speaker.speak(msg));
             }
             if (callback != null) {
-                mainHandler.post(() -> callback.onError(e.getMessage()));
+                mainHandler.post(() -> callback.onError(msg));
+            }
+        } catch (Throwable t) {
+            Log.e(TAG, "Galat saat mengeksekusi inferensi LLM offline", t);
+            safeMode = true;
+            lastError = t.getMessage() != null ? t.getMessage() : "Kesalahan inferensi";
+            String msg = "Model offline mengalami kendala. Beralih ke Mode Aman perintah sistem lokal.";
+            if (speaker != null) {
+                mainHandler.post(() -> speaker.speak(msg));
+            }
+            if (callback != null) {
+                mainHandler.post(() -> callback.onError(msg));
             }
         }
     }
@@ -207,11 +260,7 @@ public class LocalLlmEngine {
      * Membebaskan memori sistem saat service dihentikan.
      */
     public synchronized void close() {
-        if (llmInference != null) {
-            try { llmInference.close(); } catch (Exception ignored) {}
-            llmInference = null;
-        }
-        isInitialized = false;
+        cleanupPartialInference();
         activeSpeaker = null;
         activeCallback = null;
         Log.i(TAG, "Sumber daya LLM Offline berhasil dibebaskan.");
