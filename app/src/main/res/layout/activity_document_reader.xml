@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📄 PEMBACA DOKUMEN (.TXT &amp; .PDF)"
+        android:textColor="#00E676"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvDocStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#151515"
+        android:padding="10dp"
+        android:textColor="#FFFFEB3B"
+        android:textSize="15sp"
+        android:text="Belum ada dokumen dipilih." />
+
+    <Button
+        android:id="@+id/btnPickDocument"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:minHeight="58dp"
+        android:backgroundTint="#2962FF"
+        android:textColor="#FFFFFF"
+        android:text="📂 PILIH DOKUMEN (.TXT / .PDF)"
+        android:contentDescription="Pilih berkas teks atau dokumen PDF dari penyimpanan HP" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="10dp"
+        android:background="#121212"
+        android:padding="12dp">
+        <TextView
+            android:id="@+id/tvDocParagraph"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="19sp"
+            android:text="Tekan Pilih Dokumen untuk membacakan isi file teks atau PDF per paragraf." />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp">
+        <Button
+            android:id="@+id/btnDocPrev"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="58dp"
+            android:text="⏮ SEBELUM"
+            android:contentDescription="Paragraf sebelumnya" />
+        <Button
+            android:id="@+id/btnDocPlayPause"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.2"
+            android:layout_marginStart="6dp"
+            android:minHeight="58dp"
+            android:backgroundTint="#00C853"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:text="▶ PUTAR"
+            android:contentDescription="Putar atau jeda pembacaan dokumen" />
+        <Button
+            android:id="@+id/btnDocNext"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:minHeight="58dp"
+            android:text="LANJUT ⏭"
+            android:contentDescription="Paragraf berikutnya" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+        <Button
+            android:id="@+id/btnDocRepeat"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="54dp"
+            android:text="🔁 ULANGI"
+            android:contentDescription="Ulangi paragraf saat ini" />
+        <Button
+            android:id="@+id/btnDocSummarize"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:minHeight="54dp"
+            android:backgroundTint="#7C4DFF"
+            android:textColor="#FFFFFF"
+            android:text="🧠 RINGKAS"
+            android:contentDescription="Ringkas isi dokumen dengan AI Gemma 3" />
+        <Button
+            android:id="@+id/btnDocTranslate"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:minHeight="54dp"
+            android:backgroundTint="#00897B"
+            android:textColor="#FFFFFF"
+            android:text="🌐 TERJEMAH"
+            android:contentDescription="Terjemahkan paragraf saat ini ke Indonesia atau Inggris" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnDocBack"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:minHeight="56dp"
+        android:text="KEMBALI"
+        android:contentDescription="Kembali ke beranda" />
+</LinearLayout>

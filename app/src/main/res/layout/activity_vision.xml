@@ -15,23 +15,71 @@
         android:id="@+id/tvVisionStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp"
+        android:padding="10dp"
         android:textColor="#00E676"
-        android:textSize="18sp"
+        android:textSize="17sp"
+        android:textStyle="bold"
         android:text="Memuat..." />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="140dp">
+        android:layout_height="135dp">
         <TextView
             android:id="@+id/tvVisionResult"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="12dp"
+            android:padding="10dp"
             android:textColor="#FFFFFF"
-            android:textSize="18sp"
+            android:textSize="17sp"
             android:text="Hasil akan muncul di sini." />
     </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="6dp"
+        android:paddingBottom="4dp">
+        <Button
+            android:id="@+id/btnResetVision"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="48dp"
+            android:textSize="12sp"
+            android:text="RESET"
+            android:contentDescription="Reset hitungan uang atau perbandingan warna" />
+        <Button
+            android:id="@+id/btnPickImageVision"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:minHeight="48dp"
+            android:textSize="12sp"
+            android:text="GALERI"
+            android:contentDescription="Pilih gambar atau tangkapan layar transfer dari galeri HP" />
+        <Button
+            android:id="@+id/btnSummarizeVision"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:minHeight="48dp"
+            android:textSize="12sp"
+            android:text="RINGKAS"
+            android:contentDescription="Ringkas hasil bacaan panjang dengan AI Gemma 3" />
+        <Button
+            android:id="@+id/btnTranslateVision"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:minHeight="48dp"
+            android:textSize="12sp"
+            android:text="TERJEMAH"
+            android:contentDescription="Terjemahkan teks hasil kamera secara offline" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -42,7 +90,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:minHeight="64dp"
+            android:minHeight="62dp"
             android:text="SCAN"
             android:contentDescription="Ambil foto dan baca" />
         <Button
@@ -50,7 +98,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:minHeight="64dp"
+            android:minHeight="62dp"
             android:text="KEMBALI"
             android:contentDescription="Kembali ke layar utama" />
     </LinearLayout>

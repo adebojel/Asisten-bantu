@@ -31,6 +31,10 @@ public final class KobraConfig {
             "mistralai/mistral-small-3.1-24b-instruct:free"
     };
 
+    public static final String STYLE_RINGKAS = "ringkas";
+    public static final String STYLE_RAMAH = "ramah";
+    public static final String STYLE_DAERAH = "daerah";
+
     private final Context appContext;
     private final SharedPreferences prefs;
     private final SharedPreferences sos;
@@ -74,6 +78,37 @@ public final class KobraConfig {
 
     public boolean isPrivacyMode() { return prefs.getBoolean("privacy_mode", false); }
     public void setPrivacyMode(boolean enabled) { prefs.edit().putBoolean("privacy_mode", enabled).apply(); }
+
+    public String getAssistantStyle() {
+        String s = prefs.getString("assistant_style", STYLE_RAMAH);
+        if (STYLE_RINGKAS.equals(s) || STYLE_DAERAH.equals(s)) return s;
+        return STYLE_RAMAH;
+    }
+
+    public void setAssistantStyle(String style) {
+        String valid = STYLE_RAMAH;
+        if (STYLE_RINGKAS.equals(style) || STYLE_DAERAH.equals(style)) valid = style;
+        prefs.edit().putString("assistant_style", valid).apply();
+    }
+
+    public String getAssistantStyleLabel() {
+        switch (getAssistantStyle()) {
+            case STYLE_RINGKAS: return "Ringkas";
+            case STYLE_DAERAH: return "Bahasa Daerah Dasar";
+            default: return "Ramah";
+        }
+    }
+
+    public String getAssistantStyleSystemPrompt() {
+        switch (getAssistantStyle()) {
+            case STYLE_RINGKAS:
+                return "Jawab sangat singkat, padat, langsung ke inti dalam 1 sampai 2 kalimat tanpa basa-basi dan tanpa format markdown.";
+            case STYLE_DAERAH:
+                return "Jawab dengan sopan dan hangat dalam Bahasa Indonesia yang mudah dipahami, selipkan sapaan halus bahasa daerah Nusantara seperti monggo, matur nuwun, atau punten secara wajar tanpa format markdown.";
+            default:
+                return "Jawab dalam Bahasa Indonesia yang hangat, ramah, jelas, dan bersahabat tanpa format markdown atau simbol.";
+        }
+    }
 
     public String getSecurityPin() { return prefs.getString("security_pin", "").trim(); }
     public void setSecurityPin(String pin) {

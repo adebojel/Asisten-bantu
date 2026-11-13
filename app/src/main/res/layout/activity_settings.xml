@@ -204,6 +204,53 @@
             android:text="Mode Kontras Tinggi"
             android:contentDescription="Aktifkan atau matikan mode kontras tinggi pada tampilan" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="12dp"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:text="Gaya Bahasa Asisten AI" />
+
+        <RadioGroup
+            android:id="@+id/rgAssistantStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="6dp"
+            android:contentDescription="Pilih gaya bahasa jawaban asisten AI">
+
+            <RadioButton
+                android:id="@+id/rbStyleRingkas"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#00E676"
+                android:text="Ringkas (padat langsung inti)"
+                android:contentDescription="Gaya bahasa ringkas, jawaban sangat padat dan langsung ke inti" />
+
+            <RadioButton
+                android:id="@+id/rbStyleRamah"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#00E676"
+                android:text="Ramah (jelas dan bersahabat)"
+                android:contentDescription="Gaya bahasa ramah, hangat, jelas, dan bersahabat" />
+
+            <RadioButton
+                android:id="@+id/rbStyleDaerah"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:textColor="#FFFFFF"
+                android:buttonTint="#00E676"
+                android:text="Bahasa Daerah Dasar (sapaan Nusantara sopan)"
+                android:contentDescription="Gaya bahasa daerah dasar dengan sapaan Nusantara yang sopan" />
+        </RadioGroup>
+
         <Button
             android:id="@+id/btnTestTts"
             android:layout_width="match_parent"

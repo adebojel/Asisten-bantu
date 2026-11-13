@@ -93,6 +93,20 @@ public class KobraNotificationService extends NotificationListenerService {
         return sb.toString().trim();
     }
 
+    public static synchronized int getRecentCount() {
+        return RECENT.size();
+    }
+
+    public static synchronized String getJoinedRecentNotifications(int maxCount) {
+        if (RECENT.isEmpty()) return "";
+        int n = Math.min(maxCount, RECENT.size());
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            sb.append(RECENT.get(RECENT.size() - 1 - i)).append("\n");
+        }
+        return sb.toString().trim();
+    }
+
     private static synchronized void remember(String line) {
         RECENT.add(line);
         while (RECENT.size() > MAX_RECENT) RECENT.remove(0);

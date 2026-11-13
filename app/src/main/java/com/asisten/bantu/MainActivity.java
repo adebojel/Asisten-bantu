@@ -9,6 +9,7 @@ import android.os.StatFs;
 import android.provider.Settings;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -84,6 +85,45 @@ public class MainActivity extends AppCompatActivity {
             HapticFeedback.vibrateAction(this);
             startActivity(new Intent(this, CaregiverActivity.class));
         });
+        findViewById(R.id.btnSecondEyeMenu).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            openSecondEyeChooser();
+        });
+        findViewById(R.id.btnDocumentReader).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(this, DocumentReaderActivity.class));
+        });
+    }
+
+    private void openSecondEyeChooser() {
+        final String[] labels = {
+                "💵 Penghitung Lembar Uang Tunai (jumlah otomatis)",
+                "💵 Baca Uang Satuan",
+                "👔 Padu Padan Warna Pakaian",
+                "📟 Pembaca Layar Digital Real-Time (ATM, timbangan)",
+                "🧾 Pemindai Struk & Screenshot Transfer Bank",
+                "📦 Pemindai Barcode & QR Code Offline",
+                "🪑 Cari Objek Sekitar (kursi, pintu, bip kamera)",
+                "🌐 Terjemahkan Teks Kamera (Offline)",
+                "🪪 Baca KTP & KK Offline",
+                "👥 Hitung Orang di Depan",
+                "👁️ Jelaskan Sekitar"
+        };
+        final String[] modes = {
+                "money_count", "money", "outfit", "digital_screen",
+                "receipt", "barcode", "find_object", "translate_ocr",
+                "ktp", "face", "describe"
+        };
+        speaker.speak("Pilih mode Mata Kedua yang ingin digunakan.");
+        new AlertDialog.Builder(this)
+                .setTitle("Pilih Mode Mata Kedua")
+                .setItems(labels, (dialog, which) -> {
+                    Intent intent = new Intent(this, VisionActivity.class);
+                    intent.putExtra("mode", modes[which]);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Batal", null)
+                .show();
     }
 
     @Override protected void onResume() {
@@ -101,14 +141,15 @@ public class MainActivity extends AppCompatActivity {
                 + "Tombol satu, Beri izin, untuk mengaktifkan mikrofon, kamera, lokasi, kontak, SMS, telepon, dan Bluetooth darurat. "
                 + "Tombol dua, Aktifkan layanan aksesibilitas Kobra, agar Kobra bisa mendengar suara, deteksi jatuh, tombol volume, dan membantu mengendalikan layar. "
                 + "Tombol tiga, Aktifkan akses notifikasi, untuk membacakan pesan dan panggilan masuk. "
-                + "Tombol empat, Pengaturan AI, untuk mengisi API key, mengimpor model offline titik task, mengatur kecepatan serta nada suara, kontras tinggi, dan mencadangkan atau memulihkan data. "
+                + "Tombol empat, Pengaturan AI, untuk mengisi API key, mengimpor model offline titik task, mengatur kecepatan, nada, serta gaya bahasa suara, kontras tinggi, dan mencadangkan atau memulihkan data. "
                 + "Tombol lima, Kontak darurat SOS, untuk mengatur nomor tujuan saat darurat dan mode latihan SOS. "
                 + "Tombol enam, Pembatasan baterai, agar Kobra tidak dimatikan sistem saat hemat daya. "
                 + "Tombol tujuh, Jalankan Kobra di latar belakang. "
                 + "Tombol delapan, Jadikan Kobra sebagai layar utama. "
                 + "Tersedia juga tombol Kompas Suara dan Rute Pulang, Kartu Identitas Medis Darurat, "
                 + "Produktivitas untuk memo, pengingat barang, pengeluaran dan jadwal obat, Jadwal Sholat dan Kiblat offline, "
-                + "serta Mode Pendamping untuk mengatur PIN keamanan dan pengawasan keluarga.";
+                + "Mode Pendamping untuk PIN keamanan dan keluarga, menu Mata Kedua untuk hitung uang tunai, padu padan pakaian, layar ATM, struk transfer, barcode, dan cari objek, "
+                + "serta Pembaca Dokumen untuk file teks dan PDF.";
         speaker.speak(guide);
     }
 
@@ -149,7 +190,9 @@ public class MainActivity extends AppCompatActivity {
                 + "Deteksi Jatuh & Kunci Saku: " + (c.isFallDetectionEnabled() ? "aktif" : "mati")
                 + " | Mode Privasi: " + (c.isPrivacyMode() ? "AKTIF (kamera & mic diputus)" : "nonaktif") + "\n"
                 + "Kunci PIN Keamanan: " + (c.hasSecurityPin() ? "AKTIF" : "belum dipasang")
-                + " | Privat Otomatis BT: " + (c.isAutoPrivateOnBt() ? "aktif" : "mati");
+                + " | Privat Otomatis BT: " + (c.isAutoPrivateOnBt() ? "aktif" : "mati") + "\n"
+                + "Gaya Bahasa Asisten: " + c.getAssistantStyleLabel()
+                + " | Memori Chat: " + llm.getSessionTurnCount() + " giliran";
         tvStatus.setText(text);
     }
 

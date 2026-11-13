@@ -49,10 +49,22 @@
         android:contentDescription="Tekan untuk bicara" />
 
     <Button
+        android:id="@+id/btnResetChatSession"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        android:layout_marginTop="6dp"
+        android:backgroundTint="#EF6C00"
+        android:textColor="#FFFFFF"
+        android:text="🧹 SESI BARU (BERSIHKAN KONTEKS)"
+        android:contentDescription="Hapus riwayat percakapan agar AI memulai topik baru dari awal" />
+
+    <Button
         android:id="@+id/btnCloseChat"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:minHeight="64dp"
+        android:layout_marginTop="6dp"
         android:text="SELESAI"
         android:contentDescription="Tutup obrolan" />
 </LinearLayout>

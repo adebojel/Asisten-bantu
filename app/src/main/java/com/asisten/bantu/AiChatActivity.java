@@ -38,12 +38,14 @@ public class AiChatActivity extends AppCompatActivity {
         scroll = findViewById(R.id.scrollChat);
         btnImportModelChat = findViewById(R.id.btnImportModelChat);
         Button btnListen = findViewById(R.id.btnListenChat);
+        Button btnResetSession = findViewById(R.id.btnResetChatSession);
         Button btnClose = findViewById(R.id.btnCloseChat);
         speaker = Speaker.get(this);
         config = new KobraConfig(this);
         ai = new AiClient(config);
 
         btnListen.setOnClickListener(v -> AsistenAccessibilityService.requestListen());
+        btnResetSession.setOnClickListener(v -> resetChatSession());
         btnClose.setOnClickListener(v -> finish());
         btnImportModelChat.setOnClickListener(v -> {
             speaker.speak("Membuka pengaturan AI untuk mengimpor model offline.");
@@ -77,22 +79,34 @@ public class AiChatActivity extends AppCompatActivity {
     private void checkModelStatus() {
         LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
         boolean hasModel = engine.isModelPresent();
+        String styleInfo = "Gaya: " + config.getAssistantStyleLabel()
+                + " | Memori: " + engine.getSessionTurnCount() + " giliran";
         if (hasModel) {
             long mb = engine.getModelFile().length() / (1024 * 1024);
             if (engine.isSafeMode() && !engine.getLastError().isEmpty()) {
-                tvModelStatusChat.setText("⚠️ Mode Aman: " + engine.getLastError() + " (" + mb + " MB)");
+                tvModelStatusChat.setText("⚠️ Mode Aman: " + engine.getLastError() + " (" + mb + " MB) • " + styleInfo);
                 tvModelStatusChat.setTextColor(0xFFFFAB40);
                 btnImportModelChat.setVisibility(View.VISIBLE);
             } else {
-                tvModelStatusChat.setText("🧠 Model offline: Gemma 3 1B siap (" + mb + " MB)");
+                tvModelStatusChat.setText("🧠 Model offline: Gemma 3 1B siap (" + mb + " MB) • " + styleInfo);
                 tvModelStatusChat.setTextColor(0xFF00E676);
                 btnImportModelChat.setVisibility(View.GONE);
             }
         } else {
-            tvModelStatusChat.setText("⚠️ Mode Aman: Model offline (.task) belum terpasang");
+            tvModelStatusChat.setText("⚠️ Mode Aman: Model offline (.task) belum terpasang • Gaya: " + config.getAssistantStyleLabel());
             tvModelStatusChat.setTextColor(0xFFFFEB3B);
             btnImportModelChat.setVisibility(View.VISIBLE);
         }
+    }
+
+    private void resetChatSession() {
+        LocalLlmEngine.getInstance(this).clearSessionHistory();
+        recent.clear();
+        transcript.setLength(0);
+        String msg = "Sesi percakapan baru dimulai. Konteks sebelumnya dibersihkan.";
+        append("Kobra", msg);
+        checkModelStatus();
+        speaker.speak(msg);
     }
 
     @Override protected void onPause() {
@@ -155,6 +169,7 @@ public class AiChatActivity extends AppCompatActivity {
                     if (!reply.isEmpty()) {
                         remember("Kobra: " + reply);
                         append("Kobra", reply);
+                        checkModelStatus();
                     }
                 }
             }
@@ -193,7 +208,7 @@ public class AiChatActivity extends AppCompatActivity {
 
     private void remember(String line) {
         recent.add(line);
-        if (recent.size() > 8) recent.remove(0);
+        if (recent.size() > 16) recent.remove(0);
     }
 
     private void append(String who, String text) {

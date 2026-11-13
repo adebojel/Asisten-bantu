@@ -149,5 +149,27 @@
             android:textColor="#FFFFFF"
             android:text="👨‍👩‍👧 Mode Pendamping (PIN &amp; Keluarga)"
             android:contentDescription="Buka mode pendamping untuk mengatur PIN keamanan, pengawasan, dan jadwal obat" />
+
+        <Button
+            android:id="@+id/btnSecondEyeMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="64dp"
+            android:backgroundTint="#1565C0"
+            android:textColor="#FFFFFF"
+            android:text="👁️ Mata Kedua (Uang, Baju, Layar, Struk, Barcode, Objek)"
+            android:contentDescription="Pilih mode kamera Mata Kedua: penghitung uang tunai, padu padan pakaian, pembaca layar digital, pemindai struk transfer, barcode, cari objek, atau terjemahan kamera" />
+
+        <Button
+            android:id="@+id/btnDocumentReader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="64dp"
+            android:backgroundTint="#4E342E"
+            android:textColor="#FFFFFF"
+            android:text="📄 Pembaca Dokumen (.TXT &amp; .PDF)"
+            android:contentDescription="Buka pembaca dokumen teks dan PDF dengan kontrol jeda, lanjut, ulangi paragraf, ringkasan AI, dan terjemahan offline" />
     </LinearLayout>
 </ScrollView>

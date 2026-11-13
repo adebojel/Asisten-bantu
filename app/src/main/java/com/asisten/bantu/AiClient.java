@@ -44,13 +44,15 @@ public class AiClient {
         String pref = config.getModel();
         if (!pref.isEmpty()) models.add(pref);
         for (String m : KobraConfig.TEXT_MODELS) if (!models.contains(m)) models.add(m);
-        run(models, system, userText, null, cb);
+        String styledSystem = system + " " + config.getAssistantStyleSystemPrompt();
+        run(models, styledSystem, userText, null, cb);
     }
 
     public void describeImage(String prompt, Bitmap image, Callback cb) {
         List<String> models = new ArrayList<>();
         for (String m : KobraConfig.VISION_MODELS) models.add(m);
-        run(models, SYSTEM_TUNANETRA, prompt, image, cb);
+        String styledSystem = SYSTEM_TUNANETRA + " " + config.getAssistantStyleSystemPrompt();
+        run(models, styledSystem, prompt, image, cb);
     }
 
     private void run(List<String> models, String system, String user, Bitmap image, Callback cb) {

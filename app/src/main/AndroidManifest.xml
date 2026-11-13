@@ -80,6 +80,7 @@
         <activity android:name=".PrayerActivity" android:exported="false" />
         <activity android:name=".ProductivityActivity" android:exported="false" />
         <activity android:name=".CaregiverActivity" android:exported="false" />
+        <activity android:name=".DocumentReaderActivity" android:exported="false" />
 
         <service
             android:name=".AsistenAccessibilityService"

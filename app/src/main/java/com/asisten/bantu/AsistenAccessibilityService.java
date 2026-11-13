@@ -51,6 +51,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
+import com.google.mlkit.nl.translate.TranslateLanguage;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,14 +79,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private static final int COLOR_NO_PERM = 0xFFD32F2F;
 
     private static final String HELP =
-            "Perintah Kobra. Sebut kata Kobra lalu: baca KTP. Baca uang. Warna apa. Ada orang berapa. "
-            + "Apa di depan. Mode tongkat. Teman ngobrol. Baca layar. Sebutkan tombol, lalu tekan nomor. "
-            + "Tekan lalu nama tombol. Scroll bawah atau atas. Geser kiri atau kanan. Kembali. Beranda. "
+            "Perintah Kobra. Sebut kata Kobra lalu: baca KTP. Baca uang, atau hitung lembar uang. Cocokkan baju. "
+            + "Baca layar digital. Pindai struk transfer. Scan barcode. Cari kursi atau benda. Terjemahkan kamera. Baca dokumen PDF. "
+            + "Ringkas notifikasi. Terjemahkan ke Inggris atau Arab. Gaya bahasa ringkas, ramah, atau daerah. Sesi chat baru. "
+            + "Mode tongkat. Teman ngobrol. Baca layar. Sebutkan tombol, lalu tekan nomor. "
             + "Panggil lalu nama. Angkat telepon. Tolak telepon. Kirim pesan ke nama. Kirim SMS ke nama. "
             + "Baca SMS. Baca notifikasi. Baterai. Jam berapa. Timer lima menit. Alarm jam enam. "
             + "Senter nyala. Volume naik. Mode getar. Kunci layar. Tolong untuk SOS. Talkback. "
-            + "Buka lalu nama aplikasi apa saja. Buka chat lalu nama kontak, atau Telegram ke nama. Cari aplikasi lalu nama. Cari lalu kata di Google. "
-            + "Hitung dua tambah tiga. Tanya pertolongan pertama, misalnya tersedak.";
+            + "Buka lalu nama aplikasi apa saja. Hitung dua tambah tiga. Tanya pertolongan pertama.";
 
     private static final Set<String> YES = new HashSet<>(Arrays.asList(
             "iya", "ya", "yakin", "oke", "ok", "lanjut", "kirim", "setuju", "benar"));
@@ -828,16 +829,71 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         // Mode yang sedang terbuka
-        if (VisionActivity.current != null && has(c, "scan", "foto", "ambil gambar", "jepret")) {
-            VisionActivity.current.captureNow();
-            return;
+        if (VisionActivity.current != null) {
+            if (has(c, "scan", "foto", "ambil gambar", "jepret")) {
+                VisionActivity.current.captureNow();
+                return;
+            }
+            if (has(c, "reset", "nolkan", "ulangi hitungan", "hapus hitungan")) {
+                VisionActivity.current.resetCounter();
+                return;
+            }
+            if (has(c, "ringkas", "rangkum")) {
+                VisionActivity.current.summarizeLastResult();
+                return;
+            }
+            if (has(c, "terjemah")) {
+                String dst = TranslateLanguage.INDONESIAN;
+                if (c.contains("inggris")) dst = TranslateLanguage.ENGLISH;
+                else if (c.contains("arab")) dst = TranslateLanguage.ARABIC;
+                VisionActivity.current.translateLastResult(dst);
+                return;
+            }
+        }
+        if (DocumentReaderActivity.current != null) {
+            if (has(c, "jeda", "pause", "berhenti", "stop")) {
+                DocumentReaderActivity.current.pauseReading(true);
+                return;
+            }
+            if (has(c, "lanjut", "putar", "mulai", "baca lagi")) {
+                DocumentReaderActivity.current.resumeReading();
+                return;
+            }
+            if (has(c, "ulangi")) {
+                DocumentReaderActivity.current.repeatParagraph();
+                return;
+            }
+            if (has(c, "berikutnya", "selanjutnya", "maju")) {
+                DocumentReaderActivity.current.nextParagraph();
+                return;
+            }
+            if (has(c, "sebelumnya", "mundur")) {
+                DocumentReaderActivity.current.prevParagraph();
+                return;
+            }
+            if (has(c, "ringkas", "rangkum")) {
+                DocumentReaderActivity.current.summarizeDocument();
+                return;
+            }
+            if (has(c, "terjemah")) {
+                DocumentReaderActivity.current.translateCurrentParagraph();
+                return;
+            }
         }
         if (NavigationActivity.current != null && has(c, "mulai")) { NavigationActivity.current.startNavigation(); return; }
         if (NavigationActivity.current != null && has(c, "berhenti", "stop")) { NavigationActivity.current.stopNavigation(); return; }
 
-        // Mata: KTP, uang, warna, orang, deskripsi
-        if (has(c, "baca ktp", "baca kk", "baca dokumen", "ktp saya")) { launch(VisionActivity.class, "ktp"); return; }
+        // Mata Kedua: KTP, penghitung uang, padu padan baju, layar digital, struk, barcode, cari benda, terjemahan kamera, warna, orang, deskripsi
+        if (has(c, "baca ktp", "baca kk", "ktp saya")) { launch(VisionActivity.class, "ktp"); return; }
+        if (has(c, "hitung uang", "hitung lembar uang", "penghitung uang", "jumlahkan uang")) { launch(VisionActivity.class, "money_count"); return; }
         if (has(c, "baca uang", "uang berapa", "duit")) { launch(VisionActivity.class, "money"); return; }
+        if (has(c, "cocokkan baju", "cocokkan pakaian", "padu padan", "cek warna baju", "pakaian cocok")) { launch(VisionActivity.class, "outfit"); return; }
+        if (has(c, "baca layar digital", "layar digital", "baca layar atm", "baca timbangan", "baca perangkat lain", "layar perangkat")) { launch(VisionActivity.class, "digital_screen"); return; }
+        if (has(c, "pindai struk", "baca struk", "bukti transfer", "mutasi transfer", "screenshot transfer", "struk transfer")) { launch(VisionActivity.class, "receipt"); return; }
+        if (has(c, "scan barcode", "pindai barcode", "scan qr", "pindai qr", "baca barcode", "kode batang")) { launch(VisionActivity.class, "barcode"); return; }
+        if (has(c, "cari benda", "cari kursi", "cari pintu", "cari objek", "deteksi objek", "lacak benda")) { launch(VisionActivity.class, "find_object"); return; }
+        if (has(c, "terjemahkan kamera", "terjemah kamera", "terjemahkan tulisan", "baca teks asing")) { launch(VisionActivity.class, "translate_ocr"); return; }
+        if (has(c, "baca dokumen", "buka dokumen", "baca pdf", "pembaca dokumen", "baca file teks")) { launch(DocumentReaderActivity.class, null); return; }
         if (has(c, "warna")) { launch(VisionActivity.class, "color"); return; }
         if (has(c, "ada orang", "deteksi orang", "berapa orang")) { launch(VisionActivity.class, "face"); return; }
         if (has(c, "apa di depan", "lihat apa", "deskripsikan", "ada apa di depan")) { launch(VisionActivity.class, "describe"); return; }
@@ -995,6 +1051,65 @@ public class AsistenAccessibilityService extends AccessibilityService {
             say(KobraNotificationService.isConnected()
                     ? "Notifikasi baru akan dibacakan otomatis."
                     : "Pengaturan disimpan, tetapi akses notifikasi belum aktif. Buka Kobra, lalu tekan Akses notifikasi.");
+            return true;
+        }
+        if (has(c, "ringkas notifikasi", "rangkum notifikasi", "ringkas pesan masuk", "rangkum pesan masuk")) {
+            if (!KobraNotificationService.isConnected()) {
+                say("Akses notifikasi belum aktif. Buka Kobra, lalu tekan Akses notifikasi.");
+                return true;
+            }
+            String joined = KobraNotificationService.getJoinedRecentNotifications(12);
+            if (joined.isEmpty()) {
+                say("Belum ada notifikasi yang menumpuk untuk diringkas.");
+                return true;
+            }
+            say("Sebentar, saya ringkas " + KobraNotificationService.getRecentCount() + " notifikasi terbaru.");
+            LocalLlmEngine engine = getLocalLlmEngine();
+            if (engine != null) {
+                engine.summarizeText("notifikasi", joined, new AiClient(config), speaker, summary -> say(summary));
+            } else {
+                say(KobraNotificationService.summary(3));
+            }
+            return true;
+        }
+        if (c.startsWith("terjemahkan ") || c.startsWith("artikan ")) {
+            OfflineTranslatorHelper.ParsedRequest req = OfflineTranslatorHelper.parseVoiceRequest(c);
+            if (req == null || req.text.isEmpty()) {
+                say("Sebutkan kalimat yang ingin diterjemahkan, misalnya: Kobra terjemahkan ke Inggris selamat pagi.");
+                return true;
+            }
+            say("Menerjemahkan ke bahasa " + OfflineTranslatorHelper.languageLabel(req.targetLang) + ".");
+            OfflineTranslatorHelper.translate(this, req.text, req.sourceLang, req.targetLang,
+                    new OfflineTranslatorHelper.Callback() {
+                        @Override public void onTranslated(String translatedText, String targetLangLabel) {
+                            say("Terjemahan dalam bahasa " + targetLangLabel + ": " + translatedText);
+                        }
+                        @Override public void onStatus(String statusMessage) {}
+                        @Override public void onError(String message) {
+                            say(message);
+                        }
+                    });
+            return true;
+        }
+        if (has(c, "sesi chat baru", "hapus riwayat chat", "lupakan percakapan", "bersihkan konteks")) {
+            LocalLlmEngine engine = getLocalLlmEngine();
+            if (engine != null) engine.clearSessionHistory();
+            say("Memori percakapan AI dibersihkan. Anda bisa memulai topik baru.");
+            return true;
+        }
+        if (has(c, "gaya bahasa ringkas", "gaya ringkas", "mode ringkas")) {
+            config.setAssistantStyle(KobraConfig.STYLE_RINGKAS);
+            say("Gaya bahasa asisten diatur ke mode Ringkas.");
+            return true;
+        }
+        if (has(c, "gaya bahasa ramah", "gaya ramah", "mode ramah")) {
+            config.setAssistantStyle(KobraConfig.STYLE_RAMAH);
+            say("Gaya bahasa asisten diatur ke mode Ramah.");
+            return true;
+        }
+        if (has(c, "gaya bahasa daerah", "gaya daerah", "bahasa daerah dasar")) {
+            config.setAssistantStyle(KobraConfig.STYLE_DAERAH);
+            say("Gaya bahasa asisten diatur ke mode Bahasa Daerah Dasar.");
             return true;
         }
         if (has(c, "baca notifikasi", "notifikasi apa", "ada notifikasi")) {

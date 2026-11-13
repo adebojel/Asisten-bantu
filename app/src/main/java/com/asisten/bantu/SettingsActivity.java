@@ -10,6 +10,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
@@ -39,6 +41,9 @@ public class SettingsActivity extends AppCompatActivity {
     private ProgressBar pbImportModel;
     private SeekBar sbSpeechRate, sbSpeechPitch;
     private SwitchCompat swHighContrast;
+    private RadioGroup rgAssistantStyle;
+    private RadioButton rbStyleRingkas, rbStyleRamah, rbStyleDaerah;
+    private boolean loadingFields = false;
     private KobraConfig config;
     private Speaker speaker;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -100,6 +105,10 @@ public class SettingsActivity extends AppCompatActivity {
         sbSpeechRate = findViewById(R.id.sbSpeechRate);
         sbSpeechPitch = findViewById(R.id.sbSpeechPitch);
         swHighContrast = findViewById(R.id.swHighContrast);
+        rgAssistantStyle = findViewById(R.id.rgAssistantStyle);
+        rbStyleRingkas = findViewById(R.id.rbStyleRingkas);
+        rbStyleRamah = findViewById(R.id.rbStyleRamah);
+        rbStyleDaerah = findViewById(R.id.rbStyleDaerah);
         btnTestTts = findViewById(R.id.btnTestTts);
         btnBackupData = findViewById(R.id.btnBackupData);
         btnRestoreData = findViewById(R.id.btnRestoreData);
@@ -135,6 +144,13 @@ public class SettingsActivity extends AppCompatActivity {
         swHighContrast.setOnCheckedChangeListener((buttonView, isChecked) -> {
             config.setHighContrast(isChecked);
             applyHighContrastVisual(isChecked);
+        });
+
+        rgAssistantStyle.setOnCheckedChangeListener((group, checkedId) -> {
+            if (loadingFields) return;
+            String style = styleFromCheckedId(checkedId);
+            config.setAssistantStyle(style);
+            speaker.speak("Gaya bahasa asisten diatur ke mode " + config.getAssistantStyleLabel() + ".");
         });
 
         btnTestTts.setOnClickListener(v -> {
@@ -221,6 +237,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void loadFieldsFromConfig() {
+        loadingFields = true;
         etKey.setText(config.getApiKey());
         etModel.setText(config.getModel());
         etN8n.setText(config.getN8nUrl());
@@ -233,9 +250,25 @@ public class SettingsActivity extends AppCompatActivity {
         tvSpeechRate.setText(String.format(Locale.US, "Kecepatan Suara (Rate): %.1fx", rate));
         tvSpeechPitch.setText(String.format(Locale.US, "Nada Suara (Pitch): %.1fx", pitch));
 
+        String style = config.getAssistantStyle();
+        if (KobraConfig.STYLE_RINGKAS.equals(style)) {
+            rbStyleRingkas.setChecked(true);
+        } else if (KobraConfig.STYLE_DAERAH.equals(style)) {
+            rbStyleDaerah.setChecked(true);
+        } else {
+            rbStyleRamah.setChecked(true);
+        }
+
         boolean hc = config.isHighContrast();
         swHighContrast.setChecked(hc);
         applyHighContrastVisual(hc);
+        loadingFields = false;
+    }
+
+    private String styleFromCheckedId(int checkedId) {
+        if (checkedId == R.id.rbStyleRingkas) return KobraConfig.STYLE_RINGKAS;
+        if (checkedId == R.id.rbStyleDaerah) return KobraConfig.STYLE_DAERAH;
+        return KobraConfig.STYLE_RAMAH;
     }
 
     private void applyHighContrastVisual(boolean highContrast) {
@@ -250,6 +283,9 @@ public class SettingsActivity extends AppCompatActivity {
         etNotes.setTextColor(textColor);
         tvSpeechRate.setTextColor(textColor);
         tvSpeechPitch.setTextColor(textColor);
+        rbStyleRingkas.setTextColor(textColor);
+        rbStyleRamah.setTextColor(textColor);
+        rbStyleDaerah.setTextColor(textColor);
     }
 
     private static float progressToTtsValue(int progress) {
@@ -526,6 +562,7 @@ public class SettingsActivity extends AppCompatActivity {
         config.setSpeechRate(progressToTtsValue(sbSpeechRate.getProgress()));
         config.setSpeechPitch(progressToTtsValue(sbSpeechPitch.getProgress()));
         config.setHighContrast(swHighContrast.isChecked());
+        config.setAssistantStyle(styleFromCheckedId(rgAssistantStyle.getCheckedRadioButtonId()));
         speaker.applyVoiceSettings();
     }
 }
