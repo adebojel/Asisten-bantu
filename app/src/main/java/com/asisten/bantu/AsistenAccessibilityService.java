@@ -3,6 +3,7 @@ package com.asisten.bantu;
 import android.Manifest;
 import android.accessibilityservice.AccessibilityService;
 import android.app.Activity;
+import android.app.SearchManager;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
@@ -55,6 +56,7 @@ import com.google.mlkit.nl.translate.TranslateLanguage;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -79,14 +81,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private static final int COLOR_NO_PERM = 0xFFD32F2F;
 
     private static final String HELP =
-            "Perintah Kobra. Sebut kata Kobra lalu: baca KTP. Baca uang, atau hitung lembar uang. Cocokkan baju. "
-            + "Baca layar digital. Pindai struk transfer. Scan barcode. Cari kursi atau benda. Terjemahkan kamera. Baca dokumen PDF. "
-            + "Ringkas notifikasi. Terjemahkan ke Inggris atau Arab. Gaya bahasa ringkas, ramah, atau daerah. Sesi chat baru. "
-            + "Mode tongkat. Teman ngobrol. Baca layar. Sebutkan tombol, lalu tekan nomor. "
-            + "Panggil lalu nama. Angkat telepon. Tolak telepon. Kirim pesan ke nama. Kirim SMS ke nama. "
-            + "Baca SMS. Baca notifikasi. Baterai. Jam berapa. Timer lima menit. Alarm jam enam. "
-            + "Senter nyala. Volume naik. Mode getar. Kunci layar. Tolong untuk SOS. Talkback. "
-            + "Buka lalu nama aplikasi apa saja. Hitung dua tambah tiga. Tanya pertolongan pertama.";
+            "Daftar perintah suara Kobra OS berdasarkan kategori. "
+            + "Pertama, Darurat dan Keselamatan: bilang tolong atau SOS, latihan SOS, bunyikan sirine bahaya, kartu medis, atau HP di mana. "
+            + "Kedua, Mata Kedua dan Dokumen: baca KTP, baca uang, hitung lembar uang, cocokkan baju, baca layar digital, pindai struk transfer, scan barcode, cari kursi atau benda, terjemahkan kamera, baca dokumen PDF, atau mode tongkat. "
+            + "Ketiga, Navigasi dan Jaringan: kompas, saya di mana, simpan lokasi, arahkan pulang, jadwal sholat, arah kiblat, atau cek sinyal. "
+            + "Keempat, Komunikasi dan Keuangan: panggil atau telepon nama, kirim pesan atau SMS, baca dan balas notifikasi, angkat atau tolak telepon, atau cek transaksi terakhir. "
+            + "Kelima, Kendali Layar, YouTube, dan Musik: klik atau tekan nama tombol, ketik atau tulis teks, geser ke atas atau bawah, kembali, ke layar utama, putar judul di YouTube, putar musik lokal, jeda musik, lanjut putar, dan lagu berikutnya atau sebelumnya. "
+            + "Keenam, Utilitas Harian: catat memo, ingat barang, catat pengeluaran, tambah jadwal obat, ingatkan jam sekian untuk agenda, agenda hari ini, berapa langkah saya hari ini, nyalakan pengingat jam, timer, alarm, kalkulator, baterai, dan senter.";
 
     private static final Set<String> YES = new HashSet<>(Arrays.asList(
             "iya", "ya", "yakin", "oke", "ok", "lanjut", "kirim", "setuju", "benar"));
@@ -145,6 +146,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private final List<ActiveTimer> activeTimers = new ArrayList<>();
     private int nextTimerId = 1;
     private String lastMedRemindedKey = "";
+    private Sensor stepCounterSensor;
+    private Sensor stepDetectorSensor;
+    private boolean hasHardwareStepSensor = false;
+    private boolean accelStepPeak = false;
+    private long lastAccelStepAt = 0L;
+    private String lastHourlyChimeKey = "";
 
     private static final class ActiveTimer {
         final int id;
@@ -229,10 +236,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
         main.postDelayed(this::checkLowStorageOnStart, 8000);
         main.postDelayed(medicationCheckerTick, 30_000L);
+        main.postDelayed(hourlyReminderTick, 20_000L);
         main.postDelayed(watchdog, WATCHDOG_MS);
     }
 
-    @Override public void onAccessibilityEvent(AccessibilityEvent event) { }
+    @Override public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (event != null && event.getPackageName() != null
+                && "com.google.android.youtube".equals(event.getPackageName().toString())
+                && main != null) {
+            main.postDelayed(() -> KobraAccessibilityService.tryConsumeYoutubeAutoPlay(
+                    getRootInActiveWindow(), "com.google.android.youtube"), 900L);
+        }
+    }
 
     @Override public void onInterrupt() { stopMic(); }
 
@@ -242,6 +257,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         destroyRecognizer();
         cancelFallCountdown(false);
         EmergencyBeacon.stopAll(this, torchId);
+        SystemUtilityHelper.stopLocalAudio(this);
         removeScreenCurtain(false);
         removePocketGuard();
         if (tripMonitor != null && tripMonitor.isActive()) {
@@ -249,6 +265,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
         if (main != null) {
             main.removeCallbacks(medicationCheckerTick);
+            main.removeCallbacks(hourlyReminderTick);
             for (ActiveTimer t : activeTimers) {
                 if (t.task != null) main.removeCallbacks(t.task);
             }
@@ -912,16 +929,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         if (routeExtra(c)) return;
 
-        // Navigasi layar
+        // Navigasi layar & kontrol global (#66 & #68)
         if (has(c, "kembali")) { global(GLOBAL_ACTION_BACK, "Kembali."); return; }
-        if (has(c, "beranda", "layar utama")) { global(GLOBAL_ACTION_HOME, "Ke layar utama."); return; }
+        if (has(c, "beranda", "layar utama", "ke layar utama")) { global(GLOBAL_ACTION_HOME, "Ke layar utama."); return; }
         if (has(c, "aplikasi terbaru")) { global(GLOBAL_ACTION_RECENTS, "Aplikasi terbaru."); return; }
         if (has(c, "notifikasi")) { global(GLOBAL_ACTION_NOTIFICATIONS, "Notifikasi dibuka."); return; }
         if (has(c, "pengaturan cepat")) { global(GLOBAL_ACTION_QUICK_SETTINGS, "Pengaturan cepat dibuka."); return; }
-        if (has(c, "scroll bawah", "geser bawah")) { scroll(true); return; }
-        if (has(c, "scroll atas", "geser atas")) { scroll(false); return; }
+        if (has(c, "scroll bawah", "geser bawah", "geser ke bawah")) { scroll(true); return; }
+        if (has(c, "scroll atas", "geser atas", "geser ke atas")) { scroll(false); return; }
         if (c.startsWith("tekan ") || c.startsWith("klik ")) { clickByName(after(c, " ")); return; }
-        if (c.startsWith("ketik ")) { typeText(after(c, "ketik ")); return; }
+        if (c.startsWith("ketik ") || c.startsWith("tulis ")) { typeText(afterAny(c, "ketik ", "tulis ")); return; }
         if (has(c, "baca layar", "isi layar", "apa di layar")) { say(readScreenText()); return; }
         if (has(c, "yang dipilih", "fokus")) { say(readFocus()); return; }
 
@@ -961,9 +978,38 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
 
-        // Media dan navigasi
+        // Pengendali Media Universal & Pemutar Audio Lokal (#74)
+        if (has(c, "putar musik lokal", "putar lagu lokal", "mainkan musik lokal", "putar audio lokal")) {
+            say(SystemUtilityHelper.playLocalAudio(this, speaker));
+            return;
+        }
+        if (has(c, "jeda musik", "pause musik", "jeda lagu", "pause lagu")) {
+            say(SystemUtilityHelper.pauseOrResumeMusic(this, true));
+            return;
+        }
+        if (has(c, "lanjut putar", "lanjutkan musik", "lanjut musik", "mainkan lagi")) {
+            say(SystemUtilityHelper.pauseOrResumeMusic(this, false));
+            return;
+        }
+        if (has(c, "lagu berikutnya", "musik berikutnya", "lagu selanjutnya", "ganti lagu")) {
+            say(SystemUtilityHelper.nextTrack(this, speaker));
+            return;
+        }
+        if (has(c, "lagu sebelumnya", "musik sebelumnya")) {
+            say(SystemUtilityHelper.previousTrack(this, speaker));
+            return;
+        }
+        if (has(c, "hentikan musik", "stop musik", "matikan musik")) {
+            say(SystemUtilityHelper.stopLocalAudio(this));
+            return;
+        }
+
+        // YouTube Voice Search & Auto-Play (#67) dan navigasi peta
         if ((has(c, "youtube") && !c.startsWith("buka ")) || c.startsWith("putar ")) {
-            String yq = c.replace("putar", "").replace("youtube", "").replace("cari", "").trim().replaceAll("\\s+di$", "").trim();
+            String yq = c.replaceFirst("^(putar|cari)\\s+", "")
+                    .replaceAll("\\bdi\\s+youtube\\b", "")
+                    .replace("youtube", "")
+                    .trim();
             if (yq.isEmpty()) openApp("youtube");
             else playYoutube(yq);
             return;
@@ -1219,7 +1265,50 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "agenda hari ini", "jadwal hari ini", "kalender hari ini", "ada acara apa")) {
-            say(ProductivityManager.getGregorianAndHijriDate() + " " + ProductivityManager.readTodayAgenda(this));
+            String offlinePlanner = config.listPlannerSpeech();
+            String plannerPart = offlinePlanner.isEmpty()
+                    ? "Belum ada agenda pengingat offline."
+                    : "Agenda pengingat offline: " + offlinePlanner;
+            say(ProductivityManager.getGregorianAndHijriDate() + " " + plannerPart + " " + ProductivityManager.readTodayAgenda(this));
+            return true;
+        }
+        if (c.startsWith("ingatkan ") || c.startsWith("jadwal baru ") || c.startsWith("agenda baru ")) {
+            String body = afterAny(c, "ingatkan ", "jadwal baru ", "agenda baru ");
+            HapticFeedback.vibrateSuccess(this);
+            say(SystemUtilityHelper.schedulePlannerFromVoice(this, config, body));
+            return true;
+        }
+        if (has(c, "hapus semua agenda", "hapus agenda", "kosongkan agenda")) {
+            say(SystemUtilityHelper.cancelAllPlannerAlarms(this, config));
+            return true;
+        }
+        if (has(c, "nyalakan pengingat jam", "aktifkan pengingat jam", "hidupkan pengingat jam")) {
+            config.setHourlyReminderEnabled(true);
+            HapticFeedback.vibrateSuccess(this);
+            say("Pengingat suara dan kesehatan setiap jam penuh diaktifkan, kecuali pada jam tidur pukul 22 sampai 5 pagi.");
+            return true;
+        }
+        if (has(c, "matikan pengingat jam", "nonaktifkan pengingat jam", "hentikan pengingat jam")) {
+            config.setHourlyReminderEnabled(false);
+            say("Pengingat suara per jam dimatikan.");
+            return true;
+        }
+        if (has(c, "berapa langkah", "langkah saya", "hitung langkah", "cek langkah", "pedometer")) {
+            ensureStepSensorRegistered();
+            int steps = config.getTodaySteps();
+            int meters = config.getTodayDistanceMeters();
+            say("Hari ini Anda telah berjalan " + steps + " langkah, perkiraan jarak sekitar " + meters + " meter.");
+            return true;
+        }
+        if (has(c, "cek transaksi terakhir", "transaksi terakhir", "mutasi terakhir", "cek keuangan")) {
+            String tx = config.getLastFinancialTx();
+            say(tx.isEmpty()
+                    ? "Belum ada transaksi keuangan yang tercatat dari notifikasi bank atau dompet digital."
+                    : "Transaksi terakhir: " + tx);
+            return true;
+        }
+        if (has(c, "cek sinyal", "status sinyal", "cek operator", "kekuatan sinyal", "cek jaringan")) {
+            say(SystemUtilityHelper.buildSignalAndCarrierReport(this));
             return true;
         }
         if (has(c, "buka produktivitas", "buka memo", "buka pengeluaran")) {
@@ -1776,7 +1865,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void global(int action, String message) {
-        say(performGlobalAction(action) ? message : "Tidak bisa melakukan itu sekarang.");
+        boolean ok = performGlobalAction(action);
+        if (!ok) {
+            KobraAccessibilityService g = KobraAccessibilityService.getInstance();
+            if (g != null) ok = g.performGlobalNavAction(action);
+        }
+        say(ok ? message : "Tidak bisa melakukan itu sekarang.");
     }
 
     private void openUrl(String url) {
@@ -1818,9 +1912,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void scroll(boolean down) {
+        boolean ok = false;
         AccessibilityNodeInfo s = findScrollable(getRootInActiveWindow());
-        if (s == null) { say("Tidak ada daftar yang bisa digulir."); return; }
-        s.performAction(down ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+        if (s != null) {
+            ok = s.performAction(down ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+        }
+        if (!ok) {
+            KobraAccessibilityService g = KobraAccessibilityService.getInstance();
+            if (g != null) ok = g.scrollGlobal(down);
+        }
+        if (!ok) {
+            say("Tidak ada daftar yang bisa digulir.");
+            return;
+        }
         say(down ? "Digulir ke bawah." : "Digulir ke atas.");
     }
 
@@ -1835,13 +1939,22 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void clickByName(String name) {
-        say(clickAny(name) ? "Oke." : "Tombol " + name + " tidak ditemukan di layar.");
+        boolean ok = clickAny(name);
+        if (!ok) {
+            KobraAccessibilityService g = KobraAccessibilityService.getInstance();
+            if (g != null) ok = g.clickByNameGlobal(name);
+        }
+        say(ok ? "Oke." : "Tombol " + name + " tidak ditemukan di layar.");
     }
 
     /** Mencari node yang teksnya atau deskripsinya memuat frasa, lalu klik induk yang bisa diklik. */
     private boolean clickAny(String phrase) {
+        if (phrase == null || phrase.trim().isEmpty()) return false;
         AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null || phrase == null || phrase.isEmpty()) return false;
+        if (root != null && KobraAccessibilityService.clickNodeByName(root, phrase)) {
+            return true;
+        }
+        if (root == null) return false;
         AccessibilityNodeInfo node = findByText(root, phrase.toLowerCase(Locale.ROOT));
         AccessibilityNodeInfo n = node;
         while (n != null && !n.isClickable()) n = n.getParent();
@@ -1863,28 +1976,20 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void typeText(String text) {
-        say(setTextInEditable(text) ? "Sudah diketik." : "Tidak ada kolom isian yang aktif.");
+        if (text == null || text.trim().isEmpty()) {
+            say("Teks apa yang ingin diketik?");
+            return;
+        }
+        boolean ok = setTextInEditable(text);
+        if (!ok) {
+            KobraAccessibilityService g = KobraAccessibilityService.getInstance();
+            if (g != null) ok = g.typeGlobalText(text);
+        }
+        say(ok ? "Sudah diketik." : "Tidak ada kolom isian yang aktif. Teks disalin ke clipboard.");
     }
 
     private boolean setTextInEditable(String text) {
-        AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root == null) return false;
-        AccessibilityNodeInfo field = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
-        if (field == null || !field.isEditable()) field = findEditable(root);
-        if (field == null) return false;
-        Bundle args = new Bundle();
-        args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text);
-        return field.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args);
-    }
-
-    private AccessibilityNodeInfo findEditable(AccessibilityNodeInfo node) {
-        if (node == null) return null;
-        if (node.isEditable()) return node;
-        for (int i = 0; i < node.getChildCount(); i++) {
-            AccessibilityNodeInfo r = findEditable(node.getChild(i));
-            if (r != null) return r;
-        }
-        return null;
+        return KobraAccessibilityService.typeTextInRoot(this, getRootInActiveWindow(), text);
     }
 
     private void handleTalkback(String c) {
@@ -2029,16 +2134,27 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void playYoutube(String q) {
+        String clean = q == null ? "" : q.trim();
+        if (clean.isEmpty()) {
+            openApp("youtube");
+            return;
+        }
+        KobraAccessibilityService.markPendingYoutubeAutoPlay(clean);
         Intent i = new Intent(Intent.ACTION_SEARCH);
         i.setPackage("com.google.android.youtube");
-        i.putExtra("query", q);
+        i.putExtra(SearchManager.QUERY, clean);
+        i.putExtra("query", clean);
         i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
             startActivity(i);
-            say("Mencari " + q + " di YouTube.");
+            say("Mencari dan memutar " + clean + " di YouTube.");
+            main.postDelayed(() -> KobraAccessibilityService.tryConsumeYoutubeAutoPlay(
+                    getRootInActiveWindow(), "com.google.android.youtube"), 1800L);
+            main.postDelayed(() -> KobraAccessibilityService.tryConsumeYoutubeAutoPlay(
+                    getRootInActiveWindow(), "com.google.android.youtube"), 3200L);
         } catch (ActivityNotFoundException e) {
-            openUrl("https://www.youtube.com/results?search_query=" + Uri.encode(q));
-            say("Mencari " + q + " di YouTube.");
+            openUrl("https://www.youtube.com/results?search_query=" + Uri.encode(clean));
+            say("Mencari " + clean + " di YouTube.");
         }
     }
 
@@ -2266,6 +2382,23 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (proximitySensor != null) {
             sensorManager.registerListener(hardwareSensorListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
+        ensureStepSensorRegistered();
+    }
+
+    private void ensureStepSensorRegistered() {
+        if (sensorManager == null || hasHardwareStepSensor) return;
+        if (Build.VERSION.SDK_INT >= 29 && !Perms.has(this, Manifest.permission.ACTIVITY_RECOGNITION)) return;
+        stepCounterSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+        if (stepCounterSensor != null) {
+            hasHardwareStepSensor = sensorManager.registerListener(
+                    hardwareSensorListener, stepCounterSensor, SensorManager.SENSOR_DELAY_NORMAL);
+            return;
+        }
+        stepDetectorSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
+        if (stepDetectorSensor != null) {
+            hasHardwareStepSensor = sensorManager.registerListener(
+                    hardwareSensorListener, stepDetectorSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
     }
 
     private final SensorEventListener hardwareSensorListener = new SensorEventListener() {
@@ -2275,17 +2408,33 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 handleAccelerometer(event.values[0], event.values[1], event.values[2]);
             } else if (type == Sensor.TYPE_PROXIMITY) {
                 handleProximity(event.values[0], event.sensor.getMaximumRange());
+            } else if (type == Sensor.TYPE_STEP_COUNTER && config != null) {
+                config.onStepCounterEvent(Math.round(event.values[0]));
+            } else if (type == Sensor.TYPE_STEP_DETECTOR && config != null) {
+                config.addDailySteps(Math.max(1, Math.round(event.values[0])));
             }
         }
         @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
 
     private void handleAccelerometer(float x, float y, float z) {
-        if (survivalModeActive || fallCountdownActive || config == null || !config.isFallDetectionEnabled()) return;
         long now = System.currentTimeMillis();
+        double mag = Math.sqrt(x * x + y * y + z * z);
+
+        // Pedometer fallback berbasis akselerometer bila sensor langkah khusus belum tersedia
+        if (!survivalModeActive && !hasHardwareStepSensor && config != null) {
+            if (!accelStepPeak && mag > 12.2 && mag < 24.0 && now - lastAccelStepAt >= 380L) {
+                accelStepPeak = true;
+                lastAccelStepAt = now;
+                config.addDailySteps(1);
+            } else if (accelStepPeak && mag < 10.4) {
+                accelStepPeak = false;
+            }
+        }
+
+        if (survivalModeActive || fallCountdownActive || config == null || !config.isFallDetectionEnabled()) return;
         if (now - lastFallTriggerAt < 45000L) return;
 
-        double mag = Math.sqrt(x * x + y * y + z * z);
         if (!fallImpactDetected) {
             if (mag > 27.5) {
                 fallImpactDetected = true;
@@ -2590,6 +2739,42 @@ public class AsistenAccessibilityService extends AccessibilityService {
             }
         }
     };
+
+    private final Runnable hourlyReminderTick = new Runnable() {
+        @Override public void run() {
+            if (config != null && config.isHourlyReminderEnabled()
+                    && !config.isPrivacyMode() && !survivalModeActive) {
+                Calendar cal = Calendar.getInstance();
+                int hour = cal.get(Calendar.HOUR_OF_DAY);
+                int minute = cal.get(Calendar.MINUTE);
+                boolean quietHours = (hour >= 22 || hour < 5);
+                if (!quietHours && minute <= 1) {
+                    String key = new SimpleDateFormat("yyyyMMdd_HH", Locale.US).format(new Date());
+                    if (!key.equals(lastHourlyChimeKey)) {
+                        lastHourlyChimeKey = key;
+                        playGentleHourlyTone();
+                        speaker.speakQueued(String.format(new Locale("id", "ID"),
+                                "Sekarang pukul %02d:00. Jangan lupa minum air putih dan regangkan tubuh sejenak.", hour));
+                    }
+                }
+            }
+            if (main != null) {
+                main.postDelayed(this, 30_000L);
+            }
+        }
+    };
+
+    private void playGentleHourlyTone() {
+        try {
+            ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 55);
+            tg.startTone(ToneGenerator.TONE_PROP_BEEP2, 320);
+            if (main != null) {
+                main.postDelayed(() -> {
+                    try { tg.release(); } catch (Exception ignored) {}
+                }, 500L);
+            }
+        } catch (Exception ignored) {}
+    }
 
     private boolean handleCalcUtterance(String text) {
         if (has(text, "keluar kalkulator", "tutup kalkulator", "selesai hitung", "berhenti hitung")) {

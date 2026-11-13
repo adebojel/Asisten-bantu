@@ -255,6 +255,138 @@ public final class KobraConfig {
         return !getSos("phone1").isEmpty() || !getSos("phone2").isEmpty();
     }
 
+    // ----------------------------------------------------------------- Pengingat Jam (#70)
+
+    public boolean isHourlyReminderEnabled() {
+        return prefs.getBoolean("hourly_reminder_enabled", false);
+    }
+
+    public void setHourlyReminderEnabled(boolean enabled) {
+        prefs.edit().putBoolean("hourly_reminder_enabled", enabled).apply();
+    }
+
+    // ----------------------------------------------------------------- Pedometer Offline (#71)
+
+    public synchronized void onStepCounterEvent(int sensorTotal) {
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+        String savedDay = prefs.getString("pedometer_day", "");
+        int lastSensor = prefs.getInt("pedometer_last_sensor", -1);
+        int todaySteps = today.equals(savedDay) ? prefs.getInt("pedometer_steps", 0) : 0;
+
+        if (!today.equals(savedDay)) {
+            todaySteps = 0;
+            lastSensor = sensorTotal;
+        } else if (lastSensor < 0 || sensorTotal < lastSensor) {
+            lastSensor = sensorTotal;
+        } else {
+            int delta = sensorTotal - lastSensor;
+            if (delta > 0 && delta < 50000) {
+                todaySteps += delta;
+            }
+            lastSensor = sensorTotal;
+        }
+        prefs.edit()
+                .putString("pedometer_day", today)
+                .putInt("pedometer_steps", todaySteps)
+                .putInt("pedometer_last_sensor", lastSensor)
+                .apply();
+    }
+
+    public synchronized void addDailySteps(int delta) {
+        if (delta <= 0) return;
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+        String savedDay = prefs.getString("pedometer_day", "");
+        int todaySteps = today.equals(savedDay) ? prefs.getInt("pedometer_steps", 0) : 0;
+        todaySteps += delta;
+        prefs.edit()
+                .putString("pedometer_day", today)
+                .putInt("pedometer_steps", todaySteps)
+                .apply();
+    }
+
+    public synchronized int getTodaySteps() {
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+        if (!today.equals(prefs.getString("pedometer_day", ""))) return 0;
+        return Math.max(0, prefs.getInt("pedometer_steps", 0));
+    }
+
+    public synchronized int getTodayDistanceMeters() {
+        return Math.round(getTodaySteps() * 0.7f);
+    }
+
+    // ----------------------------------------------------------------- Pembaca Notifikasi Finansial (#72)
+
+    public String getLastFinancialTx() {
+        return prefs.getString("last_financial_tx", "").trim();
+    }
+
+    public void setLastFinancialTx(String summary) {
+        prefs.edit().putString("last_financial_tx", summary == null ? "" : summary.trim()).apply();
+    }
+
+    // ----------------------------------------------------------------- Offline Daily Planner (#73)
+
+    public synchronized int nextPlannerId() {
+        int next = prefs.getInt("planner_seq", 100) + 1;
+        if (next > 90000) next = 101;
+        prefs.edit().putInt("planner_seq", next).apply();
+        return next;
+    }
+
+    public synchronized void addPlannerItem(int id, int hour, int minute, String title, long triggerAtMs) {
+        if (title == null || title.trim().isEmpty()) return;
+        try {
+            JSONArray arr = new JSONArray(prefs.getString("planner_json", "[]"));
+            JSONObject obj = new JSONObject();
+            obj.put("id", id);
+            obj.put("hour", hour);
+            obj.put("minute", minute);
+            obj.put("title", title.trim());
+            obj.put("trigger_at", triggerAtMs);
+            arr.put(obj);
+            while (arr.length() > 40) arr.remove(0);
+            prefs.edit().putString("planner_json", arr.toString()).apply();
+        } catch (Exception ignored) {}
+    }
+
+    public synchronized java.util.List<Integer> getPlannerIds() {
+        java.util.List<Integer> ids = new java.util.ArrayList<>();
+        try {
+            JSONArray arr = new JSONArray(prefs.getString("planner_json", "[]"));
+            for (int i = 0; i < arr.length(); i++) {
+                ids.add(arr.getJSONObject(i).optInt("id", 0));
+            }
+        } catch (Exception ignored) {}
+        return ids;
+    }
+
+    public synchronized String listPlannerSpeech() {
+        try {
+            JSONArray arr = new JSONArray(prefs.getString("planner_json", "[]"));
+            if (arr.length() == 0) return "";
+            StringBuilder sb = new StringBuilder();
+            int count = 0;
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.getJSONObject(i);
+                int h = o.optInt("hour", 0);
+                int m = o.optInt("minute", 0);
+                String t = o.optString("title", "");
+                if (t.isEmpty()) continue;
+                count++;
+                sb.append("Agenda ").append(count).append(", pukul ")
+                        .append(String.format(Locale.US, "%02d:%02d", h, m))
+                        .append(", ").append(t).append(". ");
+            }
+            return sb.toString().trim();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public synchronized void clearPlannerItems() {
+        prefs.edit().putString("planner_json", "[]").apply();
+    }
+
     private static float clampTts(float v) {
         return Math.max(0.5f, Math.min(2.0f, v));
     }

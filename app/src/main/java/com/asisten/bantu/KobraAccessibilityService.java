@@ -3,8 +3,13 @@ package com.asisten.bantu;
 import android.accessibilityservice.AccessibilityGestureEvent;
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.AccessibilityServiceInfo;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Rect;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.tts.TextToSpeech;
@@ -23,6 +28,9 @@ import java.util.Locale;
 public class KobraAccessibilityService extends AccessibilityService {
 
     private static volatile KobraAccessibilityService instance;
+    private static final Object YT_LOCK = new Object();
+    private static volatile long pendingYoutubeUntilMs = 0L;
+    private static volatile String pendingYoutubeQuery = "";
 
     private TextToSpeech externalTts;
     private boolean ttsReady = false;
@@ -34,6 +42,17 @@ public class KobraAccessibilityService extends AccessibilityService {
 
     public static KobraAccessibilityService getInstance() {
         return instance;
+    }
+
+    public static void markPendingYoutubeAutoPlay(String query) {
+        synchronized (YT_LOCK) {
+            pendingYoutubeQuery = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+            pendingYoutubeUntilMs = System.currentTimeMillis() + 12_000L;
+        }
+        KobraAccessibilityService svc = instance;
+        if (svc != null) {
+            svc.scheduleYoutubeAutoPlayCheck();
+        }
     }
 
     private final Speaker.Listener internalSpeechListener = new Speaker.Listener() {
@@ -77,6 +96,15 @@ public class KobraAccessibilityService extends AccessibilityService {
         if (event == null) return;
         CharSequence pkgCs = event.getPackageName();
         String pkg = pkgCs != null ? pkgCs.toString() : "";
+
+        // Tangani pemutaran otomatis YouTube jika ada pencarian suara yang baru dibuka (#67)
+        if ("com.google.android.youtube".equals(pkg) && System.currentTimeMillis() <= pendingYoutubeUntilMs) {
+            main.postDelayed(() -> {
+                try {
+                    tryConsumeYoutubeAutoPlay(getRootInActiveWindow(), "com.google.android.youtube");
+                } catch (Exception ignored) {}
+            }, 900L);
+        }
 
         // Jangan bacakan UI internal Kobra OS atau saat TTS internal sedang berbicara
         if (pkg.isEmpty() || getPackageName().equals(pkg)) return;
@@ -270,5 +298,230 @@ public class KobraAccessibilityService extends AccessibilityService {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    // =========================================================================
+    // #66 Universal Voice-Click & Scroll Global
+    // =========================================================================
+
+    public boolean clickByNameGlobal(String targetName) {
+        return clickNodeByName(getRootInActiveWindow(), targetName);
+    }
+
+    public boolean scrollGlobal(boolean forward) {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        if (root == null) return false;
+        AccessibilityNodeInfo scrollable = findScrollableNode(root, true);
+        if (scrollable == null) scrollable = findScrollableNode(root, false);
+        if (scrollable == null) return false;
+        return scrollable.performAction(forward
+                ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+    }
+
+    public boolean performGlobalNavAction(int globalAction) {
+        return performGlobalAction(globalAction);
+    }
+
+    public static boolean clickNodeByName(AccessibilityNodeInfo root, String targetName) {
+        if (root == null || targetName == null || targetName.trim().isEmpty()) return false;
+        String q = targetName.trim().toLowerCase(Locale.ROOT);
+        AccessibilityNodeInfo node = findNodeByLabel(root, q, true);
+        if (node == null) {
+            node = findNodeByLabel(root, q, false);
+        }
+        AccessibilityNodeInfo cur = node;
+        while (cur != null && !cur.isClickable()) {
+            cur = cur.getParent();
+        }
+        return cur != null && cur.isEnabled() && cur.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+    }
+
+    private static AccessibilityNodeInfo findNodeByLabel(AccessibilityNodeInfo node, String q, boolean exact) {
+        if (node == null) return null;
+        if (node.isVisibleToUser()) {
+            CharSequence t = node.getText();
+            CharSequence d = node.getContentDescription();
+            if (matchesLabel(t, q, exact) || matchesLabel(d, q, exact)) {
+                return node;
+            }
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo found = findNodeByLabel(node.getChild(i), q, exact);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private static boolean matchesLabel(CharSequence cs, String q, boolean exact) {
+        if (cs == null) return false;
+        String s = cs.toString().trim().toLowerCase(Locale.ROOT);
+        if (s.isEmpty()) return false;
+        return exact ? s.equals(q) : s.contains(q);
+    }
+
+    private static AccessibilityNodeInfo findScrollableNode(AccessibilityNodeInfo node, boolean visibleOnly) {
+        if (node == null) return null;
+        if (node.isScrollable() && (!visibleOnly || node.isVisibleToUser())) {
+            return node;
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo r = findScrollableNode(node.getChild(i), visibleOnly);
+            if (r != null) return r;
+        }
+        return null;
+    }
+
+    // =========================================================================
+    // #67 YouTube Voice Search & Auto-Play
+    // =========================================================================
+
+    private void scheduleYoutubeAutoPlayCheck() {
+        main.postDelayed(() -> tryConsumeYoutubeAutoPlay(getRootInActiveWindow(), "com.google.android.youtube"), 1600L);
+        main.postDelayed(() -> tryConsumeYoutubeAutoPlay(getRootInActiveWindow(), "com.google.android.youtube"), 3000L);
+    }
+
+    public static boolean tryConsumeYoutubeAutoPlay(AccessibilityNodeInfo root, String pkg) {
+        if (root == null) return false;
+        String query;
+        synchronized (YT_LOCK) {
+            if (System.currentTimeMillis() > pendingYoutubeUntilMs) return false;
+            CharSequence rootPkg = root.getPackageName();
+            String activePkg = rootPkg != null ? rootPkg.toString() : (pkg == null ? "" : pkg);
+            if (!activePkg.contains("youtube")) return false;
+            query = pendingYoutubeQuery;
+        }
+
+        AccessibilityNodeInfo videoNode = findFirstYoutubeVideoNode(root, query, true);
+        if (videoNode == null) {
+            videoNode = findFirstYoutubeVideoNode(root, query, false);
+        }
+        if (videoNode == null) return false;
+
+        synchronized (YT_LOCK) {
+            if (System.currentTimeMillis() > pendingYoutubeUntilMs) return false;
+            pendingYoutubeUntilMs = 0L;
+        }
+        return videoNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+    }
+
+    private static AccessibilityNodeInfo findFirstYoutubeVideoNode(AccessibilityNodeInfo node, String query, boolean strict) {
+        if (node == null) return null;
+        if (node.isClickable() && node.isVisibleToUser() && node.isEnabled()) {
+            Rect bounds = new Rect();
+            node.getBoundsInScreen(bounds);
+            if (bounds.top >= 180 && bounds.width() >= 260 && bounds.height() >= 140) {
+                String label = collectNodeSummary(node).toLowerCase(Locale.ROOT);
+                if (!label.isEmpty() && !isYoutubeChromeLabel(label)) {
+                    if (!strict) {
+                        if (label.length() >= 12) return node;
+                    } else {
+                        boolean looksLikeVideo = label.length() >= 20
+                                || label.contains("menit") || label.contains("detik") || label.contains("jam")
+                                || label.contains("minute") || label.contains("second")
+                                || label.contains("ditonton") || label.contains("views")
+                                || label.contains("buka channel") || label.contains("go to channel")
+                                || (!query.isEmpty() && containsAnyWord(label, query));
+                        if (looksLikeVideo) return node;
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo r = findFirstYoutubeVideoNode(node.getChild(i), query, strict);
+            if (r != null) return r;
+        }
+        return null;
+    }
+
+    private static boolean isYoutubeChromeLabel(String lower) {
+        String[] chrome = {
+                "telusuri", "search", "penelusuran suara", "voice search",
+                "kembali", "navigate up", "back", "filter", "beranda", "home",
+                "shorts", "subscription", "anda", "you", "koleksi", "library",
+                "transmisikan", "cast", "notifikasi", "notifications", "akun", "account",
+                "opsi lainnya", "more options", "menu tindakan", "buat", "create",
+                "semua", "all", "video", "unwatched", "belum ditonton", "terbaru", "live"
+        };
+        for (String c : chrome) {
+            if (lower.equals(c)) return true;
+        }
+        return lower.startsWith("filter ") || lower.startsWith("telusuri ");
+    }
+
+    private static boolean containsAnyWord(String text, String query) {
+        for (String w : query.split("\\s+")) {
+            if (w.length() >= 3 && text.contains(w)) return true;
+        }
+        return false;
+    }
+
+    private static String collectNodeSummary(AccessibilityNodeInfo node) {
+        if (node == null) return "";
+        StringBuilder sb = new StringBuilder();
+        if (node.getContentDescription() != null && node.getContentDescription().length() > 0) {
+            sb.append(node.getContentDescription()).append(" ");
+        }
+        if (node.getText() != null && node.getText().length() > 0) {
+            sb.append(node.getText()).append(" ");
+        }
+        for (int i = 0; i < node.getChildCount() && sb.length() < 120; i++) {
+            AccessibilityNodeInfo ch = node.getChild(i);
+            if (ch != null) {
+                if (ch.getText() != null && ch.getText().length() > 0) {
+                    sb.append(ch.getText()).append(" ");
+                } else if (ch.getContentDescription() != null && ch.getContentDescription().length() > 0) {
+                    sb.append(ch.getContentDescription()).append(" ");
+                }
+            }
+        }
+        return sb.toString().replaceAll("\\s+", " ").trim();
+    }
+
+    // =========================================================================
+    // #68 Global Voice Typing (ACTION_SET_TEXT + Clipboard Paste Fallback)
+    // =========================================================================
+
+    public boolean typeGlobalText(String text) {
+        return typeTextInRoot(this, getRootInActiveWindow(), text);
+    }
+
+    public static boolean typeTextInRoot(Context context, AccessibilityNodeInfo root, String text) {
+        if (text == null) return false;
+        if (context != null) {
+            try {
+                ClipboardManager cm = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                if (cm != null) {
+                    cm.setPrimaryClip(ClipData.newPlainText("Kobra OS", text));
+                }
+            } catch (Exception ignored) {}
+        }
+        if (root == null) return false;
+        AccessibilityNodeInfo field = root.findFocus(AccessibilityNodeInfo.FOCUS_INPUT);
+        if (field == null || !field.isEditable()) {
+            field = findEditableNode(root);
+        }
+        if (field == null) return false;
+
+        try {
+            field.performAction(AccessibilityNodeInfo.ACTION_FOCUS);
+        } catch (Exception ignored) {}
+
+        Bundle args = new Bundle();
+        args.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, text);
+        if (field.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) {
+            return true;
+        }
+        return field.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+    }
+
+    private static AccessibilityNodeInfo findEditableNode(AccessibilityNodeInfo node) {
+        if (node == null) return null;
+        if (node.isEditable() && node.isVisibleToUser()) return node;
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo r = findEditableNode(node.getChild(i));
+            if (r != null) return r;
+        }
+        return null;
     }
 }

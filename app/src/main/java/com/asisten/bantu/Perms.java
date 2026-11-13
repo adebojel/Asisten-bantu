@@ -24,6 +24,9 @@ public final class Perms {
         p.add(Manifest.permission.READ_PHONE_STATE);
         p.add(Manifest.permission.READ_CALL_LOG);
         p.add(Manifest.permission.READ_CALENDAR);
+        if (Build.VERSION.SDK_INT >= 29) {
+            p.add(Manifest.permission.ACTIVITY_RECOGNITION);
+        }
         if (Build.VERSION.SDK_INT >= 31) {
             p.add(Manifest.permission.BLUETOOTH_CONNECT);
             p.add(Manifest.permission.BLUETOOTH_ADVERTISE);
@@ -31,6 +34,9 @@ public final class Perms {
         if (Build.VERSION.SDK_INT >= 33) {
             p.add(Manifest.permission.POST_NOTIFICATIONS);
             p.add(Manifest.permission.NEARBY_WIFI_DEVICES);
+            p.add(Manifest.permission.READ_MEDIA_AUDIO);
+        } else {
+            p.add(Manifest.permission.READ_EXTERNAL_STORAGE);
         }
         return p.toArray(new String[0]);
     }

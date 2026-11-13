@@ -50,7 +50,11 @@ public final class KobraScreenHelper {
                 speaker.stop();
             }
             if (code == KeyEvent.KEYCODE_ESCAPE) {
-                activity.getOnBackPressedDispatcher().onBackPressed();
+                if (activity instanceof androidx.activity.ComponentActivity) {
+                    ((androidx.activity.ComponentActivity) activity).getOnBackPressedDispatcher().onBackPressed();
+                } else {
+                    activity.finish();
+                }
                 return true;
             }
             return false;

@@ -153,6 +153,23 @@ public class KobraNotificationService extends NotificationListenerService {
             captureReplyAction(n, title.isEmpty() ? appName : title, appName);
         }
 
+        SystemUtilityHelper.FinancialParseResult fin = call ? null
+                : SystemUtilityHelper.parseFinancialNotification(sbn.getPackageName(), appName, title, text);
+        if (fin != null && fin.fromFinancialSource) {
+            if (fin.isSpamOrPromo) {
+                // Abaikan promosi / iklan aplikasi bank atau e-wallet tanpa transaksi nyata
+                return;
+            }
+            if (!fin.summary.isEmpty()) {
+                new KobraConfig(this).setLastFinancialTx(fin.summary);
+                String finPhish = SecurityAndPinHelper.inspectForPhishing(title + " " + text);
+                String finSpoken = finPhish.isEmpty() ? fin.summary : finPhish + " " + fin.summary;
+                remember(finSpoken);
+                Speaker.get(this).speakQueued(finSpoken);
+                return;
+            }
+        }
+
         String displayTitle = call ? resolveCallerDisplay(title) : title;
         String body = displayTitle.isEmpty() ? text : (text.isEmpty() ? displayTitle : displayTitle + ". " + text);
 
