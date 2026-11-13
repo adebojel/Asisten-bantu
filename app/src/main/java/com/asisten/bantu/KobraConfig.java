@@ -66,6 +66,115 @@ public final class KobraConfig {
     public String getNotes() { return prefs.getString("notes", ""); }
     public void setNotes(String notes) { prefs.edit().putString("notes", notes == null ? "" : notes).apply(); }
 
+    public boolean isFallDetectionEnabled() { return prefs.getBoolean("fall_detection", true); }
+    public void setFallDetectionEnabled(boolean enabled) { prefs.edit().putBoolean("fall_detection", enabled).apply(); }
+
+    public boolean isPocketLockEnabled() { return prefs.getBoolean("pocket_lock", true); }
+    public void setPocketLockEnabled(boolean enabled) { prefs.edit().putBoolean("pocket_lock", enabled).apply(); }
+
+    public boolean isPrivacyMode() { return prefs.getBoolean("privacy_mode", false); }
+    public void setPrivacyMode(boolean enabled) { prefs.edit().putBoolean("privacy_mode", enabled).apply(); }
+
+    public String getMedName() { return prefs.getString("med_name", "").trim(); }
+    public void setMedName(String v) { prefs.edit().putString("med_name", v == null ? "" : v.trim()).apply(); }
+
+    public String getMedBlood() { return prefs.getString("med_blood", "").trim(); }
+    public void setMedBlood(String v) { prefs.edit().putString("med_blood", v == null ? "" : v.trim()).apply(); }
+
+    public String getMedAllergy() { return prefs.getString("med_allergy", "").trim(); }
+    public void setMedAllergy(String v) { prefs.edit().putString("med_allergy", v == null ? "" : v.trim()).apply(); }
+
+    public String getMedCondition() { return prefs.getString("med_condition", "").trim(); }
+    public void setMedCondition(String v) { prefs.edit().putString("med_condition", v == null ? "" : v.trim()).apply(); }
+
+    public String getMedFamily() { return prefs.getString("med_family", "").trim(); }
+    public void setMedFamily(String v) { prefs.edit().putString("med_family", v == null ? "" : v.trim()).apply(); }
+
+    public boolean hasMedicalCard() {
+        return !getMedName().isEmpty() || !getMedBlood().isEmpty() || !getMedAllergy().isEmpty()
+                || !getMedCondition().isEmpty() || !getMedFamily().isEmpty();
+    }
+
+    public String getMedicalCardSpeech() {
+        if (!hasMedicalCard()) {
+            return "Kartu identitas medis darurat belum diisi. Silakan isi nama, golongan darah, alergi, dan kontak keluarga di menu Kartu Medis.";
+        }
+        StringBuilder sb = new StringBuilder("Kartu identitas medis darurat. ");
+        if (!getMedName().isEmpty()) sb.append("Nama: ").append(getMedName()).append(". ");
+        if (!getMedBlood().isEmpty()) sb.append("Golongan darah: ").append(getMedBlood()).append(". ");
+        if (!getMedAllergy().isEmpty()) sb.append("Alergi: ").append(getMedAllergy()).append(". ");
+        if (!getMedCondition().isEmpty()) sb.append("Kondisi medis atau obat: ").append(getMedCondition()).append(". ");
+        if (!getMedFamily().isEmpty()) sb.append("Kontak keluarga darurat: ").append(getMedFamily()).append(".");
+        return sb.toString().trim();
+    }
+
+    public void saveFavoritePlace(String label, double lat, double lon) {
+        if (label == null || label.trim().isEmpty()) return;
+        String cleanLabel = label.trim();
+        String key = cleanLabel.toLowerCase(Locale.ROOT);
+        try {
+            JSONObject map = new JSONObject(prefs.getString("favorite_places", "{}"));
+            JSONObject item = new JSONObject();
+            item.put("label", cleanLabel);
+            item.put("lat", lat);
+            item.put("lon", lon);
+            map.put(key, item);
+            prefs.edit().putString("favorite_places", map.toString()).apply();
+        } catch (Exception ignored) {}
+    }
+
+    /** Mengembalikan {lat, lon} untuk label tempat favorit, atau null jika belum ada. */
+    public double[] getFavoritePlace(String query) {
+        if (query == null || query.trim().isEmpty()) return null;
+        String q = query.trim().toLowerCase(Locale.ROOT);
+        try {
+            JSONObject map = new JSONObject(prefs.getString("favorite_places", "{}"));
+            if (map.has(q)) {
+                JSONObject item = map.getJSONObject(q);
+                return new double[]{item.getDouble("lat"), item.getDouble("lon")};
+            }
+            Iterator<String> it = map.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                if (q.contains(k) || k.contains(q)) {
+                    JSONObject item = map.getJSONObject(k);
+                    return new double[]{item.getDouble("lat"), item.getDouble("lon")};
+                }
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    public String getFavoritePlaceLabel(String query) {
+        if (query == null) return "";
+        String q = query.trim().toLowerCase(Locale.ROOT);
+        try {
+            JSONObject map = new JSONObject(prefs.getString("favorite_places", "{}"));
+            if (map.has(q)) return map.getJSONObject(q).optString("label", query.trim());
+            Iterator<String> it = map.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                if (q.contains(k) || k.contains(q)) {
+                    return map.getJSONObject(k).optString("label", k);
+                }
+            }
+        } catch (Exception ignored) {}
+        return query.trim();
+    }
+
+    public java.util.List<String> listFavoritePlaceLabels() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        try {
+            JSONObject map = new JSONObject(prefs.getString("favorite_places", "{}"));
+            Iterator<String> it = map.keys();
+            while (it.hasNext()) {
+                String k = it.next();
+                out.add(map.getJSONObject(k).optString("label", k));
+            }
+        } catch (Exception ignored) {}
+        return out;
+    }
+
     /** Kunci: name1, phone1, name2, phone2 (sama dengan versi sebelumnya, data lama tetap terbaca). */
     public String getSos(String key) { return sos.getString(key, "").trim(); }
     public void setSos(String key, String value) { sos.edit().putString(key, value == null ? "" : value.trim()).apply(); }

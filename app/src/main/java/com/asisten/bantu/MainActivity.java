@@ -24,28 +24,53 @@ public class MainActivity extends AppCompatActivity {
         tvStatus = findViewById(R.id.tvStatus);
         speaker = Speaker.get(this);
 
-        findViewById(R.id.btnVoiceGuide).setOnClickListener(v -> speakAppGuide());
-        findViewById(R.id.btnPermissions).setOnClickListener(v ->
-                ActivityCompat.requestPermissions(this, Perms.required(), 100));
+        findViewById(R.id.btnVoiceGuide).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            speakAppGuide();
+        });
+        findViewById(R.id.btnPermissions).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            ActivityCompat.requestPermissions(this, Perms.required(), 100);
+        });
         findViewById(R.id.btnAccessibility).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
             toast("Cari Kobra OS di daftar, lalu aktifkan.");
         });
-        findViewById(R.id.btnSettings).setOnClickListener(v ->
-                startActivity(new Intent(this, SettingsActivity.class)));
-        findViewById(R.id.btnSos).setOnClickListener(v ->
-                startActivity(new Intent(this, SosSetupActivity.class)));
-        findViewById(R.id.btnBattery).setOnClickListener(v -> askBatteryExemption());
+        findViewById(R.id.btnSettings).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(this, SettingsActivity.class));
+        });
+        findViewById(R.id.btnSos).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(this, SosSetupActivity.class));
+        });
+        findViewById(R.id.btnBattery).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            askBatteryExemption();
+        });
         findViewById(R.id.btnStartService).setOnClickListener(v -> {
+            HapticFeedback.vibrateSuccess(this);
             KobraForegroundService.start(this);
             toast("Kobra berjalan di latar belakang.");
             speaker.speak("Layanan latar belakang Kobra diaktifkan.");
         });
-        findViewById(R.id.btnLauncher).setOnClickListener(v ->
-                startActivity(new Intent(Settings.ACTION_HOME_SETTINGS)));
+        findViewById(R.id.btnLauncher).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
+        });
         findViewById(R.id.btnNotifAccess).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
             startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
             toast("Cari Kobra OS di daftar, lalu aktifkan.");
+        });
+        findViewById(R.id.btnCompass).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(this, CompassActivity.class));
+        });
+        findViewById(R.id.btnMedicalCard).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(this, MedicalCardActivity.class));
         });
     }
 
@@ -60,15 +85,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void speakAppGuide() {
-        String guide = "Panduan Suara Kobra OS. Di halaman ini terdapat delapan tombol utama. "
-                + "Tombol satu, Beri izin, untuk mengaktifkan mikrofon, kamera, lokasi, kontak, SMS, dan telepon. "
-                + "Tombol dua, Aktifkan layanan aksesibilitas Kobra, agar Kobra bisa mendengar suara dan membantu mengendalikan layar. "
+        String guide = "Panduan Suara Kobra OS. Di halaman ini terdapat tombol utama berikut. "
+                + "Tombol satu, Beri izin, untuk mengaktifkan mikrofon, kamera, lokasi, kontak, SMS, telepon, dan Bluetooth darurat. "
+                + "Tombol dua, Aktifkan layanan aksesibilitas Kobra, agar Kobra bisa mendengar suara, deteksi jatuh, tombol volume, dan membantu mengendalikan layar. "
                 + "Tombol tiga, Aktifkan akses notifikasi, untuk membacakan pesan dan panggilan masuk. "
                 + "Tombol empat, Pengaturan AI, untuk mengisi API key, mengimpor model offline titik task, mengatur kecepatan serta nada suara, kontras tinggi, dan mencadangkan atau memulihkan data. "
-                + "Tombol lima, Kontak darurat SOS, untuk mengatur nomor tujuan saat darurat. "
+                + "Tombol lima, Kontak darurat SOS, untuk mengatur nomor tujuan saat darurat dan mode latihan SOS. "
                 + "Tombol enam, Pembatasan baterai, agar Kobra tidak dimatikan sistem saat hemat daya. "
                 + "Tombol tujuh, Jalankan Kobra di latar belakang. "
-                + "Tombol delapan, Jadikan Kobra sebagai layar utama.";
+                + "Tombol delapan, Jadikan Kobra sebagai layar utama. "
+                + "Tersedia juga tombol Kompas Suara dan Rute Pulang serta Kartu Identitas Medis Darurat.";
         speaker.speak(guide);
     }
 
@@ -92,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
         else llmStatus = "Mode Aman (model .task belum diimpor)";
 
         String sosText = c.hasSosContact() ? "sudah diatur" : "Belum diatur (Default: 112)";
+        String medText = c.hasMedicalCard() ? "terisi" : "belum diisi";
 
         String text = "Status Kobra OS\n"
                 + "Mikrofon: " + (Perms.has(this, android.Manifest.permission.RECORD_AUDIO) ? "siap" : "belum diizinkan") + "\n"
@@ -103,7 +130,10 @@ public class MainActivity extends AppCompatActivity {
                 + "AI Online (OpenRouter): " + (c.hasAi() ? "siap" : "belum diisi API key") + "\n"
                 + "Baterai: " + (bat >= 0 ? bat + "% (" + (charging ? "mengisi" : "tidak mengisi") + ")" : "tidak terbaca") + "\n"
                 + "Sisa penyimpanan: " + freeText + "\n"
-                + "Kontak darurat SOS: " + sosText;
+                + "Kontak darurat SOS: " + sosText + "\n"
+                + "Kartu Medis Darurat: " + medText + "\n"
+                + "Deteksi Jatuh & Kunci Saku: " + (c.isFallDetectionEnabled() ? "aktif" : "mati")
+                + " | Mode Privasi: " + (c.isPrivacyMode() ? "AKTIF (kamera & mic diputus)" : "nonaktif");
         tvStatus.setText(text);
     }
 

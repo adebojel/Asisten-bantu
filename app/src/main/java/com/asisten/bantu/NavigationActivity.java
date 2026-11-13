@@ -58,6 +58,14 @@ public class NavigationActivity extends AppCompatActivity {
         speaker = Speaker.get(this);
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
+        if (new KobraConfig(this).isPrivacyMode()) {
+            tvStatus.setText("Mode Privasi Penuh Aktif");
+            speaker.speak("Mode privasi penuh sedang aktif. Kamera tidak dapat dibuka sebelum mode privasi dimatikan.");
+            btnStart.setEnabled(false);
+            btnStop.setEnabled(false);
+            return;
+        }
+
         ObjectDetectorOptions options = new ObjectDetectorOptions.Builder()
                 .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
                 .enableMultipleObjects()

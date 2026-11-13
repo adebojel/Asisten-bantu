@@ -3,6 +3,9 @@ package com.asisten.bantu;
 import android.Manifest;
 import android.accessibilityservice.AccessibilityService;
 import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothHeadset;
+import android.bluetooth.BluetoothProfile;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -12,6 +15,10 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.PixelFormat;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.location.Location;
@@ -35,6 +42,8 @@ import android.telecom.TelecomManager;
 import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.KeyEvent;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
@@ -99,8 +108,26 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private String torchId;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean batteryReceiverRegistered = false;
+    private boolean bluetoothReceiverRegistered = false;
     private boolean warnedLow20 = false;
     private boolean warnedCritical10 = false;
+    private boolean survivalModeActive = false;
+    private long lastHotBatteryWarnAt = 0L;
+
+    private SensorManager sensorManager;
+    private Sensor accelSensor;
+    private Sensor proximitySensor;
+    private boolean fallImpactDetected = false;
+    private long fallImpactAt = 0L;
+    private boolean fallCountdownActive = false;
+    private int fallSecondsRemaining = 0;
+    private long lastFallTriggerAt = 0L;
+    private boolean pocketLocked = false;
+    private View screenCurtainView;
+    private View pocketGuardView;
+    private long lastCurtainTapAt = 0L;
+    private long lastVolumePressAt = 0L;
+    private int lastVolumeKeyCode = 0;
 
     private static final class Pending {
         final String kind;
@@ -155,10 +182,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
             }
         }));
         registerBatteryMonitor();
+        registerBluetoothMonitor();
         initTorch();
+        initHardwareSensors();
         setupFloatingButton();
-        speaker.speak("Kobra OS aktif. Sebut kata Kobra lalu perintah. Bilang Kobra bantuan untuk daftar perintah.");
-        main.postDelayed(this::startListening, 2000);
+
+        if (config.isPrivacyMode()) {
+            micOn = false;
+            setIndicator(COLOR_OFF, "🔒");
+            speaker.speak("Kobra OS aktif dalam Mode Privasi Penuh. Mikrofon dan kamera dimatikan. Ketuk tombol Kobra untuk mengaktifkan kembali.");
+        } else {
+            speaker.speak("Kobra OS aktif. Sebut kata Kobra lalu perintah. Bilang Kobra bantuan untuk daftar perintah.");
+            main.postDelayed(this::startListening, 2000);
+        }
         main.postDelayed(this::checkLowStorageOnStart, 8000);
         main.postDelayed(watchdog, WATCHDOG_MS);
     }
@@ -171,11 +207,22 @@ public class AsistenAccessibilityService extends AccessibilityService {
         instance = null;
         stopMic();
         destroyRecognizer();
+        cancelFallCountdown(false);
+        EmergencyBeacon.stopAll(this, torchId);
+        removeScreenCurtain(false);
+        removePocketGuard();
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(hardwareSensorListener);
+        }
         NetworkState.unwatch(this, networkCallback);
         networkCallback = null;
         if (batteryReceiverRegistered) {
             try { unregisterReceiver(batteryReceiver); } catch (Exception ignored) { }
             batteryReceiverRegistered = false;
+        }
+        if (bluetoothReceiverRegistered) {
+            try { unregisterReceiver(bluetoothReceiver); } catch (Exception ignored) { }
+            bluetoothReceiverRegistered = false;
         }
         if (localLlmEngine != null) {
             localLlmEngine.close();
@@ -187,6 +234,40 @@ public class AsistenAccessibilityService extends AccessibilityService {
         super.onDestroy();
     }
 
+    @Override protected boolean onKeyEvent(KeyEvent event) {
+        if (event == null || event.getAction() != KeyEvent.ACTION_DOWN) {
+            return super.onKeyEvent(event);
+        }
+        int code = event.getKeyCode();
+        if (code == KeyEvent.KEYCODE_HEADSETHOOK || code == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
+            HapticFeedback.vibrateAction(this);
+            if (EmergencyBeacon.isSirenActive()) {
+                EmergencyBeacon.stopAll(this, torchId);
+                say("Sirine dimatikan.");
+            } else {
+                onFloatingClick();
+            }
+            return true;
+        }
+        if (code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            long now = System.currentTimeMillis();
+            if (code == lastVolumeKeyCode && now - lastVolumePressAt <= 450L) {
+                lastVolumePressAt = 0L;
+                HapticFeedback.vibrateAction(this);
+                if (EmergencyBeacon.isSirenActive()) {
+                    EmergencyBeacon.stopAll(this, torchId);
+                    say("Sirine dimatikan.");
+                } else {
+                    onFloatingClick();
+                }
+                return true;
+            }
+            lastVolumeKeyCode = code;
+            lastVolumePressAt = now;
+        }
+        return super.onKeyEvent(event);
+    }
+
     // ----------------------------------------------------------------- mikrofon
 
     private final Speaker.Listener speechListener = new Speaker.Listener() {
@@ -195,6 +276,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             setIndicator(COLOR_SPEAK, "🔊");
         }
         @Override public void onSpeechEnd() {
+            if (config != null && config.isPrivacyMode()) {
+                setIndicator(COLOR_OFF, "🔒");
+                return;
+            }
             setIndicator(micOn ? COLOR_IDLE : COLOR_OFF, micOn ? "🐍" : "🔇");
             scheduleRetry(350);
         }
@@ -202,14 +287,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private final Runnable watchdog = new Runnable() {
         @Override public void run() {
-            if (micOn && !listening && speaker != null && !speaker.isSpeaking()) startListening();
+            if (micOn && !listening && !pocketLocked && (config == null || !config.isPrivacyMode())
+                    && speaker != null && !speaker.isSpeaking()) {
+                startListening();
+            }
             main.postDelayed(this, WATCHDOG_MS);
         }
     };
 
     private void startListening() {
         main.post(() -> {
-            if (!micOn || listening || speaker == null || speaker.isSpeaking()) return;
+            if (!micOn || listening || pocketLocked || (config != null && config.isPrivacyMode())
+                    || speaker == null || speaker.isSpeaking()) return;
             if (!Perms.has(this, Manifest.permission.RECORD_AUDIO)) {
                 setIndicator(COLOR_NO_PERM, "🎤✖");
                 if (!warnedNoPermission) {
@@ -344,6 +433,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void onFloatingClick() {
+        HapticFeedback.vibrateAction(this);
+        if (EmergencyBeacon.isSirenActive()) {
+            EmergencyBeacon.stopAll(this, torchId);
+            say("Sirine bahaya dimatikan.");
+            return;
+        }
+        if (config != null && config.isPrivacyMode()) {
+            exitPrivacyMode();
+            return;
+        }
         micOn = true;
         if (speaker.isSpeaking()) speaker.stop();
         speaker.speak("Ya, saya dengarkan.");
@@ -404,6 +503,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 if (yes && !no) triggerSos();
                 else say("SOS dibatalkan.");
                 break;
+            case "fall_sos":
+                if (no || has(text, "aman", "baik", "hentikan", "stop", "salah")) {
+                    cancelFallCountdown(true);
+                } else if (yes) {
+                    cancelFallCountdown(false);
+                    triggerSos();
+                } else {
+                    pending = p;
+                }
+                break;
             case "call":
                 if (yes && !no) placeCall(p.a, p.b);
                 else say("Panggilan dibatalkan.");
@@ -461,16 +570,94 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void route(String c) {
+        HapticFeedback.vibrateAction(this);
         if (c.isEmpty()) { say("Ya, saya dengarkan."); return; }
 
-        // Bantuan dan kontrol suara
+        // Bantuan dan kontrol suara & privasi
         if (has(c, "bantuan", "bisa apa", "daftar perintah")) { say(HELP); return; }
-        if (word(c, "diam") || has(c, "berhenti bicara", "hentikan suara")) { speaker.stop(); return; }
+        if (has(c, "matikan sirine", "henti sirine", "hentikan sirine", "stop sirine", "matikan alarm bahaya")) {
+            EmergencyBeacon.stopAll(this, torchId);
+            say("Sirine bahaya dan siaran darurat dimatikan.");
+            return;
+        }
+        if (word(c, "diam") || has(c, "berhenti bicara", "hentikan suara")) {
+            EmergencyBeacon.stopAll(this, torchId);
+            speaker.stop();
+            return;
+        }
         if (has(c, "ulangi")) { say(lastSpoken); return; }
+        if (has(c, "matikan mode privasi", "keluar mode privasi", "nonaktifkan privasi")) { exitPrivacyMode(); return; }
+        if (has(c, "mode privasi penuh", "mode privasi", "privasi penuh", "putus kamera mikrofon", "matikan kamera dan mikrofon")) {
+            enterPrivacyMode();
+            return;
+        }
         if (has(c, "cek mikrofon", "status mikrofon")) { say(micOn ? "Mikrofon aktif." : "Mikrofon mati."); return; }
         if (has(c, "matikan mikrofon")) { micOn = false; stopMic(); setIndicator(COLOR_OFF, "🔇"); say("Mikrofon dimatikan."); return; }
         if (has(c, "nyalakan mikrofon", "hidupkan mikrofon")) { micOn = true; say("Mikrofon aktif."); return; }
         if (has(c, "talkback")) { handleTalkback(c); return; }
+
+        // Pencari HP (Find My Phone) & Layar Hitam (Screen Curtain) & Mode Bertahan Hidup
+        if (has(c, "kamu di mana", "kobra di mana", "posisi hp", "cari hp", "hp di mana")) {
+            EmergencyBeacon.ringFindMyPhone(this, torchId, speaker);
+            return;
+        }
+        if (has(c, "buka layar", "matikan layar hitam", "tampilkan layar", "keluar layar hitam")) {
+            removeScreenCurtain(true);
+            return;
+        }
+        if (has(c, "layar hitam", "mode layar hitam", "hemat layar", "tutup layar", "matikan tampilan")) {
+            showScreenCurtain(true);
+            return;
+        }
+        if (has(c, "mode bertahan hidup", "hemat baterai ekstrem")) {
+            enterSurvivalMode(true);
+            return;
+        }
+
+        // Keselamatan darurat: Sirine bahaya, Latihan SOS, Kartu Medis, Kompas, Lokasi, Rute Pulang
+        if (has(c, "sirine bahaya", "bunyikan sirine", "nyalakan sirine")) {
+            say("Menyalakan sirine bahaya, senter Morse SOS, dan siaran darurat Bluetooth.");
+            main.postDelayed(() -> EmergencyBeacon.startDangerSiren(this, torchId), 2000L);
+            return;
+        }
+        if (has(c, "latihan sos", "simulasi sos", "tes sos", "uji sos")) {
+            triggerSosSimulation();
+            return;
+        }
+        if (has(c, "kartu medis", "identitas medis", "data medis", "baca kartu medis")) {
+            openMedicalCardAndRead();
+            return;
+        }
+        if (has(c, "buka kompas")) {
+            launch(CompassActivity.class, null);
+            say("Membuka kompas suara dan penanda rute.");
+            return;
+        }
+        if (has(c, "kompas", "arah mata angin", "menghadap mana", "arah mana")) {
+            speakCompassHeading();
+            return;
+        }
+        if (has(c, "saya di mana", "posisi saya", "lokasi saya sekarang", "alamat saya", "di mana saya")) {
+            speakWhereAmI();
+            return;
+        }
+        if (c.startsWith("simpan lokasi ") || c.startsWith("tandai lokasi ")
+                || c.startsWith("simpan tempat ") || c.startsWith("tandai tempat ")) {
+            String place = afterAny(c, "simpan lokasi ", "tandai lokasi ", "simpan tempat ", "tandai tempat ");
+            saveCurrentFavoritePlace(place);
+            return;
+        }
+        if (has(c, "arahkan pulang", "rute pulang", "jalan pulang", "pandu pulang")) {
+            guideToFavoritePlace("Rumah");
+            return;
+        }
+        if (c.startsWith("pandu ke ") || c.startsWith("tuntun ke ")) {
+            String targetPlace = afterAny(c, "pandu ke ", "tuntun ke ");
+            if (config.getFavoritePlace(targetPlace) != null) {
+                guideToFavoritePlace(targetPlace);
+                return;
+            }
+        }
 
         // Mode yang sedang terbuka
         if (VisionActivity.current != null && has(c, "scan", "foto", "ambil gambar", "jepret")) {
@@ -494,6 +681,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         // Darurat: hanya kalau benar-benar diminta
         if (c.equals("tolong") || word(c, "sos") || has(c, "darurat", "minta tolong")) {
             pending = new Pending("sos", "", "");
+            HapticFeedback.vibrateWarning(this);
             say("Saya akan kirim SOS dengan lokasi ke kontak darurat. Bilang iya untuk lanjut.");
             return;
         }
@@ -1371,6 +1559,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     /** Dipakai juga dari tombol SOS di layar launcher. */
     public void triggerSos() {
+        HapticFeedback.vibrateSosMorse(this, false);
+        if (!NetworkState.isOnline(this)) {
+            EmergencyBeacon.startEmergencyBroadcast(this);
+        }
+
         String name1 = config.getSos("name1");
         String p1 = config.getSos("phone1");
         String p2 = config.getSos("phone2");
@@ -1395,6 +1588,102 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 + (loc != null ? "Lokasi terkirim." : "Lokasi belum tersedia, nyalakan GPS.")
                 + " Saya telepon " + who + ".");
         placeCall(who, p1.isEmpty() ? p2 : p1);
+    }
+
+    public void triggerSosSimulation() {
+        HapticFeedback.vibrateSosMorse(this, false);
+        String target = config.hasSosContact()
+                ? (config.getSos("name1").isEmpty() ? config.getSos("phone1") : config.getSos("name1"))
+                : "112";
+        say("Mode Latihan SOS aktif. Ini hanya simulasi tanpa SMS atau panggilan asli. "
+                + "Saat darurat nyata, Kobra mengirim SMS koordinat Google Maps ke " + target
+                + ", menyalakan getaran Morse SOS, lalu menelepon kontak darurat.");
+    }
+
+    private void openMedicalCardAndRead() {
+        Intent i = new Intent(this, MedicalCardActivity.class);
+        i.putExtra(MedicalCardActivity.EXTRA_AUTO_SPEAK, true);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            startActivity(i);
+        } catch (Exception ignored) {}
+        say(config.getMedicalCardSpeech());
+    }
+
+    private void speakCompassHeading() {
+        CompassLocationHelper.readHeadingOnce(this, new CompassLocationHelper.HeadingCallback() {
+            @Override public void onHeading(int degrees, String cardinalName) {
+                HapticFeedback.vibrateSuccess(AsistenAccessibilityService.this);
+                say("Anda menghadap " + cardinalName + ", " + degrees + " derajat.");
+            }
+            @Override public void onUnavailable() {
+                say("Sensor kompas tidak tersedia atau belum siap di HP ini.");
+            }
+        });
+    }
+
+    private void speakWhereAmI() {
+        say("Mencari lokasi Anda sekarang.");
+        CompassLocationHelper.fetchCurrentLocation(this, new CompassLocationHelper.LocationCallback() {
+            @Override public void onLocation(Location loc, String addressText) {
+                HapticFeedback.vibrateSuccess(AsistenAccessibilityService.this);
+                if (!addressText.isEmpty()) {
+                    say("Anda berada di sekitar " + addressText + ". Akurasi " + Math.round(loc.getAccuracy()) + " meter.");
+                } else {
+                    say(String.format(Locale.US, "Koordinat GPS Anda: lintang %.5f, bujur %.5f.", loc.getLatitude(), loc.getLongitude()));
+                }
+            }
+            @Override public void onError(String message) {
+                HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
+                say(message);
+            }
+        });
+    }
+
+    private void saveCurrentFavoritePlace(String rawLabel) {
+        final String label = rawLabel.trim().isEmpty() ? "Rumah" : rawLabel.trim();
+        say("Menyimpan koordinat lokasi untuk " + label + ".");
+        CompassLocationHelper.fetchCurrentLocation(this, new CompassLocationHelper.LocationCallback() {
+            @Override public void onLocation(Location loc, String addressText) {
+                config.saveFavoritePlace(label, loc.getLatitude(), loc.getLongitude());
+                HapticFeedback.vibrateSuccess(AsistenAccessibilityService.this);
+                say("Lokasi " + label + " berhasil disimpan." + (addressText.isEmpty() ? "" : " Sekitar " + addressText + "."));
+            }
+            @Override public void onError(String message) {
+                HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
+                say(message);
+            }
+        });
+    }
+
+    private void guideToFavoritePlace(String queryLabel) {
+        double[] coords = config.getFavoritePlace(queryLabel);
+        if (coords == null) {
+            say("Lokasi " + queryLabel + " belum disimpan. Bilang Kobra simpan lokasi " + queryLabel + " saat berada di sana.");
+            return;
+        }
+        String resolved = config.getFavoritePlaceLabel(queryLabel);
+        CompassLocationHelper.readHeadingOnce(this, new CompassLocationHelper.HeadingCallback() {
+            @Override public void onHeading(int degrees, String cardinalName) {
+                fetchAndSpeakRoute(resolved, coords[0], coords[1], degrees);
+            }
+            @Override public void onUnavailable() {
+                fetchAndSpeakRoute(resolved, coords[0], coords[1], -1);
+            }
+        });
+    }
+
+    private void fetchAndSpeakRoute(String label, double lat, double lon, int headingDeg) {
+        CompassLocationHelper.fetchCurrentLocation(this, new CompassLocationHelper.LocationCallback() {
+            @Override public void onLocation(Location loc, String addressText) {
+                HapticFeedback.vibrateSuccess(AsistenAccessibilityService.this);
+                say(CompassLocationHelper.buildRouteGuidance(label, loc, lat, lon, headingDeg));
+            }
+            @Override public void onError(String message) {
+                HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
+                say(message);
+            }
+        });
     }
 
     private boolean sendSms(String number, String msg) {
@@ -1422,7 +1711,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         return best;
     }
 
-    // ----------------------------------------------------------------- perangkat
+    // ----------------------------------------------------------------- perangkat, sensor, & keselamatan
 
     private void initTorch() {
         try {
@@ -1438,9 +1727,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void setTorch(boolean on) {
+        if (on && config.isPrivacyMode()) {
+            say("Mode privasi penuh aktif. Kamera dan senter sedang dibatasi.");
+            return;
+        }
         if (torchId == null) { say("Senter tidak tersedia di HP ini."); return; }
         try {
             ((CameraManager) getSystemService(CAMERA_SERVICE)).setTorchMode(torchId, on);
+            HapticFeedback.vibrateSuccess(this);
             say(on ? "Senter nyala." : "Senter mati.");
         } catch (Exception e) {
             say("Gagal mengatur senter.");
@@ -1460,6 +1754,269 @@ public class AsistenAccessibilityService extends AccessibilityService {
         return bm == null ? -1 : bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
     }
 
+    private void initHardwareSensors() {
+        sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        if (sensorManager == null) return;
+        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+        if (accelSensor != null) {
+            sensorManager.registerListener(hardwareSensorListener, accelSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+        if (proximitySensor != null) {
+            sensorManager.registerListener(hardwareSensorListener, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+    }
+
+    private final SensorEventListener hardwareSensorListener = new SensorEventListener() {
+        @Override public void onSensorChanged(SensorEvent event) {
+            int type = event.sensor.getType();
+            if (type == Sensor.TYPE_ACCELEROMETER) {
+                handleAccelerometer(event.values[0], event.values[1], event.values[2]);
+            } else if (type == Sensor.TYPE_PROXIMITY) {
+                handleProximity(event.values[0], event.sensor.getMaximumRange());
+            }
+        }
+        @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    };
+
+    private void handleAccelerometer(float x, float y, float z) {
+        if (survivalModeActive || fallCountdownActive || config == null || !config.isFallDetectionEnabled()) return;
+        long now = System.currentTimeMillis();
+        if (now - lastFallTriggerAt < 45000L) return;
+
+        double mag = Math.sqrt(x * x + y * y + z * z);
+        if (!fallImpactDetected) {
+            if (mag > 27.5) {
+                fallImpactDetected = true;
+                fallImpactAt = now;
+            }
+        } else {
+            long elapsed = now - fallImpactAt;
+            if (elapsed >= 1200L && elapsed <= 3500L) {
+                if (mag >= 7.0 && mag <= 12.8) {
+                    fallImpactDetected = false;
+                    startFallCountdown();
+                }
+            } else if (elapsed > 3500L) {
+                fallImpactDetected = false;
+            }
+        }
+    }
+
+    private void startFallCountdown() {
+        if (fallCountdownActive) return;
+        fallCountdownActive = true;
+        fallSecondsRemaining = 15;
+        lastFallTriggerAt = System.currentTimeMillis();
+        pending = new Pending("fall_sos", "", "");
+        HapticFeedback.vibrateWarning(this);
+        say("Terdeteksi jatuh keras! Bilang batal atau tidak jika Anda baik-baik saja. SOS otomatis dikirim dalam 15 detik.");
+        main.postDelayed(fallCountdownTick, 1000L);
+    }
+
+    private final Runnable fallCountdownTick = new Runnable() {
+        @Override public void run() {
+            if (!fallCountdownActive) return;
+            fallSecondsRemaining--;
+            if (fallSecondsRemaining <= 0) {
+                fallCountdownActive = false;
+                pending = null;
+                say("Waktu habis. Mengirim SOS darurat sekarang.");
+                triggerSos();
+                return;
+            }
+            if (fallSecondsRemaining == 5) {
+                HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
+                speaker.speak("Lima detik lagi.");
+            } else if (fallSecondsRemaining == 10 || fallSecondsRemaining < 5) {
+                HapticFeedback.vibrateAction(AsistenAccessibilityService.this);
+            }
+            main.postDelayed(this, 1000L);
+        }
+    };
+
+    private void cancelFallCountdown(boolean announce) {
+        if (!fallCountdownActive) return;
+        fallCountdownActive = false;
+        main.removeCallbacks(fallCountdownTick);
+        pending = null;
+        if (announce) {
+            HapticFeedback.vibrateSuccess(this);
+            say("Syukurlah. Deteksi jatuh dibatalkan.");
+        }
+    }
+
+    private void handleProximity(float distance, float maxRange) {
+        if (config == null || !config.isPocketLockEnabled()) {
+            if (pocketLocked) {
+                pocketLocked = false;
+                removePocketGuard();
+            }
+            return;
+        }
+        boolean near = distance < maxRange && distance < 3.0f;
+        if (near && !pocketLocked) {
+            pocketLocked = true;
+            stopMic();
+            showPocketGuard();
+        } else if (!near && pocketLocked) {
+            pocketLocked = false;
+            removePocketGuard();
+            if (micOn && !config.isPrivacyMode()) {
+                scheduleRetry(300);
+            }
+        }
+    }
+
+    private void showPocketGuard() {
+        if (windowManager == null || pocketGuardView != null) return;
+        main.post(() -> {
+            if (pocketGuardView != null || windowManager == null) return;
+            try {
+                View v = new View(this);
+                v.setBackgroundColor(0xE6000000);
+                v.setContentDescription("Kunci sentuh saku aktif. Keluarkan HP dari saku untuk membuka.");
+                WindowManager.LayoutParams p = new WindowManager.LayoutParams(
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.MATCH_PARENT,
+                        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                        PixelFormat.TRANSLUCENT);
+                windowManager.addView(v, p);
+                pocketGuardView = v;
+            } catch (Exception ignored) {}
+        });
+    }
+
+    private void removePocketGuard() {
+        if (windowManager == null || pocketGuardView == null) return;
+        main.post(() -> {
+            try {
+                if (pocketGuardView != null && windowManager != null) {
+                    windowManager.removeView(pocketGuardView);
+                }
+            } catch (Exception ignored) {}
+            pocketGuardView = null;
+        });
+    }
+
+    private void showScreenCurtain(boolean announce) {
+        if (windowManager == null) return;
+        main.post(() -> {
+            if (screenCurtainView == null) {
+                try {
+                    View v = new View(this);
+                    v.setBackgroundColor(0xFF000000);
+                    v.setContentDescription("Mode layar hitam hemat daya aktif. Ketuk dua kali untuk membuka layar.");
+                    v.setOnClickListener(view -> {
+                        long now = System.currentTimeMillis();
+                        if (now - lastCurtainTapAt <= 500L) {
+                            lastCurtainTapAt = 0L;
+                            removeScreenCurtain(true);
+                        } else {
+                            lastCurtainTapAt = now;
+                        }
+                    });
+                    WindowManager.LayoutParams p = new WindowManager.LayoutParams(
+                            WindowManager.LayoutParams.MATCH_PARENT,
+                            WindowManager.LayoutParams.MATCH_PARENT,
+                            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+                            PixelFormat.OPAQUE);
+                    windowManager.addView(v, p);
+                    screenCurtainView = v;
+                } catch (Exception ignored) {}
+            }
+            if (announce) {
+                HapticFeedback.vibrateSuccess(this);
+                say("Mode layar hitam hemat daya aktif. Ketuk layar dua kali atau bilang Kobra buka layar untuk menonaktifkan.");
+            }
+        });
+    }
+
+    private void removeScreenCurtain(boolean announce) {
+        main.post(() -> {
+            try {
+                if (screenCurtainView != null && windowManager != null) {
+                    windowManager.removeView(screenCurtainView);
+                }
+            } catch (Exception ignored) {}
+            screenCurtainView = null;
+            if (announce) {
+                HapticFeedback.vibrateAction(this);
+                say("Layar ditampilkan kembali.");
+            }
+        });
+    }
+
+    private void enterPrivacyMode() {
+        config.setPrivacyMode(true);
+        micOn = false;
+        stopMic();
+        destroyRecognizer();
+        EmergencyBeacon.stopAll(this, torchId);
+        if (VisionActivity.current != null) {
+            try { VisionActivity.current.finish(); } catch (Exception ignored) {}
+        }
+        if (NavigationActivity.current != null) {
+            try { NavigationActivity.current.finish(); } catch (Exception ignored) {}
+        }
+        setIndicator(COLOR_OFF, "🔒");
+        HapticFeedback.vibrateSuccess(this);
+        say("Mode privasi penuh aktif. Mikrofon dan kamera telah diputus seketika. Ketuk tombol Kobra untuk mengaktifkan kembali.");
+    }
+
+    private void exitPrivacyMode() {
+        config.setPrivacyMode(false);
+        micOn = true;
+        setIndicator(COLOR_IDLE, "🐍");
+        HapticFeedback.vibrateSuccess(this);
+        say("Mode privasi dimatikan. Mikrofon dan kamera aktif kembali.");
+        scheduleRetry(300);
+    }
+
+    private void enterSurvivalMode(boolean manual) {
+        if (survivalModeActive && !manual) return;
+        survivalModeActive = true;
+        EmergencyBeacon.stopAll(this, torchId);
+        if (localLlmEngine != null) {
+            localLlmEngine.close();
+        }
+        showScreenCurtain(false);
+        HapticFeedback.vibrateWarning(this);
+        say("Mode bertahan hidup aktif karena baterai sangat kritis. Senter, layar, dan pemrosesan berat dimatikan agar telepon dan SOS tetap siap.");
+    }
+
+    private void registerBluetoothMonitor() {
+        try {
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
+            filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
+            filter.addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
+            registerReceiver(bluetoothReceiver, filter);
+            bluetoothReceiverRegistered = true;
+        } catch (Exception e) {
+            Log.w(TAG, "Gagal mendaftarkan pemantau headset Bluetooth", e);
+        }
+    }
+
+    private final BroadcastReceiver bluetoothReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (intent == null || intent.getAction() == null) return;
+            String action = intent.getAction();
+            boolean disconnected = AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(action)
+                    || BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action);
+            if (!disconnected && BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
+                int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
+                disconnected = (state == BluetoothProfile.STATE_DISCONNECTED);
+            }
+            if (disconnected) {
+                HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
+                say("Perhatian, headset Bluetooth terputus. Suara dialihkan ke speaker HP.");
+            }
+        }
+    };
+
     private void registerBatteryMonitor() {
         try {
             registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
@@ -1475,6 +2032,17 @@ public class AsistenAccessibilityService extends AccessibilityService {
             int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
             int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
             int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+            int tempTenths = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
+
+            if (tempTenths >= 430) {
+                long now = System.currentTimeMillis();
+                if (now - lastHotBatteryWarnAt > 600_000L) {
+                    lastHotBatteryWarnAt = now;
+                    HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
+                    say("Peringatan suhu baterai panas, mencapai " + (tempTenths / 10) + " derajat Celsius. Kurangi pemakaian berat atau lepas pengisi daya.");
+                }
+            }
+
             if (level < 0 || scale <= 0) return;
 
             int percent = (level * 100) / scale;
@@ -1484,14 +2052,24 @@ public class AsistenAccessibilityService extends AccessibilityService {
             if (charging) {
                 warnedLow20 = false;
                 warnedCritical10 = false;
+                if (survivalModeActive) {
+                    survivalModeActive = false;
+                    removeScreenCurtain(false);
+                }
                 return;
             }
-            if (percent < 10 && !warnedCritical10) {
+            if (percent < 5 && !survivalModeActive) {
                 warnedCritical10 = true;
                 warnedLow20 = true;
+                enterSurvivalMode(false);
+            } else if (percent < 10 && !warnedCritical10) {
+                warnedCritical10 = true;
+                warnedLow20 = true;
+                HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
                 say("Peringatan baterai kritis, tersisa " + percent + " persen. Segera sambungkan pengisi daya.");
             } else if (percent < 20 && !warnedLow20) {
                 warnedLow20 = true;
+                HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
                 say("Peringatan baterai lemah, tersisa " + percent + " persen. Sebaiknya segera isi daya HP.");
             }
         }
@@ -1503,6 +2081,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             long availBytes = stat.getAvailableBytes();
             if (availBytes < 1024L * 1024L * 1024L) {
                 long mb = availBytes / (1024L * 1024L);
+                HapticFeedback.vibrateWarning(this);
                 say("Peringatan penyimpanan internal di bawah satu gigabita, tersisa " + mb + " megabita. Kosongkan ruang agar sistem dan model AI tetap lancar.");
             }
         } catch (Exception e) {

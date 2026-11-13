@@ -21,7 +21,14 @@ public final class Perms {
         p.add(Manifest.permission.SEND_SMS);
         p.add(Manifest.permission.READ_SMS);
         p.add(Manifest.permission.ANSWER_PHONE_CALLS);
-        if (Build.VERSION.SDK_INT >= 33) p.add(Manifest.permission.POST_NOTIFICATIONS);
+        if (Build.VERSION.SDK_INT >= 31) {
+            p.add(Manifest.permission.BLUETOOTH_CONNECT);
+            p.add(Manifest.permission.BLUETOOTH_ADVERTISE);
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            p.add(Manifest.permission.POST_NOTIFICATIONS);
+            p.add(Manifest.permission.NEARBY_WIFI_DEVICES);
+        }
         return p.toArray(new String[0]);
     }
 

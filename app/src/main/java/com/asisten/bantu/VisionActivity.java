@@ -1,14 +1,20 @@
 package com.asisten.bantu;
 
 import android.Manifest;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
@@ -45,6 +51,11 @@ public class VisionActivity extends AppCompatActivity {
     private Button btnScan, btnBack;
     private String mode = "describe";
     private ImageCapture imageCapture;
+    private Camera boundCamera;
+    private SensorManager sensorManager;
+    private Sensor lightSensor;
+    private boolean autoTorchChecked = false;
+    private boolean autoTorchEnabled = false;
     private Speaker speaker;
     private KobraConfig config;
     private AiClient ai;
@@ -66,6 +77,18 @@ public class VisionActivity extends AppCompatActivity {
         speaker = Speaker.get(this);
         config = new KobraConfig(this);
         ai = new AiClient(config);
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager != null) {
+            lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        }
+
+        if (config.isPrivacyMode()) {
+            tvStatus.setText("Mode Privasi Penuh Aktif");
+            speak("Mode privasi penuh sedang aktif. Kamera tidak dapat dibuka sebelum mode privasi dimatikan.");
+            btnScan.setEnabled(false);
+            btnBack.setOnClickListener(v -> finish());
+            return;
+        }
 
         btnScan.setOnClickListener(v -> captureNow());
         btnBack.setOnClickListener(v -> finish());
@@ -79,16 +102,52 @@ public class VisionActivity extends AppCompatActivity {
     @Override protected void onResume() {
         super.onResume();
         current = this;
+        if (!config.isPrivacyMode() && sensorManager != null && lightSensor != null) {
+            autoTorchChecked = false;
+            sensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_UI);
+        }
     }
 
     @Override protected void onPause() {
         super.onPause();
         if (current == this) current = null;
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(lightListener);
+        }
+        disableTorch();
     }
 
     @Override protected void onDestroy() {
+        disableTorch();
         cameraExec.shutdown();
         super.onDestroy();
+    }
+
+    private final SensorEventListener lightListener = new SensorEventListener() {
+        @Override public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() != Sensor.TYPE_LIGHT || autoTorchChecked || boundCamera == null) return;
+            float lux = event.values[0];
+            autoTorchChecked = true;
+            if (sensorManager != null) {
+                sensorManager.unregisterListener(this);
+            }
+            if (lux < 12.0f && boundCamera.getCameraInfo().hasFlashUnit()) {
+                boundCamera.getCameraControl().enableTorch(true);
+                autoTorchEnabled = true;
+                tvStatus.setText("Mode: " + modeLabel() + " (Senter otomatis nyala)");
+                speak("Tempat gelap terdeteksi, senter dinyalakan otomatis.");
+            }
+        }
+        @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+    };
+
+    private void disableTorch() {
+        if (autoTorchEnabled && boundCamera != null) {
+            try {
+                boundCamera.getCameraControl().enableTorch(false);
+            } catch (Exception ignored) {}
+            autoTorchEnabled = false;
+        }
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -111,7 +170,7 @@ public class VisionActivity extends AppCompatActivity {
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .build();
                 provider.unbindAll();
-                provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture);
+                boundCamera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture);
             } catch (Exception e) {
                 speak("Kamera tidak bisa dibuka.");
             }

@@ -94,5 +94,27 @@
             android:minHeight="64dp"
             android:text="8. Jadikan Kobra sebagai layar utama"
             android:contentDescription="Pilih layar utama" />
+
+        <Button
+            android:id="@+id/btnCompass"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="64dp"
+            android:backgroundTint="#00897B"
+            android:textColor="#FFFFFF"
+            android:text="🧭 Kompas Suara, Lokasi &amp; Rute Pulang"
+            android:contentDescription="Buka kompas suara offline, cek lokasi GPS, dan penanda rute pulang" />
+
+        <Button
+            android:id="@+id/btnMedicalCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="64dp"
+            android:backgroundTint="#EF6C00"
+            android:textColor="#FFFFFF"
+            android:text="🏥 Kartu Identitas Medis Darurat"
+            android:contentDescription="Buka dan atur kartu identitas medis darurat" />
     </LinearLayout>
 </ScrollView>

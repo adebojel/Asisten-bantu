@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🧭 KOMPAS SUARA &amp; RUTE PULANG"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#00E676"
+            android:gravity="center"
+            android:paddingBottom="10dp" />
+
+        <TextView
+            android:id="@+id/tvCompassHeading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#151515"
+            android:padding="16dp"
+            android:gravity="center"
+            android:textColor="#FFFF00"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:text="Membaca kompas..." />
+
+        <Button
+            android:id="@+id/btnSpeakCompass"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:minHeight="60dp"
+            android:backgroundTint="#2962FF"
+            android:textColor="#FFFFFF"
+            android:text="🔊 BACAKAN ARAH KOMPAS"
+            android:contentDescription="Bacakan arah mata angin dan derajat kompas saat ini" />
+
+        <Button
+            android:id="@+id/btnWhereAmI"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="60dp"
+            android:backgroundTint="#00897B"
+            android:textColor="#FFFFFF"
+            android:text="📍 SAYA DI MANA SEKARANG?"
+            android:contentDescription="Cek lokasi GPS dan alamat saat ini" />
+
+        <TextView
+            android:id="@+id/tvLocationResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="#1A1A1A"
+            android:padding="12dp"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:text="Tekan tombol di atas untuk membaca lokasi GPS atau simpan tempat favorit." />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Simpan &amp; Pandu Rute Favorit"
+            android:textColor="#00E676"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etPlaceLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
+            android:layout_marginTop="8dp"
+            android:hint="Nama tempat (contoh: Rumah, Masjid, Kantor)"
+            android:text="Rumah"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:background="#222222"
+            android:padding="12dp"
+            android:contentDescription="Nama tempat favorit untuk disimpan atau dipandu" />
+
+        <Button
+            android:id="@+id/btnSavePlace"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="58dp"
+            android:backgroundTint="#EF6C00"
+            android:textColor="#FFFFFF"
+            android:text="📌 SIMPAN TITIK KOORDINAT SAAT INI"
+            android:contentDescription="Simpan koordinat GPS saat ini sebagai lokasi favorit" />
+
+        <Button
+            android:id="@+id/btnGuidePlace"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="60dp"
+            android:backgroundTint="#7C4DFF"
+            android:textColor="#FFFFFF"
+            android:text="🧭 PANDU ARAH PULANG (JARAK &amp; JAM)"
+            android:contentDescription="Pandu jarak meter dan arah jarum jam menuju lokasi favorit" />
+
+        <TextView
+            android:id="@+id/tvSavedPlaces"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:textColor="#FFFFEB3B"
+            android:textSize="15sp"
+            android:text="Lokasi tersimpan: belum ada" />
+
+        <Button
+            android:id="@+id/btnBackCompass"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:minHeight="60dp"
+            android:text="KEMBALI"
+            android:contentDescription="Kembali" />
+    </LinearLayout>
+</ScrollView>
