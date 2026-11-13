@@ -106,6 +106,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     public static AsistenAccessibilityService getInstance() { return instance; }
 
+    public LocalLlmEngine getLocalLlmEngine() {
+        return localLlmEngine != null ? localLlmEngine : LocalLlmEngine.getInstance(this);
+    }
+
     /** Dipanggil dari tombol di layar: langsung dengarkan satu perintah. */
     public static void requestListen() {
         AsistenAccessibilityService s = instance;
@@ -123,7 +127,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         speaker.addListener(speechListener);
 
         // Inisialisasi Mesin LLM Offline pada Thread Latar Belakang
-        localLlmEngine = new LocalLlmEngine(this);
+        localLlmEngine = LocalLlmEngine.getInstance(this);
         new Thread(() -> {
             if (localLlmEngine.isModelPresent()) {
                 localLlmEngine.initEngine();
@@ -525,9 +529,21 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         // Sisanya: MediaPipe LLM Offline (bila offline), n8n (jika webhook diatur), lalu AI OpenRouter
         if (!NetworkState.isOnline(this)) {
-            if (localLlmEngine != null && localLlmEngine.isModelPresent()) {
-                say("Memproses dengan otak offline...");
-                localLlmEngine.generateResponseAsync(c, speaker);
+            LocalLlmEngine engine = getLocalLlmEngine();
+            if (engine != null && engine.isModelPresent()) {
+                if (engine.isInitialized()) {
+                    say("Memproses dengan otak offline...");
+                    engine.generateResponseAsync(c, speaker);
+                } else {
+                    say("Menyiapkan otak offline, harap tunggu...");
+                    new Thread(() -> {
+                        if (engine.initEngine()) {
+                            engine.generateResponseAsync(c, speaker);
+                        } else {
+                            main.post(() -> say("Gagal memuat model offline. Periksa berkas model di Pengaturan AI."));
+                        }
+                    }).start();
+                }
             } else {
                 say("Perintah itu butuh internet, dan saat ini internet terputus. Coba lagi saat tersambung.");
             }

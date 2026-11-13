@@ -88,10 +88,65 @@
             android:textSize="18sp"
             android:text="" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#00E676"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:text="🧠 Model AI Offline (Gemma 3 1B)" />
+
+        <TextView
+            android:id="@+id/tvModelStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="8dp"
+            android:paddingBottom="12dp"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:text="Status model: Memeriksa..." />
+
+        <Button
+            android:id="@+id/btnImportModel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="64dp"
+            android:backgroundTint="#2962FF"
+            android:textColor="#FFFFFF"
+            android:text="📁 IMPOR MODEL LOKAL (.TASK)"
+            android:contentDescription="Impor berkas model offline titik task dari folder Download atau penyimpanan HP" />
+
+        <ProgressBar
+            android:id="@+id/pbImportModel"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="14dp"
+            android:layout_marginTop="12dp"
+            android:max="100"
+            android:progress="0"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvImportProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#FFFFEB3B"
+            android:textSize="15sp"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/btnBackSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
             android:minHeight="64dp"
             android:text="KEMBALI"
             android:contentDescription="Kembali" />

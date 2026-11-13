@@ -18,14 +18,29 @@ public class LocalLlmEngine {
     private static final String TAG = "KobraLocalLLM";
 
     // Nama berkas model Gemma 3 1B di penyimpanan internal (/data/data/com.asisten.bantu/files/)
-    private static final String MODEL_FILENAME = "gemma3-1b-it-int4.task";
+    public static final String MODEL_FILENAME = "gemma3-1b-it-int4.task";
+
+    public interface StreamingCallback {
+        void onPartialResult(String partialText, boolean isComplete);
+        void onError(String error);
+    }
+
+    private static volatile LocalLlmEngine sInstance;
 
     private LlmInference llmInference;
     private boolean isInitialized = false;
     private final Context context;
     private final Handler mainHandler;
     private Speaker activeSpeaker;
+    private StreamingCallback activeCallback;
     private final StringBuilder sentenceBuffer = new StringBuilder();
+
+    public static synchronized LocalLlmEngine getInstance(Context context) {
+        if (sInstance == null) {
+            sInstance = new LocalLlmEngine(context.getApplicationContext());
+        }
+        return sInstance;
+    }
 
     public LocalLlmEngine(Context context) {
         this.context = context.getApplicationContext();
@@ -33,11 +48,25 @@ public class LocalLlmEngine {
     }
 
     /**
+     * Mengembalikan objek File untuk model internal.
+     */
+    public File getModelFile() {
+        return new File(context.getFilesDir(), MODEL_FILENAME);
+    }
+
+    /**
+     * Memeriksa apakah mesin LLM sudah berhasil diinisialisasi dan siap di memori.
+     */
+    public synchronized boolean isInitialized() {
+        return isInitialized && llmInference != null;
+    }
+
+    /**
      * Memeriksa keberadaan berkas model terkuantisasi di penyimpanan internal.
      */
     public boolean isModelPresent() {
-        File modelFile = new File(context.getFilesDir(), MODEL_FILENAME);
-        return modelFile.exists() && modelFile.length() > 0;
+        File modelFile = getModelFile();
+        return modelFile.exists() && modelFile.length() > 1024 * 1024;
     }
 
     /**
@@ -48,7 +77,7 @@ public class LocalLlmEngine {
             return true;
         }
 
-        File modelFile = new File(context.getFilesDir(), MODEL_FILENAME);
+        File modelFile = getModelFile();
         if (!modelFile.exists()) {
             Log.w(TAG, "Berkas model Gemma 3 1B belum ditemukan di: " + modelFile.getAbsolutePath());
             return false;
@@ -63,6 +92,11 @@ public class LocalLlmEngine {
                     .setTopK(40)
                     .setTemperature(0.3f)
                     .setResultListener((partialResult, done) -> {
+                        if (activeCallback != null) {
+                            final StreamingCallback cb = activeCallback;
+                            mainHandler.post(() -> cb.onPartialResult(partialResult, done));
+                        }
+
                         if (partialResult != null && !partialResult.isEmpty()) {
                             sentenceBuffer.append(partialResult);
 
@@ -90,6 +124,10 @@ public class LocalLlmEngine {
                     })
                     .setErrorListener(e -> {
                         Log.e(TAG, "Galat saat streaming inferensi LLM offline", e);
+                        if (activeCallback != null) {
+                            final StreamingCallback cb = activeCallback;
+                            mainHandler.post(() -> cb.onError(e != null ? e.getMessage() : "Galat inferensi"));
+                        }
                         if (activeSpeaker != null) {
                             final Speaker spk = activeSpeaker;
                             mainHandler.post(() -> spk.speak("Terjadi kendala saat memproses jawaban offline."));
@@ -110,25 +148,47 @@ public class LocalLlmEngine {
     }
 
     /**
+     * Memuat ulang mesin bahasa offline (misal setelah model baru diimpor).
+     */
+    public synchronized boolean reloadEngine() {
+        close();
+        return initEngine();
+    }
+
+    /**
      * Mengirimkan instruksi/pertanyaan pengguna ke model offline
      * dan mengalirkan teks balasan ke antrean pembacaan TTS Speaker.
      */
     public void generateResponseAsync(String prompt, Speaker speaker) {
+        generateResponseAsync(prompt, speaker, null);
+    }
+
+    /**
+     * Mengirimkan instruksi ke model offline dengan dukungan callback streaming untuk UI.
+     */
+    public synchronized void generateResponseAsync(String prompt, Speaker speaker, StreamingCallback callback) {
         if (!isInitialized || llmInference == null) {
             if (speaker != null) {
                 speaker.speak("Otak offline Gemma tiga belum siap atau berkas model belum tersedia.");
+            }
+            if (callback != null) {
+                mainHandler.post(() -> callback.onError("Otak offline Gemma 3 belum siap atau berkas model belum diimpor."));
             }
             return;
         }
 
         try {
             this.activeSpeaker = speaker;
+            this.activeCallback = callback;
             this.sentenceBuffer.setLength(0);
             llmInference.generateResponseAsync(prompt);
         } catch (Exception e) {
             Log.e(TAG, "Galat saat mengeksekusi inferensi LLM offline", e);
             if (speaker != null) {
                 mainHandler.post(() -> speaker.speak("Terjadi kendala saat memproses jawaban offline."));
+            }
+            if (callback != null) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
             }
         }
     }
@@ -146,13 +206,14 @@ public class LocalLlmEngine {
     /**
      * Membebaskan memori sistem saat service dihentikan.
      */
-    public void close() {
+    public synchronized void close() {
         if (llmInference != null) {
             try { llmInference.close(); } catch (Exception ignored) {}
             llmInference = null;
         }
         isInitialized = false;
         activeSpeaker = null;
+        activeCallback = null;
         Log.i(TAG, "Sumber daya LLM Offline berhasil dibebaskan.");
     }
 }
