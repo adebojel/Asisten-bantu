@@ -116,5 +116,38 @@
             android:textColor="#FFFFFF"
             android:text="🏥 Kartu Identitas Medis Darurat"
             android:contentDescription="Buka dan atur kartu identitas medis darurat" />
+
+        <Button
+            android:id="@+id/btnProductivity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="64dp"
+            android:backgroundTint="#7C4DFF"
+            android:textColor="#FFFFFF"
+            android:text="📅 Memo, Barang, Pengeluaran &amp; Obat"
+            android:contentDescription="Buka memo suara, pengingat lokasi barang, pengeluaran harian, jadwal obat, dan agenda Hijriah" />
+
+        <Button
+            android:id="@+id/btnPrayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="64dp"
+            android:backgroundTint="#00695C"
+            android:textColor="#FFFFFF"
+            android:text="🕌 Jadwal Sholat &amp; Kiblat Offline"
+            android:contentDescription="Buka jadwal sholat lima waktu dan kompas kiblat offline" />
+
+        <Button
+            android:id="@+id/btnCaregiver"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="64dp"
+            android:backgroundTint="#37474F"
+            android:textColor="#FFFFFF"
+            android:text="👨‍👩‍👧 Mode Pendamping (PIN &amp; Keluarga)"
+            android:contentDescription="Buka mode pendamping untuk mengatur PIN keamanan, pengawasan, dan jadwal obat" />
     </LinearLayout>
 </ScrollView>

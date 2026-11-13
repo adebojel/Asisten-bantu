@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🕌 JADWAL SHOLAT &amp; KIBLAT OFFLINE"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#00E676"
+            android:gravity="center"
+            android:paddingBottom="10dp" />
+
+        <TextView
+            android:id="@+id/tvPrayerCoords"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#151515"
+            android:padding="12dp"
+            android:textColor="#FFFFEB3B"
+            android:textSize="15sp"
+            android:text="Memuat koordinat lokasi..." />
+
+        <TextView
+            android:id="@+id/tvPrayerTimes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="#1A1A1A"
+            android:padding="16dp"
+            android:textColor="#FFFFFF"
+            android:textSize="19sp"
+            android:textStyle="bold"
+            android:text="Menghitung jadwal sholat..." />
+
+        <TextView
+            android:id="@+id/tvQiblaInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="#151515"
+            android:padding="16dp"
+            android:gravity="center"
+            android:textColor="#00E676"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:text="Mengkalibrasi kompas kiblat..." />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swQiblaBeep"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="56dp"
+            android:checked="true"
+            android:text="🔔 Bunyikan isyarat nada saat menghadap Kiblat"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:contentDescription="Aktifkan atau matikan nada pemandu arah kiblat" />
+
+        <Button
+            android:id="@+id/btnRefreshPrayerGps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="58dp"
+            android:backgroundTint="#00897B"
+            android:textColor="#FFFFFF"
+            android:text="📍 PERBARUI LOKASI GPS"
+            android:contentDescription="Perbarui lokasi GPS untuk jadwal sholat dan arah kiblat yang akurat" />
+
+        <Button
+            android:id="@+id/btnSpeakPrayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="60dp"
+            android:backgroundTint="#2962FF"
+            android:textColor="#FFFFFF"
+            android:text="🔊 BACAKAN JADWAL SHOLAT"
+            android:contentDescription="Bacakan jadwal sholat lima waktu hari ini" />
+
+        <Button
+            android:id="@+id/btnSpeakQibla"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="60dp"
+            android:backgroundTint="#7C4DFF"
+            android:textColor="#FFFFFF"
+            android:text="🧭 BACAKAN ARAH KIBLAT SAAT INI"
+            android:contentDescription="Bacakan sudut arah kiblat dan posisi hadap Anda sekarang" />
+
+        <Button
+            android:id="@+id/btnBackPrayer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:minHeight="60dp"
+            android:text="KEMBALI"
+            android:contentDescription="Kembali ke beranda" />
+    </LinearLayout>
+</ScrollView>

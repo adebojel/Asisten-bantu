@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📅 PRODUKTIVITAS, MEMO &amp; OBAT"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#00E676"
+            android:gravity="center"
+            android:paddingBottom="10dp" />
+
+        <TextView
+            android:id="@+id/tvDateHijri"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#151515"
+            android:padding="12dp"
+            android:textColor="#FFFFEB3B"
+            android:textSize="16sp"
+            android:text="Memuat tanggal..." />
+
+        <Button
+            android:id="@+id/btnSpeakAgenda"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="58dp"
+            android:backgroundTint="#2962FF"
+            android:textColor="#FFFFFF"
+            android:text="🔊 BACAKAN TANGGAL HIJRIAH &amp; AGENDA"
+            android:contentDescription="Bacakan tanggal Masehi, tanggal Hijriah, dan agenda kalender hari ini" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="14dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📝 Memo Cepat"
+            android:textColor="#00E676"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etMemoInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:layout_marginTop="6dp"
+            android:hint="Tulis catatan atau memo cepat..."
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:background="#222222"
+            android:padding="12dp"
+            android:contentDescription="Kolom catatan memo cepat" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+            <Button
+                android:id="@+id/btnAddMemo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="54dp"
+                android:text="SIMPAN MEMO"
+                android:contentDescription="Simpan memo cepat" />
+            <Button
+                android:id="@+id/btnReadMemos"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minHeight="54dp"
+                android:text="BACA MEMO"
+                android:contentDescription="Bacakan memo tersimpan" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvMemoPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="14dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔑 Pengingat Lokasi Barang Rumah"
+            android:textColor="#00E676"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etItemName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:layout_marginTop="6dp"
+            android:hint="Nama barang (contoh: Kunci motor)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:background="#222222"
+            android:padding="12dp"
+            android:contentDescription="Nama barang rumah" />
+
+        <EditText
+            android:id="@+id/etItemLoc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:layout_marginTop="6dp"
+            android:hint="Lokasi (contoh: Meja depan)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:background="#222222"
+            android:padding="12dp"
+            android:contentDescription="Lokasi menaruh barang" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+            <Button
+                android:id="@+id/btnSaveItem"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="54dp"
+                android:text="INGAT BARANG"
+                android:contentDescription="Simpan lokasi barang" />
+            <Button
+                android:id="@+id/btnFindItem"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minHeight="54dp"
+                android:text="CARI / BACA"
+                android:contentDescription="Cari atau bacakan lokasi barang" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvItemPreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="14dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💰 Pembukuan Pengeluaran Harian"
+            android:textColor="#00E676"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etExpenseAmount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:layout_marginTop="6dp"
+            android:inputType="number"
+            android:hint="Nominal rupiah (contoh: 25000)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:background="#222222"
+            android:padding="12dp"
+            android:contentDescription="Nominal pengeluaran rupiah" />
+
+        <EditText
+            android:id="@+id/etExpenseNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:layout_marginTop="6dp"
+            android:hint="Keterangan (contoh: Beli makan siang)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:background="#222222"
+            android:padding="12dp"
+            android:contentDescription="Keterangan pengeluaran" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+            <Button
+                android:id="@+id/btnAddExpense"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="54dp"
+                android:text="CATAT"
+                android:contentDescription="Catat pengeluaran" />
+            <Button
+                android:id="@+id/btnExpenseSummary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minHeight="54dp"
+                android:text="LAPORAN"
+                android:contentDescription="Bacakan laporan pengeluaran" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvExpensePreview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginBottom="14dp"
+            android:background="#333333" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💊 Pengingat Jadwal Minum Obat"
+            android:textColor="#00E676"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etMedSchedName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:layout_marginTop="6dp"
+            android:hint="Nama obat (contoh: Vitamin / Obat darah tinggi)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:background="#222222"
+            android:padding="12dp"
+            android:contentDescription="Nama obat yang diingatkan" />
+
+        <EditText
+            android:id="@+id/etMedSchedTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:layout_marginTop="6dp"
+            android:hint="Jam minum format 24 jam (contoh: 07:30)"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#9E9E9E"
+            android:background="#222222"
+            android:padding="12dp"
+            android:contentDescription="Jam jadwal minum obat dalam format JJ:MM" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+            <Button
+                android:id="@+id/btnAddMedSched"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="54dp"
+                android:text="TAMBAH OBAT"
+                android:contentDescription="Tambah jadwal minum obat" />
+            <Button
+                android:id="@+id/btnMarkMedTaken"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minHeight="54dp"
+                android:backgroundTint="#00C853"
+                android:textColor="#000000"
+                android:text="SUDAH DIMINUM"
+                android:contentDescription="Tandai jadwal obat sudah diminum hari ini" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvMedSchedList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="#FFFFEB3B"
+            android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/btnBackProductivity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:minHeight="60dp"
+            android:text="KEMBALI"
+            android:contentDescription="Kembali ke beranda" />
+    </LinearLayout>
+</ScrollView>

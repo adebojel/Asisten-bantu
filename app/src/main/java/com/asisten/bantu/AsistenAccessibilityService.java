@@ -24,6 +24,7 @@ import android.hardware.camera2.CameraManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.BatteryManager;
@@ -40,6 +41,7 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.telecom.TelecomManager;
 import android.telephony.SmsManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -54,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -129,6 +132,31 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private long lastVolumePressAt = 0L;
     private int lastVolumeKeyCode = 0;
 
+    private ProductivityManager productivity;
+    private TripMonitorHelper tripMonitor;
+    private boolean phoneStateReceiverRegistered = false;
+    private boolean btAutoPrivateActive = false;
+    private String lastAnnouncedRingNumber = "";
+    private long lastAnnouncedRingAt = 0L;
+    private boolean calcMode = false;
+    private double calcAcc = 0.0;
+    private boolean calcHasValue = false;
+    private final List<ActiveTimer> activeTimers = new ArrayList<>();
+    private int nextTimerId = 1;
+    private String lastMedRemindedKey = "";
+
+    private static final class ActiveTimer {
+        final int id;
+        final String label;
+        final long endAtMs;
+        Runnable task;
+        ActiveTimer(int id, String label, long endAtMs) {
+            this.id = id;
+            this.label = label;
+            this.endAtMs = endAtMs;
+        }
+    }
+
     private static final class Pending {
         final String kind;
         final String a;
@@ -183,6 +211,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }));
         registerBatteryMonitor();
         registerBluetoothMonitor();
+        registerPhoneStateMonitor();
+        productivity = new ProductivityManager(this);
+        tripMonitor = new TripMonitorHelper(this);
         initTorch();
         initHardwareSensors();
         setupFloatingButton();
@@ -196,6 +227,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             main.postDelayed(this::startListening, 2000);
         }
         main.postDelayed(this::checkLowStorageOnStart, 8000);
+        main.postDelayed(medicationCheckerTick, 30_000L);
         main.postDelayed(watchdog, WATCHDOG_MS);
     }
 
@@ -211,6 +243,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
         EmergencyBeacon.stopAll(this, torchId);
         removeScreenCurtain(false);
         removePocketGuard();
+        if (tripMonitor != null && tripMonitor.isActive()) {
+            tripMonitor.stop(false);
+        }
+        if (main != null) {
+            main.removeCallbacks(medicationCheckerTick);
+            for (ActiveTimer t : activeTimers) {
+                if (t.task != null) main.removeCallbacks(t.task);
+            }
+            activeTimers.clear();
+        }
         if (sensorManager != null) {
             sensorManager.unregisterListener(hardwareSensorListener);
         }
@@ -223,6 +265,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (bluetoothReceiverRegistered) {
             try { unregisterReceiver(bluetoothReceiver); } catch (Exception ignored) { }
             bluetoothReceiverRegistered = false;
+        }
+        if (phoneStateReceiverRegistered) {
+            try { unregisterReceiver(phoneStateReceiver); } catch (Exception ignored) { }
+            phoneStateReceiverRegistered = false;
         }
         if (localLlmEngine != null) {
             localLlmEngine.close();
@@ -466,11 +512,22 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         if (pending != null) {
             Pending p = pending;
-            pending = null;
-            if (!p.expired()) {
-                handlePending(p, text);
-                return;
+            if ("med_confirm".equals(p.kind) && stripWake(text) != null
+                    && !containsWord(text, YES) && !containsWord(text, NO)
+                    && !has(text, "sudah", "minum", "diminum", "nanti", "tunda")) {
+                pending = null;
+            } else {
+                pending = null;
+                if (!p.expired()) {
+                    handlePending(p, text);
+                    return;
+                }
             }
+        }
+
+        if (calcMode && handleCalcUtterance(text)) {
+            conversationUntil = System.currentTimeMillis() + CONVERSATION_WINDOW_MS;
+            return;
         }
 
         String cmd = stripWake(text);
@@ -513,7 +570,32 @@ public class AsistenAccessibilityService extends AccessibilityService {
                     pending = p;
                 }
                 break;
+            case "call_pick": {
+                if (no) { say("Panggilan dibatalkan."); break; }
+                String[] names = p.a.split("\n");
+                String[] nums = p.b.split("\n");
+                Integer n = OfflineBrain.firstNumber(text);
+                if (n != null && n >= 1 && n <= names.length) {
+                    pending = new Pending("call", names[n - 1], nums[n - 1]);
+                    say("Telepon " + names[n - 1] + "? Bilang iya untuk melanjutkan.");
+                } else {
+                    say("Pilihan tidak cocok. Panggilan dibatalkan.");
+                }
+                break;
+            }
             case "call":
+                if (yes && !no) {
+                    if (config.isLayeredConfirmEnabled()) {
+                        pending = new Pending("call_layer2", p.a, p.b);
+                        say("Konfirmasi kedua. Yakin menelepon " + p.a + "? Bilang lanjut atau iya untuk menghubungi.");
+                    } else {
+                        placeCall(p.a, p.b);
+                    }
+                } else {
+                    say("Panggilan dibatalkan.");
+                }
+                break;
+            case "call_layer2":
                 if (yes && !no) placeCall(p.a, p.b);
                 else say("Panggilan dibatalkan.");
                 break;
@@ -526,6 +608,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 }
                 break;
             case "msg_confirm":
+                if (yes && !no) {
+                    if (config.isLayeredConfirmEnabled()) {
+                        pending = new Pending("msg_confirm2", p.a, p.b);
+                        say("Konfirmasi kedua. Yakin mengirim WhatsApp ke " + p.a + "? Bilang lanjut atau iya.");
+                    } else {
+                        sendWhatsApp(p.a, p.b);
+                    }
+                } else {
+                    say("Pesan dibatalkan.");
+                }
+                break;
+            case "msg_confirm2":
                 if (yes && !no) sendWhatsApp(p.a, p.b);
                 else say("Pesan dibatalkan.");
                 break;
@@ -541,9 +635,83 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 }
                 break;
             case "sms_confirm":
+                if (yes && !no) {
+                    if (config.isLayeredConfirmEnabled()) {
+                        pending = new Pending("sms_confirm2", p.a, p.b, p.c);
+                        say("Konfirmasi kedua. Yakin mengirim SMS ke " + p.a + "? Bilang lanjut atau iya.");
+                    } else {
+                        sendSmsMessage(p.a, p.c, p.b);
+                    }
+                } else {
+                    say("Pesan dibatalkan.");
+                }
+                break;
+            case "sms_confirm2":
                 if (yes && !no) sendSmsMessage(p.a, p.c, p.b);
                 else say("Pesan dibatalkan.");
                 break;
+            case "notif_reply_body":
+                if (no) {
+                    say("Balasan dibatalkan.");
+                } else {
+                    pending = new Pending("notif_reply_confirm", p.a, text);
+                    say("Balasan untuk " + p.a + ": " + text + ". Bilang iya untuk mengirim.");
+                }
+                break;
+            case "notif_reply_confirm":
+                if (yes && !no) {
+                    if (config.isLayeredConfirmEnabled()) {
+                        pending = new Pending("notif_reply_confirm2", p.a, p.b);
+                        say("Konfirmasi kedua. Yakin mengirim balasan ini ke " + p.a + "? Bilang lanjut atau iya.");
+                    } else {
+                        boolean ok = KobraNotificationService.replyToLast(this, p.b);
+                        say(ok ? "Balasan suara terkirim ke " + p.a + "." : "Gagal mengirim balasan otomatis.");
+                    }
+                } else {
+                    say("Balasan dibatalkan.");
+                }
+                break;
+            case "notif_reply_confirm2":
+                if (yes && !no) {
+                    boolean ok = KobraNotificationService.replyToLast(this, p.b);
+                    say(ok ? "Balasan suara terkirim ke " + p.a + "." : "Gagal mengirim balasan otomatis.");
+                } else {
+                    say("Balasan dibatalkan.");
+                }
+                break;
+            case "med_confirm":
+                if (yes || has(text, "sudah", "minum", "diminum")) {
+                    if (productivity != null) productivity.markMedicationTaken(p.a);
+                    HapticFeedback.vibrateSuccess(this);
+                    say("Bagus, obat " + p.b + " dicatat sudah diminum hari ini.");
+                } else if (no || has(text, "nanti", "tunda")) {
+                    say("Baik, jadwal obat " + p.b + " belum ditandai diminum.");
+                } else {
+                    say("Pengingat obat " + p.b + " belum dikonfirmasi. Bilang Kobra sudah diminum jika sudah.");
+                }
+                break;
+            case "pin_verify_change": {
+                if (no) {
+                    say("Perubahan PIN dibatalkan.");
+                    break;
+                }
+                String entered = SecurityAndPinHelper.extractPinDigits(text);
+                if (config.verifySecurityPin(entered)) {
+                    if ("clear".equals(p.a)) {
+                        config.setSecurityPin("");
+                        HapticFeedback.vibrateSuccess(this);
+                        say("PIN keamanan berhasil dihapus.");
+                    } else {
+                        config.setSecurityPin(p.b);
+                        HapticFeedback.vibrateSuccess(this);
+                        say("PIN keamanan baru berhasil dipasang.");
+                    }
+                } else {
+                    HapticFeedback.vibrateWarning(this);
+                    say("PIN lama salah. Perubahan PIN dibatalkan.");
+                }
+                break;
+            }
             default:
                 break;
         }
@@ -833,6 +1001,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
             say(KobraNotificationService.summary(5));
             return true;
         }
+        if (has(c, "balas notifikasi", "balas chat terakhir", "balas pesan terakhir", "balas whatsapp terakhir")) {
+            if (!KobraNotificationService.hasReplyTarget()) {
+                say("Belum ada notifikasi pesan yang bisa dibalas langsung. Pastikan akses notifikasi aktif dan ada pesan masuk.");
+                return true;
+            }
+            String sender = KobraNotificationService.getLastReplySender();
+            pending = new Pending("notif_reply_body", sender, "");
+            say("Apa isi balasan untuk " + sender + " di " + KobraNotificationService.getLastReplyApp() + "?");
+            return true;
+        }
         if (has(c, "baca sms", "baca pesan singkat", "sms terbaru")) {
             say(MessageReader.latestSms(this, 3));
             return true;
@@ -849,6 +1027,134 @@ public class AsistenAccessibilityService extends AccessibilityService {
             endCall();
             return true;
         }
+
+        // Kalkulator suara interaktif
+        if (has(c, "mode kalkulator", "buka kalkulator", "kalkulator interaktif")) {
+            calcMode = true;
+            calcAcc = 0.0;
+            calcHasValue = false;
+            say("Mode kalkulator suara aktif. Sebutkan hitungan, misalnya dua puluh tambah lima, lalu lanjutkan dengan kali dua, atau bilang keluar kalkulator.");
+            return true;
+        }
+
+        // Memo suara, pengingat lokasi barang, pembukuan pengeluaran, jadwal obat, tanggal Hijriah & agenda
+        if (c.startsWith("catat memo ") || c.startsWith("memo baru ") || c.startsWith("tulis memo ")) {
+            String memo = afterAny(c, "catat memo ", "memo baru ", "tulis memo ");
+            if (memo.isEmpty()) { say("Apa isi memo yang ingin dicatat?"); return true; }
+            productivity.addMemo(memo);
+            HapticFeedback.vibrateSuccess(this);
+            say("Memo dicatat: " + memo + ".");
+            return true;
+        }
+        if (has(c, "baca memo", "daftar memo", "cek memo", "memo saya")) {
+            say(productivity.readMemos(5));
+            return true;
+        }
+        if (has(c, "hapus memo", "bersihkan memo")) {
+            productivity.clearMemos();
+            say("Semua memo dibersihkan.");
+            return true;
+        }
+        if (c.startsWith("ingat ") || c.startsWith("taruh ") || c.startsWith("simpan barang ")) {
+            String body = afterAny(c, "simpan barang ", "ingat ", "taruh ");
+            int sep = body.lastIndexOf(" di ");
+            if (sep <= 0) sep = body.lastIndexOf(" dalam ");
+            if (sep > 0) {
+                String item = body.substring(0, sep).trim();
+                String loc = body.substring(sep + (body.substring(sep).startsWith(" dalam ") ? 7 : 4)).trim();
+                productivity.rememberItem(item, loc);
+                HapticFeedback.vibrateSuccess(this);
+                say("Diingat. " + item + " berada di " + loc + ".");
+                return true;
+            }
+        }
+        if (c.startsWith("di mana ") && !has(c, "saya", "kamu", "hp", "kobra", "kiblat")) {
+            String q = after(c, "di mana ").replace("saya", "").replace("ku", "").trim();
+            say(productivity.findItem(q));
+            return true;
+        }
+        if (has(c, "daftar barang", "cek barang")) {
+            say(productivity.listAllItems());
+            return true;
+        }
+        if (c.startsWith("catat pengeluaran ") || c.startsWith("keluar uang ") || c.startsWith("belanja ")) {
+            handleVoiceExpense(afterAny(c, "catat pengeluaran ", "keluar uang ", "belanja "));
+            return true;
+        }
+        if (has(c, "laporan pengeluaran", "total pengeluaran", "cek pengeluaran", "pengeluaran hari ini")) {
+            say(productivity.getExpenseSummary());
+            return true;
+        }
+        if (has(c, "sudah diminum", "sudah minum obat")) {
+            productivity.markMedicationTaken("");
+            HapticFeedback.vibrateSuccess(this);
+            say("Jadwal obat hari ini dicatat sudah diminum.");
+            return true;
+        }
+        if (c.startsWith("tambah jadwal obat ") || c.startsWith("jadwal obat ")) {
+            handleVoiceAddMedication(afterAny(c, "tambah jadwal obat ", "jadwal obat "));
+            return true;
+        }
+        if (has(c, "cek jadwal obat", "daftar obat", "obat apa")) {
+            say(productivity.listMedSchedulesSpeech());
+            return true;
+        }
+        if (has(c, "tanggal hijriah", "kalender hijriah") || word(c, "hijriah")) {
+            say(ProductivityManager.getGregorianAndHijriDate());
+            return true;
+        }
+        if (has(c, "agenda hari ini", "jadwal hari ini", "kalender hari ini", "ada acara apa")) {
+            say(ProductivityManager.getGregorianAndHijriDate() + " " + ProductivityManager.readTodayAgenda(this));
+            return true;
+        }
+        if (has(c, "buka produktivitas", "buka memo", "buka pengeluaran")) {
+            launch(ProductivityActivity.class, null);
+            say("Membuka menu produktivitas, memo, pengeluaran, dan jadwal obat.");
+            return true;
+        }
+
+        // Jadwal Sholat & Kiblat Offline, Pemantau Perjalanan, PIN & Mode Pendamping
+        if (has(c, "buka jadwal sholat", "buka waktu sholat", "buka kiblat", "kompas kiblat")) {
+            launch(PrayerActivity.class, null);
+            say("Membuka jadwal sholat dan kompas kiblat offline.");
+            return true;
+        }
+        if (has(c, "jadwal sholat", "waktu sholat", "sholat berikutnya", "jam sholat")) {
+            speakOfflinePrayerTimes();
+            return true;
+        }
+        if (has(c, "arah kiblat", "kiblat di mana", "hadap kiblat")) {
+            speakOfflineQibla();
+            return true;
+        }
+        if (has(c, "mulai pantau perjalanan", "pantau perjalanan", "mulai perjalanan")) {
+            say(tripMonitor.start(msg -> say(msg)));
+            return true;
+        }
+        if (has(c, "berhenti pantau perjalanan", "stop perjalanan", "hentikan perjalanan")) {
+            say(tripMonitor.stop(true));
+            return true;
+        }
+        if (has(c, "cek kecepatan", "status perjalanan", "kecepatan sekarang", "jarak tempuh")) {
+            say(tripMonitor.isActive()
+                    ? tripMonitor.statusSummary()
+                    : "Pemantau perjalanan belum aktif. Bilang Kobra mulai pantau perjalanan.");
+            return true;
+        }
+        if (c.startsWith("atur pin ") || c.startsWith("pasang pin ") || c.startsWith("ganti pin ")) {
+            handleVoicePinChange(afterAny(c, "atur pin ", "pasang pin ", "ganti pin "), false);
+            return true;
+        }
+        if (has(c, "hapus pin", "matikan pin")) {
+            handleVoicePinChange("", true);
+            return true;
+        }
+        if (has(c, "mode pendamping", "buka pendamping", "mode keluarga")) {
+            launch(CaregiverActivity.class, null);
+            say("Membuka mode pendamping.");
+            return true;
+        }
+
         if (has(c, "kunci layar", "kunci hp")) { global(GLOBAL_ACTION_LOCK_SCREEN, "Layar dikunci."); return true; }
         if (has(c, "screenshot", "tangkapan layar", "tangkap layar")) { global(GLOBAL_ACTION_TAKE_SCREENSHOT, "Tangkapan layar diambil."); return true; }
         if (has(c, "menu daya", "matikan hp")) { global(GLOBAL_ACTION_POWER_DIALOG, "Menu daya dibuka."); return true; }
@@ -862,6 +1168,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
             clickNumber(n == null ? -1 : n);
             return true;
         }
+        if (has(c, "cek timer", "status timer", "daftar timer")) { speakActiveTimers(); return true; }
+        if (has(c, "batalkan semua timer", "hapus semua timer", "hentikan timer", "matikan timer")) { cancelAllTimers(); return true; }
         if (has(c, "timer", "hitung mundur")) { setTimer(c); return true; }
         if (has(c, "pasang alarm", "set alarm", "setel alarm", "atur alarm", "alarm jam", "alarm pukul", "bangunkan")) { setAlarm(c); return true; }
         if (has(c, "mode getar")) { setRinger(AudioManager.RINGER_MODE_VIBRATE, "Mode getar aktif."); return true; }
@@ -923,17 +1231,55 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (n == null || n <= 0) { say("Berapa lama? Contoh: timer lima menit."); return; }
         int mult = c.contains("detik") ? 1 : (c.contains("jam") ? 3600 : 60);
         String unit = mult == 1 ? "detik" : (mult == 3600 ? "jam" : "menit");
-        Intent i = new Intent(AlarmClock.ACTION_SET_TIMER)
-                .putExtra(AlarmClock.EXTRA_LENGTH, n * mult)
-                .putExtra(AlarmClock.EXTRA_MESSAGE, "Kobra OS")
-                .putExtra(AlarmClock.EXTRA_SKIP_UI, true)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try {
-            startActivity(i);
-            say("Timer " + n + " " + unit + " dipasang.");
-        } catch (Exception e) {
-            say("Aplikasi jam di HP ini tidak mendukung timer lewat suara.");
+        long delayMs = n * (long) mult * 1000L;
+        int id = nextTimerId++;
+        String label = "Timer " + id + " (" + n + " " + unit + ")";
+        ActiveTimer t = new ActiveTimer(id, label, System.currentTimeMillis() + delayMs);
+        Runnable r = () -> {
+            activeTimers.remove(t);
+            HapticFeedback.vibrateWarning(this);
+            try {
+                ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_ALARM, 90);
+                tg.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 600);
+                main.postDelayed(tg::release, 800L);
+            } catch (Exception ignored) {}
+            say("Perhatian! Waktu " + label + " telah habis!");
+        };
+        t.task = r;
+        activeTimers.add(t);
+        main.postDelayed(r, delayMs);
+        say(label + " dimulai. Sekarang ada " + activeTimers.size() + " timer aktif.");
+    }
+
+    private void speakActiveTimers() {
+        if (activeTimers.isEmpty()) {
+            say("Tidak ada timer yang sedang berjalan.");
+            return;
         }
+        long now = System.currentTimeMillis();
+        StringBuilder sb = new StringBuilder("Ada " + activeTimers.size() + " timer aktif. ");
+        for (ActiveTimer t : activeTimers) {
+            long remSec = Math.max(0L, (t.endAtMs - now) / 1000L);
+            long min = remSec / 60L;
+            long sec = remSec % 60L;
+            sb.append(t.label).append(" tersisa ");
+            if (min > 0) sb.append(min).append(" menit ");
+            sb.append(sec).append(" detik. ");
+        }
+        say(sb.toString().trim());
+    }
+
+    private void cancelAllTimers() {
+        if (activeTimers.isEmpty()) {
+            say("Tidak ada timer aktif.");
+            return;
+        }
+        for (ActiveTimer t : activeTimers) {
+            if (t.task != null) main.removeCallbacks(t.task);
+        }
+        int count = activeTimers.size();
+        activeTimers.clear();
+        say(count + " timer aktif dibatalkan.");
     }
 
     private void setAlarm(String c) {
@@ -1487,16 +1833,37 @@ public class AsistenAccessibilityService extends AccessibilityService {
             say("Telepon nomor itu? Bilang iya untuk menelepon.");
             return;
         }
-        String[] found = findContact(target);
-        if (found == null) { say("Kontak " + target + " tidak ditemukan."); return; }
-        pending = new Pending("call", found[0], found[1]);
-        say("Telepon " + found[0] + "? Bilang iya untuk menelepon.");
+        List<String[]> matches = findContacts(target, 3);
+        if (matches.isEmpty()) { say("Kontak " + target + " tidak ditemukan."); return; }
+        if (matches.size() == 1) {
+            String[] found = matches.get(0);
+            pending = new Pending("call", found[0], found[1]);
+            say("Telepon " + found[0] + "? Bilang iya untuk melanjutkan.");
+            return;
+        }
+        StringBuilder names = new StringBuilder();
+        StringBuilder nums = new StringBuilder();
+        StringBuilder prompt = new StringBuilder("Ditemukan beberapa kontak mirip. ");
+        for (int i = 0; i < matches.size(); i++) {
+            if (i > 0) { names.append('\n'); nums.append('\n'); }
+            names.append(matches.get(i)[0]);
+            nums.append(matches.get(i)[1]);
+            prompt.append("Nomor ").append(i + 1).append(", ").append(matches.get(i)[0]).append(". ");
+        }
+        pending = new Pending("call_pick", names.toString(), nums.toString());
+        say(prompt + "Sebutkan nomornya.");
     }
 
     private String[] findContact(String name) {
+        List<String[]> list = findContacts(name, 1);
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    private List<String[]> findContacts(String name, int maxResults) {
+        List<String[]> out = new ArrayList<>();
         if (!Perms.has(this, Manifest.permission.READ_CONTACTS)) {
             say("Izin kontak belum aktif. Buka Kobra, lalu tekan Izin.");
-            return null;
+            return out;
         }
         try (Cursor c = getContentResolver().query(
                 ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -1504,11 +1871,21 @@ public class AsistenAccessibilityService extends AccessibilityService {
                         ContactsContract.CommonDataKinds.Phone.NUMBER},
                 ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " LIKE ?",
                 new String[]{"%" + name + "%"}, null)) {
-            if (c != null && c.moveToFirst()) return new String[]{c.getString(0), c.getString(1)};
+            while (c != null && c.moveToNext() && out.size() < maxResults) {
+                String n = c.getString(0);
+                String num = c.getString(1);
+                if (n != null && num != null) {
+                    boolean dup = false;
+                    for (String[] existing : out) {
+                        if (existing[0].equalsIgnoreCase(n)) { dup = true; break; }
+                    }
+                    if (!dup) out.add(new String[]{n, num});
+                }
+            }
         } catch (Exception e) {
             Log.w(TAG, "Pencarian kontak gagal", e);
         }
-        return null;
+        return out;
     }
 
     private void placeCall(String name, String number) {
@@ -1990,6 +2367,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void registerBluetoothMonitor() {
         try {
             IntentFilter filter = new IntentFilter();
+            filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
             filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED);
             filter.addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
             filter.addAction(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
@@ -2004,18 +2382,252 @@ public class AsistenAccessibilityService extends AccessibilityService {
         @Override public void onReceive(Context context, Intent intent) {
             if (intent == null || intent.getAction() == null) return;
             String action = intent.getAction();
+            boolean connected = BluetoothDevice.ACTION_ACL_CONNECTED.equals(action);
             boolean disconnected = AudioManager.ACTION_AUDIO_BECOMING_NOISY.equals(action)
                     || BluetoothDevice.ACTION_ACL_DISCONNECTED.equals(action);
-            if (!disconnected && BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
+            if (BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED.equals(action)) {
                 int state = intent.getIntExtra(BluetoothProfile.EXTRA_STATE, -1);
+                connected = (state == BluetoothProfile.STATE_CONNECTED);
                 disconnected = (state == BluetoothProfile.STATE_DISCONNECTED);
             }
-            if (disconnected) {
+            if (connected) {
+                if (config != null && config.isAutoPrivateOnBt() && !btAutoPrivateActive) {
+                    btAutoPrivateActive = true;
+                    showScreenCurtain(false);
+                    HapticFeedback.vibrateSuccess(AsistenAccessibilityService.this);
+                    say("Headset Bluetooth tersambung. Mode privat otomatis aktif: layar ditutup agar isi layar tetap terjaga.");
+                }
+            } else if (disconnected) {
+                if (btAutoPrivateActive) {
+                    btAutoPrivateActive = false;
+                    removeScreenCurtain(false);
+                }
                 HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
                 say("Perhatian, headset Bluetooth terputus. Suara dialihkan ke speaker HP.");
             }
         }
     };
+
+    private void registerPhoneStateMonitor() {
+        try {
+            registerReceiver(phoneStateReceiver, new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED));
+            phoneStateReceiverRegistered = true;
+        } catch (Exception e) {
+            Log.w(TAG, "Gagal mendaftarkan pemantau telepon masuk", e);
+        }
+    }
+
+    private final BroadcastReceiver phoneStateReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (intent == null || !TelephonyManager.ACTION_PHONE_STATE_CHANGED.equals(intent.getAction())) return;
+            String state = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
+            if (!TelephonyManager.EXTRA_STATE_RINGING.equals(state)) return;
+            @SuppressWarnings("deprecation")
+            String incomingNumber = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER);
+            if (incomingNumber == null || incomingNumber.trim().isEmpty()) return;
+            String cleanNum = incomingNumber.trim();
+            long now = System.currentTimeMillis();
+            if (cleanNum.equals(lastAnnouncedRingNumber) && now - lastAnnouncedRingAt < 10_000L) return;
+            lastAnnouncedRingNumber = cleanNum;
+            lastAnnouncedRingAt = now;
+
+            String callerName = cleanNum;
+            if (Perms.has(AsistenAccessibilityService.this, Manifest.permission.READ_CONTACTS)) {
+                try (Cursor cur = getContentResolver().query(
+                        Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(cleanNum)),
+                        new String[]{ContactsContract.PhoneLookup.DISPLAY_NAME}, null, null, null)) {
+                    if (cur != null && cur.moveToFirst()) {
+                        String n = cur.getString(0);
+                        if (n != null && !n.trim().isEmpty()) callerName = n.trim();
+                    }
+                } catch (Exception ignored) {}
+            }
+            speaker.speakQueued("Telepon masuk dari " + callerName + ". Bilang Kobra angkat telepon atau tolak telepon.");
+        }
+    };
+
+    private final Runnable medicationCheckerTick = new Runnable() {
+        @Override public void run() {
+            if (productivity != null && (config == null || !config.isPrivacyMode())) {
+                ProductivityManager.MedSchedule due = productivity.findDueMedicationNow();
+                if (due != null) {
+                    String day = new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date());
+                    String key = day + "_" + due.id + "_" + due.hour + ":" + due.minute;
+                    if (!key.equals(lastMedRemindedKey)) {
+                        lastMedRemindedKey = key;
+                        HapticFeedback.vibrateWarning(AsistenAccessibilityService.this);
+                        pending = new Pending("med_confirm", due.id, due.name);
+                        say("Pengingat minum obat! Waktunya minum " + due.name + ". Jika sudah diminum, bilang sudah diminum.");
+                    }
+                }
+            }
+            if (main != null) {
+                main.postDelayed(this, 60_000L);
+            }
+        }
+    };
+
+    private boolean handleCalcUtterance(String text) {
+        if (has(text, "keluar kalkulator", "tutup kalkulator", "selesai hitung", "berhenti hitung")) {
+            calcMode = false;
+            calcHasValue = false;
+            say("Keluar dari mode kalkulator.");
+            return true;
+        }
+        if (has(text, "reset", "nolkan", "hapus hitungan")) {
+            calcAcc = 0.0;
+            calcHasValue = false;
+            say("Kalkulator direset ke nol.");
+            return true;
+        }
+        if (stripWake(text) != null && OfflineBrain.calculate(stripWake(text)) == null) {
+            return false;
+        }
+        Double direct = OfflineBrain.calculate(text);
+        if (direct != null) {
+            if (direct.isNaN()) {
+                say("Tidak bisa dibagi dengan nol.");
+                return true;
+            }
+            calcAcc = direct;
+            calcHasValue = true;
+            say("Hasilnya " + formatCalcResult(calcAcc) + ". Lanjutkan dengan tambah, kurang, kali, atau bagi.");
+            return true;
+        }
+        if (calcHasValue) {
+            String trimmed = text.trim();
+            String prefix = "";
+            if (trimmed.startsWith("tambah ") || trimmed.startsWith("ditambah ") || trimmed.startsWith("+")) prefix = "+ ";
+            else if (trimmed.startsWith("kurang ") || trimmed.startsWith("dikurangi ") || trimmed.startsWith("-")) prefix = "- ";
+            else if (trimmed.startsWith("kali ") || trimmed.startsWith("dikali ") || trimmed.startsWith("x")) prefix = "* ";
+            else if (trimmed.startsWith("bagi ") || trimmed.startsWith("dibagi ") || trimmed.startsWith("/")) prefix = "/ ";
+            if (!prefix.isEmpty()) {
+                String rhs = trimmed.replaceFirst("^(tambah|ditambah|kurang|dikurangi|kali|dikali|bagi|dibagi|[+\\-*/x])\\s*", "");
+                Double next = OfflineBrain.calculate(formatCalcResult(calcAcc) + " " + prefix + rhs);
+                if (next != null) {
+                    if (next.isNaN()) { say("Tidak bisa dibagi dengan nol."); return true; }
+                    calcAcc = next;
+                    say("Hasilnya " + formatCalcResult(calcAcc) + ".");
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static String formatCalcResult(double v) {
+        if (Math.abs(v - Math.rint(v)) < 1e-9) return String.valueOf((long) Math.rint(v));
+        return String.format(Locale.US, "%.2f", v).replaceAll("0+$", "").replaceAll("\\.$", "");
+    }
+
+    private void handleVoiceExpense(String body) {
+        List<Integer> nums = OfflineBrain.numbers(body);
+        if (nums.isEmpty() || nums.get(0) <= 0) {
+            say("Berapa nominal pengeluarannya? Contoh: Kobra catat pengeluaran 25000 makan siang.");
+            return;
+        }
+        long amount = nums.get(0);
+        String note = body.replaceAll("\\b\\d+\\b", "").trim();
+        if (note.isEmpty()) note = "pengeluaran";
+        productivity.addExpense(amount, note);
+        HapticFeedback.vibrateSuccess(this);
+        say("Pengeluaran " + amount + " rupiah untuk " + note + " dicatat.");
+    }
+
+    private void handleVoiceAddMedication(String body) {
+        List<Integer> nums = OfflineBrain.numbers(body);
+        if (nums.isEmpty()) {
+            say("Sebutkan nama obat dan jamnya. Contoh: Kobra tambah jadwal obat vitamin jam 7 tiga puluh.");
+            return;
+        }
+        int hour = nums.get(0);
+        int minute = nums.size() > 1 ? nums.get(1) : 0;
+        if (has(body, "sore", "malam") && hour < 12) hour += 12;
+        if (hour > 23 || minute > 59) {
+            say("Jam jadwal obat tidak valid.");
+            return;
+        }
+        String name = body.replaceAll("\\b(jam|pukul|pagi|siang|sore|malam|\\d+)\\b", " ").replaceAll("\\s+", " ").trim();
+        if (name.isEmpty()) name = "Obat";
+        productivity.addMedSchedule(name, hour, minute);
+        HapticFeedback.vibrateSuccess(this);
+        say(String.format(Locale.US, "Jadwal minum %s pukul %02d:%02d ditambahkan.", name, hour, minute));
+    }
+
+    private void speakOfflinePrayerTimes() {
+        CompassLocationHelper.fetchCurrentLocation(this, new CompassLocationHelper.LocationCallback() {
+            @Override public void onLocation(Location loc, String addressText) {
+                config.setSavedLocation(loc.getLatitude(), loc.getLongitude());
+                PrayerTimesHelper.PrayerTimes pt = PrayerTimesHelper.calculateToday(loc.getLatitude(), loc.getLongitude());
+                say(pt.toSpeechString());
+            }
+            @Override public void onError(String message) {
+                double lat = Double.isNaN(config.getSavedLat()) ? -6.2088 : config.getSavedLat();
+                double lon = Double.isNaN(config.getSavedLon()) ? 106.8456 : config.getSavedLon();
+                PrayerTimesHelper.PrayerTimes pt = PrayerTimesHelper.calculateToday(lat, lon);
+                say(pt.toSpeechString());
+            }
+        });
+    }
+
+    private void speakOfflineQibla() {
+        CompassLocationHelper.fetchCurrentLocation(this, new CompassLocationHelper.LocationCallback() {
+            @Override public void onLocation(Location loc, String addressText) {
+                config.setSavedLocation(loc.getLatitude(), loc.getLongitude());
+                announceQiblaFromCoords(loc.getLatitude(), loc.getLongitude());
+            }
+            @Override public void onError(String message) {
+                double lat = Double.isNaN(config.getSavedLat()) ? -6.2088 : config.getSavedLat();
+                double lon = Double.isNaN(config.getSavedLon()) ? 106.8456 : config.getSavedLon();
+                announceQiblaFromCoords(lat, lon);
+            }
+        });
+    }
+
+    private void announceQiblaFromCoords(double lat, double lon) {
+        int qibla = PrayerTimesHelper.computeQiblaBearing(lat, lon);
+        CompassLocationHelper.readHeadingOnce(this, new CompassLocationHelper.HeadingCallback() {
+            @Override public void onHeading(int degrees, String cardinalName) {
+                int diff = ((qibla - degrees + 540) % 360) - 180;
+                int abs = Math.abs(diff);
+                if (abs <= 10) {
+                    HapticFeedback.vibrateSuccess(AsistenAccessibilityService.this);
+                    say("Arah kiblat " + qibla + " derajat. Anda sudah tepat menghadap kiblat.");
+                } else {
+                    String turn = diff > 0 ? "putar ke kanan " + abs : "putar ke kiri " + abs;
+                    say("Arah kiblat " + qibla + " derajat. Saat ini Anda menghadap " + degrees + " derajat, silakan " + turn + " derajat.");
+                }
+            }
+            @Override public void onUnavailable() {
+                say("Arah kiblat dari lokasi Anda adalah " + qibla + " derajat, " + CompassLocationHelper.cardinalDirection(qibla) + ".");
+            }
+        });
+    }
+
+    private void handleVoicePinChange(String rawPin, boolean clearPin) {
+        if (!clearPin) {
+            String digits = SecurityAndPinHelper.extractPinDigits(rawPin);
+            if (!digits.matches("\\d{4,6}")) {
+                say("PIN harus terdiri dari empat hingga enam angka. Contoh: Kobra atur PIN 1234.");
+                return;
+            }
+            if (config.hasSecurityPin()) {
+                pending = new Pending("pin_verify_change", "set", digits);
+                say("Sebutkan PIN lama Anda terlebih dahulu untuk mengganti PIN.");
+            } else {
+                config.setSecurityPin(digits);
+                HapticFeedback.vibrateSuccess(this);
+                say("PIN keamanan baru berhasil dipasang.");
+            }
+        } else {
+            if (!config.hasSecurityPin()) {
+                say("Saat ini belum ada PIN keamanan yang dipasang.");
+                return;
+            }
+            pending = new Pending("pin_verify_change", "clear", "");
+            say("Sebutkan PIN Anda saat ini untuk menghapus kunci PIN.");
+        }
+    }
 
     private void registerBatteryMonitor() {
         try {

@@ -72,6 +72,18 @@ public class MainActivity extends AppCompatActivity {
             HapticFeedback.vibrateAction(this);
             startActivity(new Intent(this, MedicalCardActivity.class));
         });
+        findViewById(R.id.btnProductivity).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(this, ProductivityActivity.class));
+        });
+        findViewById(R.id.btnPrayer).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(this, PrayerActivity.class));
+        });
+        findViewById(R.id.btnCaregiver).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            startActivity(new Intent(this, CaregiverActivity.class));
+        });
     }
 
     @Override protected void onResume() {
@@ -94,7 +106,9 @@ public class MainActivity extends AppCompatActivity {
                 + "Tombol enam, Pembatasan baterai, agar Kobra tidak dimatikan sistem saat hemat daya. "
                 + "Tombol tujuh, Jalankan Kobra di latar belakang. "
                 + "Tombol delapan, Jadikan Kobra sebagai layar utama. "
-                + "Tersedia juga tombol Kompas Suara dan Rute Pulang serta Kartu Identitas Medis Darurat.";
+                + "Tersedia juga tombol Kompas Suara dan Rute Pulang, Kartu Identitas Medis Darurat, "
+                + "Produktivitas untuk memo, pengingat barang, pengeluaran dan jadwal obat, Jadwal Sholat dan Kiblat offline, "
+                + "serta Mode Pendamping untuk mengatur PIN keamanan dan pengawasan keluarga.";
         speaker.speak(guide);
     }
 
@@ -133,7 +147,9 @@ public class MainActivity extends AppCompatActivity {
                 + "Kontak darurat SOS: " + sosText + "\n"
                 + "Kartu Medis Darurat: " + medText + "\n"
                 + "Deteksi Jatuh & Kunci Saku: " + (c.isFallDetectionEnabled() ? "aktif" : "mati")
-                + " | Mode Privasi: " + (c.isPrivacyMode() ? "AKTIF (kamera & mic diputus)" : "nonaktif");
+                + " | Mode Privasi: " + (c.isPrivacyMode() ? "AKTIF (kamera & mic diputus)" : "nonaktif") + "\n"
+                + "Kunci PIN Keamanan: " + (c.hasSecurityPin() ? "AKTIF" : "belum dipasang")
+                + " | Privat Otomatis BT: " + (c.isAutoPrivateOnBt() ? "aktif" : "mati");
         tvStatus.setText(text);
     }
 

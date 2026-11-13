@@ -3,6 +3,7 @@ package com.asisten.bantu;
 import android.content.Context;
 import android.media.AudioManager;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,6 +26,21 @@ public class MedicalCardActivity extends AppCompatActivity {
         setContentView(R.layout.activity_medical_card);
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
+
+        boolean autoSpeak = getIntent().getBooleanExtra(EXTRA_AUTO_SPEAK, false);
+        final android.view.View contentRoot = ((android.view.ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+        if (config.hasSecurityPin() && !autoSpeak && !getIntent().getBooleanExtra(CaregiverActivity.EXTRA_PIN_UNLOCKED, false)) {
+            if (contentRoot != null) contentRoot.setVisibility(android.view.View.INVISIBLE);
+            SecurityAndPinHelper.requirePinIfSet(this, config, speaker, "Kartu Medis Darurat",
+                    new SecurityAndPinHelper.PinCallback() {
+                        @Override public void onUnlocked() {
+                            if (contentRoot != null) contentRoot.setVisibility(View.VISIBLE);
+                        }
+                        @Override public void onCancelled() {
+                            finish();
+                        }
+                    });
+        }
 
         tvSummary = findViewById(R.id.tvMedSummary);
         etName = findViewById(R.id.etMedName);

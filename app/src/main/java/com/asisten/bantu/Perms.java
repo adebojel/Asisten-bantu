@@ -21,6 +21,9 @@ public final class Perms {
         p.add(Manifest.permission.SEND_SMS);
         p.add(Manifest.permission.READ_SMS);
         p.add(Manifest.permission.ANSWER_PHONE_CALLS);
+        p.add(Manifest.permission.READ_PHONE_STATE);
+        p.add(Manifest.permission.READ_CALL_LOG);
+        p.add(Manifest.permission.READ_CALENDAR);
         if (Build.VERSION.SDK_INT >= 31) {
             p.add(Manifest.permission.BLUETOOTH_CONNECT);
             p.add(Manifest.permission.BLUETOOTH_ADVERTISE);

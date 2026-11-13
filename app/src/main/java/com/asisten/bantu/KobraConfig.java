@@ -75,6 +75,43 @@ public final class KobraConfig {
     public boolean isPrivacyMode() { return prefs.getBoolean("privacy_mode", false); }
     public void setPrivacyMode(boolean enabled) { prefs.edit().putBoolean("privacy_mode", enabled).apply(); }
 
+    public String getSecurityPin() { return prefs.getString("security_pin", "").trim(); }
+    public void setSecurityPin(String pin) {
+        String clean = pin == null ? "" : pin.replaceAll("\\D", "");
+        prefs.edit().putString("security_pin", clean).apply();
+    }
+    public boolean hasSecurityPin() { return getSecurityPin().length() >= 4; }
+    public boolean verifySecurityPin(String candidate) {
+        if (!hasSecurityPin()) return true;
+        if (candidate == null) return false;
+        return getSecurityPin().equals(candidate.replaceAll("\\D", ""));
+    }
+
+    public boolean isAutoPrivateOnBt() { return prefs.getBoolean("auto_private_bt", true); }
+    public void setAutoPrivateOnBt(boolean enabled) { prefs.edit().putBoolean("auto_private_bt", enabled).apply(); }
+
+    public boolean isLayeredConfirmEnabled() { return prefs.getBoolean("layered_confirm", true); }
+    public void setLayeredConfirmEnabled(boolean enabled) { prefs.edit().putBoolean("layered_confirm", enabled).apply(); }
+
+    public void setSavedLocation(double lat, double lon) {
+        prefs.edit()
+                .putString("saved_lat", String.valueOf(lat))
+                .putString("saved_lon", String.valueOf(lon))
+                .apply();
+    }
+    public double getSavedLat() {
+        try {
+            String s = prefs.getString("saved_lat", "");
+            return s.isEmpty() ? Double.NaN : Double.parseDouble(s);
+        } catch (Exception e) { return Double.NaN; }
+    }
+    public double getSavedLon() {
+        try {
+            String s = prefs.getString("saved_lon", "");
+            return s.isEmpty() ? Double.NaN : Double.parseDouble(s);
+        } catch (Exception e) { return Double.NaN; }
+    }
+
     public String getMedName() { return prefs.getString("med_name", "").trim(); }
     public void setMedName(String v) { prefs.edit().putString("med_name", v == null ? "" : v.trim()).apply(); }
 

@@ -28,11 +28,16 @@ public final class MessageReader {
             while (cur != null && cur.moveToNext() && n < count) {
                 String from = nameFor(c, cur.getString(0));
                 String body = cur.getString(1) == null ? "" : cur.getString(1).trim();
+                String phishWarning = SecurityAndPinHelper.inspectForPhishing(body);
                 if (body.length() > 300) body = body.substring(0, 300) + ". Masih ada lanjutannya.";
                 n++;
                 sb.append("SMS ").append(n).append(" dari ").append(from)
                         .append(", ").append(fmt.format(new Date(cur.getLong(2))))
-                        .append(". ").append(body).append(" ");
+                        .append(". ");
+                if (!phishWarning.isEmpty()) {
+                    sb.append(phishWarning).append(" ");
+                }
+                sb.append(body).append(" ");
             }
         } catch (Exception e) {
             return "SMS tidak bisa dibaca di HP ini.";

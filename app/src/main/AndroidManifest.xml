@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -74,6 +77,9 @@
         <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".MedicalCardActivity" android:exported="false" />
         <activity android:name=".CompassActivity" android:exported="false" />
+        <activity android:name=".PrayerActivity" android:exported="false" />
+        <activity android:name=".ProductivityActivity" android:exported="false" />
+        <activity android:name=".CaregiverActivity" android:exported="false" />
 
         <service
             android:name=".AsistenAccessibilityService"

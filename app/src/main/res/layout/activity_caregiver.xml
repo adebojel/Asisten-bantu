@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/caregiverRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F5F7FA"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="👨‍👩‍👧 Mode Pendamping (Keluarga)"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#1A237E"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kelola PIN keamanan, pengawasan keselamatan, jadwal obat, serta pengaturan darurat untuk pengguna."
+            android:textSize="14sp"
+            android:textColor="#455A64"
+            android:paddingBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🔒 Kunci PIN Menu Sensitif (4–6 digit)"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="#0D47A1" />
+
+        <TextView
+            android:id="@+id/tvPinStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="#37474F"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etNewPin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="52dp"
+            android:inputType="numberPassword"
+            android:maxLength="6"
+            android:hint="Masukkan 4–6 digit PIN baru"
+            android:background="#FFFFFF"
+            android:padding="12dp"
+            android:textColor="#000000"
+            android:textColorHint="#78909C"
+            android:contentDescription="Kolom PIN keamanan baru" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+            <Button
+                android:id="@+id/btnSetPin"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="52dp"
+                android:text="SIMPAN PIN"
+                android:contentDescription="Simpan PIN keamanan baru" />
+            <Button
+                android:id="@+id/btnRemovePin"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minHeight="52dp"
+                android:backgroundTint="#C62828"
+                android:textColor="#FFFFFF"
+                android:text="HAPUS PIN"
+                android:contentDescription="Hapus kunci PIN" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="#CFD8DC" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🛡️ Pengawasan &amp; Privasi Otomatis"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="#0D47A1"
+            android:paddingBottom="8dp" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swLayeredConfirm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="Konfirmasi suara 2 lapis untuk panggilan &amp; pesan"
+            android:textColor="#263238" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swAutoPrivateBt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="Mode Privat (Layar Hitam) otomatis saat Headset Bluetooth tersambung"
+            android:textColor="#263238" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swCareFall"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="Deteksi Jatuh Keras &amp; SOS 15 detik"
+            android:textColor="#263238" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/swCarePocket"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:text="Kunci Sentuh Saku Otomatis"
+            android:textColor="#263238" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="#CFD8DC" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💊 Jadwal Obat Pengguna"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="#0D47A1" />
+
+        <EditText
+            android:id="@+id/etCareMedName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:layout_marginTop="6dp"
+            android:hint="Nama obat"
+            android:background="#FFFFFF"
+            android:padding="10dp"
+            android:textColor="#000000"
+            android:textColorHint="#78909C" />
+
+        <EditText
+            android:id="@+id/etCareMedTime"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
+            android:layout_marginTop="6dp"
+            android:hint="Jam (contoh: 08:00)"
+            android:background="#FFFFFF"
+            android:padding="10dp"
+            android:textColor="#000000"
+            android:textColorHint="#78909C" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+            <Button
+                android:id="@+id/btnCareAddMed"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="TAMBAH JADWAL" />
+            <Button
+                android:id="@+id/btnCareRemoveMed"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="#546E7A"
+                android:textColor="#FFFFFF"
+                android:text="HAPUS PERTAMA" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvCareMedList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#263238"
+            android:textSize="14sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="#CFD8DC" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📊 Ringkasan Catatan &amp; Pengeluaran"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="#0D47A1" />
+
+        <TextView
+            android:id="@+id/tvCareSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="#FFFFFF"
+            android:padding="12dp"
+            android:textColor="#263238"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+            <Button
+                android:id="@+id/btnCareClearMemos"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="BERSIHKAN MEMO" />
+            <Button
+                android:id="@+id/btnCareClearExpenses"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="RESET PENGELUARAN" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnCareSos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:minHeight="52dp"
+            android:text="🚨 ATUR KONTAK DARURAT SOS" />
+
+        <Button
+            android:id="@+id/btnCareMedCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="52dp"
+            android:text="🏥 ATUR KARTU IDENTITAS MEDIS" />
+
+        <Button
+            android:id="@+id/btnCareSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:minHeight="52dp"
+            android:text="⚙️ PENGATURAN AI, MODEL &amp; CADANGAN DATA" />
+
+        <Button
+            android:id="@+id/btnCareBack"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:minHeight="54dp"
+            android:backgroundTint="#37474F"
+            android:textColor="#FFFFFF"
+            android:text="KEMBALI" />
+    </LinearLayout>
+</ScrollView>

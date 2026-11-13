@@ -71,6 +71,20 @@ public class SettingsActivity extends AppCompatActivity {
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
 
+        final View contentRoot = ((android.view.ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+        if (config.hasSecurityPin() && !getIntent().getBooleanExtra(CaregiverActivity.EXTRA_PIN_UNLOCKED, false)) {
+            if (contentRoot != null) contentRoot.setVisibility(View.INVISIBLE);
+            SecurityAndPinHelper.requirePinIfSet(this, config, speaker, "Pengaturan AI & Cadangan",
+                    new SecurityAndPinHelper.PinCallback() {
+                        @Override public void onUnlocked() {
+                            if (contentRoot != null) contentRoot.setVisibility(View.VISIBLE);
+                        }
+                        @Override public void onCancelled() {
+                            finish();
+                        }
+                    });
+        }
+
         etKey = findViewById(R.id.etApiKey);
         etModel = findViewById(R.id.etModel);
         etN8n = findViewById(R.id.etN8nUrl);

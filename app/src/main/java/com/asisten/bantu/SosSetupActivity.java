@@ -16,6 +16,20 @@ public class SosSetupActivity extends AppCompatActivity {
         setContentView(R.layout.activity_sos);
         KobraConfig config = new KobraConfig(this);
 
+        final android.view.View contentRoot = ((android.view.ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
+        if (config.hasSecurityPin() && !getIntent().getBooleanExtra(CaregiverActivity.EXTRA_PIN_UNLOCKED, false)) {
+            if (contentRoot != null) contentRoot.setVisibility(android.view.View.INVISIBLE);
+            SecurityAndPinHelper.requirePinIfSet(this, config, Speaker.get(this), "Kontak Darurat SOS",
+                    new SecurityAndPinHelper.PinCallback() {
+                        @Override public void onUnlocked() {
+                            if (contentRoot != null) contentRoot.setVisibility(android.view.View.VISIBLE);
+                        }
+                        @Override public void onCancelled() {
+                            finish();
+                        }
+                    });
+        }
+
         EditText etName1 = findViewById(R.id.etName1);
         EditText etPhone1 = findViewById(R.id.etPhone1);
         EditText etName2 = findViewById(R.id.etName2);
