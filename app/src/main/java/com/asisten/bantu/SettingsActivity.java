@@ -40,7 +40,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private EditText etKey, etModel, etN8n, etNotes;
     private TextView tvStatus, tvModelStatus, tvImportProgress, tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus;
-    private Button btnImportModel, btnTestTts, btnBackupData, btnRestoreData, btnCheckUpdate;
+    private Button btnImportModel, btnDeleteModel, btnLoadModel, btnTestTts, btnBackupData, btnRestoreData, btnCheckUpdate;
     private ProgressBar pbImportModel;
     private SeekBar sbSpeechRate, sbSpeechPitch;
     private SwitchCompat swHighContrast;
@@ -107,6 +107,8 @@ public class SettingsActivity extends AppCompatActivity {
         tvSpeechPitch = findViewById(R.id.tvSpeechPitch);
         tvBackupStatus = findViewById(R.id.tvBackupStatus);
         btnImportModel = findViewById(R.id.btnImportModel);
+        btnDeleteModel = findViewById(R.id.btnDeleteModel);
+        btnLoadModel = findViewById(R.id.btnLoadModel);
         pbImportModel = findViewById(R.id.pbImportModel);
         sbSpeechRate = findViewById(R.id.sbSpeechRate);
         sbSpeechPitch = findViewById(R.id.sbSpeechPitch);
@@ -204,6 +206,9 @@ public class SettingsActivity extends AppCompatActivity {
                 speaker.speak("Gagal membuka pemilih berkas di HP ini.");
             }
         });
+
+        btnDeleteModel.setOnClickListener(v -> confirmDeleteLocalModel());
+        btnLoadModel.setOnClickListener(v -> loadOrTestLocalModel());
 
         btnBackupData.setOnClickListener(v -> {
             saveFields();
@@ -405,22 +410,96 @@ public class SettingsActivity extends AppCompatActivity {
     private void updateModelStatus() {
         LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
         File modelFile = engine.getModelFile();
-        if (modelFile.exists() && modelFile.length() > 1024 * 1024) {
+        boolean exists = modelFile.exists() && modelFile.length() > 1024 * 1024;
+        btnDeleteModel.setEnabled(modelFile.exists());
+        btnDeleteModel.setAlpha(modelFile.exists() ? 1.0f : 0.45f);
+        btnLoadModel.setEnabled(exists);
+        btnLoadModel.setAlpha(exists ? 1.0f : 0.45f);
+
+        if (exists) {
             long mb = modelFile.length() / (1024 * 1024);
             if (engine.isInitialized()) {
                 tvModelStatus.setText("Status model: Aktif & Siap (" + mb + " MB, " + LocalLlmEngine.MODEL_FILENAME + ")");
                 tvModelStatus.setTextColor(0xFF00E676);
-            } else if (engine.isSafeMode() && !engine.getLastError().isEmpty()) {
-                tvModelStatus.setText("Status model: Mode Aman — " + engine.getLastError() + " (" + mb + " MB)");
+            } else if (engine.isSafeMode()) {
+                String err = engine.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : engine.getLastError();
+                tvModelStatus.setText("Status model: " + err + " (" + mb + " MB)");
                 tvModelStatus.setTextColor(0xFFFFAB40);
             } else {
-                tvModelStatus.setText("Status model: Terpasang (" + mb + " MB, " + LocalLlmEngine.MODEL_FILENAME + ")");
-                tvModelStatus.setTextColor(0xFF00E676);
+                tvModelStatus.setText("Status model: Terpasang (" + mb + " MB, lazy-load hemat RAM)");
+                tvModelStatus.setTextColor(0xFF38BDF8);
             }
         } else {
             tvModelStatus.setText("Status model: Belum terpasang / Mode Aman (Pilih berkas .task dari HP)");
             tvModelStatus.setTextColor(0xFFFFEB3B);
         }
+    }
+
+    private void confirmDeleteLocalModel() {
+        LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
+        File modelFile = engine.getModelFile();
+        if (!modelFile.exists()) {
+            speaker.speak("Tidak ada berkas model lokal yang tersimpan.");
+            updateModelStatus();
+            return;
+        }
+        long mb = modelFile.length() / (1024 * 1024);
+        new AlertDialog.Builder(this)
+                .setTitle("Hapus Model Lokal?")
+                .setMessage("Hapus berkas model " + LocalLlmEngine.MODEL_FILENAME + " (" + mb + " MB) dari penyimpanan internal dan reset Mode Aman?")
+                .setPositiveButton("Hapus", (d, w) -> {
+                    boolean deleted = engine.deleteLocalModel();
+                    updateModelStatus();
+                    tvImportProgress.setVisibility(View.VISIBLE);
+                    if (deleted) {
+                        tvImportProgress.setTextColor(0xFF00E676);
+                        tvImportProgress.setText("Model lokal berhasil dihapus. Ruang penyimpanan dibebaskan.");
+                        speaker.speak("Berkas model lokal berhasil dihapus dan Mode Aman direset.");
+                    } else {
+                        tvImportProgress.setTextColor(0xFFFF5252);
+                        tvImportProgress.setText("Gagal menghapus berkas model lokal.");
+                        speaker.speak("Gagal menghapus berkas model lokal.");
+                    }
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void loadOrTestLocalModel() {
+        LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
+        if (!engine.isModelPresent()) {
+            speaker.speak("Berkas model lokal belum terpasang. Impor berkas titik task terlebih dahulu.");
+            updateModelStatus();
+            return;
+        }
+        btnLoadModel.setEnabled(false);
+        btnImportModel.setEnabled(false);
+        pbImportModel.setVisibility(View.VISIBLE);
+        pbImportModel.setIndeterminate(true);
+        tvImportProgress.setVisibility(View.VISIBLE);
+        tvImportProgress.setTextColor(0xFFFFFF00);
+        tvImportProgress.setText("Memuat model lokal (batas 512 token, dengan Crash-Guard aktif)...");
+        speaker.speak("Mencoba memuat model lokal ke memori dengan perlindungan crash guard.");
+
+        executor.execute(() -> {
+            boolean ready = engine.forceInitEngine();
+            mainHandler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                btnImportModel.setEnabled(true);
+                pbImportModel.setVisibility(View.GONE);
+                updateModelStatus();
+                if (ready) {
+                    tvImportProgress.setTextColor(0xFF00E676);
+                    tvImportProgress.setText("Model lokal berhasil dimuat dan siap digunakan (512 token).");
+                    speaker.speak("Model AI offline berhasil dimuat dan siap digunakan.");
+                } else {
+                    String err = engine.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : engine.getLastError();
+                    tvImportProgress.setTextColor(0xFFFFAB40);
+                    tvImportProgress.setText(err);
+                    speaker.speak("Model tidak dapat dimuat ke RAM. Kobra tetap aman di Mode Aman.");
+                }
+            });
+        });
     }
 
     private void exportBackupToUri(Uri uri) {
@@ -572,33 +651,17 @@ public class SettingsActivity extends AppCompatActivity {
                 }
 
                 mainHandler.post(() -> {
-                    pbImportModel.setIndeterminate(true);
-                    tvImportProgress.setText("Penyalinan selesai. Menginisialisasi mesin bahasa offline...");
-                    speaker.speak("Penyalinan selesai. Menginisialisasi mesin AI offline...");
-                });
-
-                // Inisialisasi ulang LocalLlmEngine di background thread
-                LocalLlmEngine engine = LocalLlmEngine.getInstance(SettingsActivity.this);
-                boolean ready = engine.reloadEngine();
-
-                mainHandler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
                     btnImportModel.setEnabled(true);
                     pbImportModel.setVisibility(View.GONE);
+                    LocalLlmEngine engine = LocalLlmEngine.getInstance(SettingsActivity.this);
+                    engine.close();
+                    config.clearLlmSafeMode();
                     updateModelStatus();
-
-                    if (ready) {
-                        tvImportProgress.setTextColor(0xFF00E676);
-                        tvImportProgress.setText("Model offline aktif dan siap digunakan.");
-                        speaker.speak("Model AI offline berhasil diimpor dan siap digunakan.");
-                    } else {
-                        long mb = destFile.length() / (1024 * 1024);
-                        String err = engine.getLastError();
-                        tvImportProgress.setTextColor(0xFFFFEB3B);
-                        tvImportProgress.setText("Model tersimpan (" + mb + " MB). Beralih ke Mode Aman"
-                                + (err.isEmpty() ? "." : ": " + err));
-                        speaker.speak("Berkas model tersimpan, tetapi gagal dimuat. Aplikasi berjalan di Mode Aman perintah sistem lokal.");
-                    }
+                    long mb = destFile.length() / (1024 * 1024);
+                    tvImportProgress.setTextColor(0xFF00E676);
+                    tvImportProgress.setText("Model tersimpan (" + mb + " MB). Ketuk Muat / Uji Model Lokal atau langsung pakai di AI Chat.");
+                    speaker.speak("Penyalinan model offline selesai. Model siap dimuat saat Anda membuka obrolan atau menekan tombol Muat Model Lokal.");
                 });
 
             } catch (Exception e) {

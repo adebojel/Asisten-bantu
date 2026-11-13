@@ -63,9 +63,11 @@ public class AiChatActivity extends AppCompatActivity {
         if (config.hasAi()) {
             greeting = "Halo. Saya Kobra, teman ngobrol Anda. Silakan bicara.";
         } else if (hasLocal && !engine.isSafeMode()) {
-            greeting = "Halo. Saya Kobra. Mesin AI offline Gemma 3 1B aktif dan siap digunakan. Silakan bicara.";
+            greeting = engine.isInitialized()
+                    ? "Halo. Saya Kobra. Mesin AI offline Gemma 3 1B aktif dan siap digunakan. Silakan bicara."
+                    : "Halo. Saya Kobra. Model AI offline terpasang dan akan dimuat saat pesan pertama dikirim. Silakan bicara.";
         } else if (hasLocal) {
-            greeting = "Halo. Saya Kobra dalam Mode Aman perintah lokal karena mesin AI offline belum dapat dimuat ke memori. Silakan bicara.";
+            greeting = "Halo. Saya Kobra dalam Mode Aman perintah lokal. " + engine.getLastError() + ". Silakan bicara.";
         } else {
             greeting = "Halo. Saya Kobra dalam Mode Aman. Belum ada API key AI online atau berkas model offline. Anda dapat mengimpor model offline .task atau mengisi API key di Pengaturan AI.";
         }
@@ -96,13 +98,18 @@ public class AiChatActivity extends AppCompatActivity {
                 + " | Memori: " + engine.getSessionTurnCount() + " giliran";
         if (hasModel) {
             long mb = engine.getModelFile().length() / (1024 * 1024);
-            if (engine.isSafeMode() && !engine.getLastError().isEmpty()) {
-                tvModelStatusChat.setText("⚠️ Mode Aman: " + engine.getLastError() + " (" + mb + " MB) • " + styleInfo);
+            if (engine.isSafeMode()) {
+                String err = engine.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : engine.getLastError();
+                tvModelStatusChat.setText("⚠️ " + err + " (" + mb + " MB) • " + styleInfo);
                 tvModelStatusChat.setTextColor(0xFFFFAB40);
                 btnImportModelChat.setVisibility(View.VISIBLE);
-            } else {
-                tvModelStatusChat.setText("🧠 Model offline: Gemma 3 1B siap (" + mb + " MB) • " + styleInfo);
+            } else if (engine.isInitialized()) {
+                tvModelStatusChat.setText("🧠 Model offline aktif (" + mb + " MB) • " + styleInfo);
                 tvModelStatusChat.setTextColor(0xFF00E676);
+                btnImportModelChat.setVisibility(View.GONE);
+            } else {
+                tvModelStatusChat.setText("🧠 Model offline siap dimuat saat chat (" + mb + " MB) • " + styleInfo);
+                tvModelStatusChat.setTextColor(0xFF38BDF8);
                 btnImportModelChat.setVisibility(View.GONE);
             }
         } else {

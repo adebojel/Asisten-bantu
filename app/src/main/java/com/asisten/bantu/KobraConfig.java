@@ -17,6 +17,7 @@ public final class KobraConfig {
 
     public static final String PREFS_CONFIG = "kobra_config";
     public static final String PREFS_SOS = "kobra_sos";
+    public static final String PREFS_LLM_CRASH_GUARD = "llm_crash_guard";
 
     /** Model gratis OpenRouter untuk percakapan teks, dicoba berurutan jika ada yang sibuk. */
     public static final String[] TEXT_MODELS = {
@@ -38,11 +39,13 @@ public final class KobraConfig {
     private final Context appContext;
     private final SharedPreferences prefs;
     private final SharedPreferences sos;
+    private final SharedPreferences crashGuard;
 
     public KobraConfig(Context c) {
         this.appContext = c.getApplicationContext();
         this.prefs = appContext.getSharedPreferences(PREFS_CONFIG, Context.MODE_PRIVATE);
         this.sos = appContext.getSharedPreferences(PREFS_SOS, Context.MODE_PRIVATE);
+        this.crashGuard = appContext.getSharedPreferences(PREFS_LLM_CRASH_GUARD, Context.MODE_PRIVATE);
     }
 
     public String getApiKey() { return prefs.getString("api_key", "").trim(); }
@@ -385,6 +388,52 @@ public final class KobraConfig {
 
     public synchronized void clearPlannerItems() {
         prefs.edit().putString("planner_json", "[]").apply();
+    }
+
+    // ----------------------------------------------------------------- Native Crash-Guard LLM (#llm_crash_guard)
+
+    public boolean isLlmInitPending() {
+        return crashGuard.getBoolean("llm_init_pending", false);
+    }
+
+    public boolean setLlmInitPending(boolean pending) {
+        return crashGuard.edit().putBoolean("llm_init_pending", pending).commit();
+    }
+
+    public boolean isLlmSafeMode() {
+        return crashGuard.getBoolean("llm_safe_mode", false);
+    }
+
+    public boolean setLlmSafeMode(boolean safeMode) {
+        return crashGuard.edit().putBoolean("llm_safe_mode", safeMode).commit();
+    }
+
+    public String getLlmSafeReason() {
+        return crashGuard.getString("llm_safe_reason", "").trim();
+    }
+
+    public boolean setLlmSafeReason(String reason) {
+        return crashGuard.edit().putString("llm_safe_reason", reason == null ? "" : reason.trim()).commit();
+    }
+
+    public synchronized boolean checkAndHandlePreviousLlmCrash() {
+        if (isLlmInitPending()) {
+            crashGuard.edit()
+                    .putBoolean("llm_safe_mode", true)
+                    .putBoolean("llm_init_pending", false)
+                    .putString("llm_safe_reason", LocalLlmEngine.CRASH_SAFE_MODE_REASON)
+                    .commit();
+            return true;
+        }
+        return false;
+    }
+
+    public synchronized void clearLlmSafeMode() {
+        crashGuard.edit()
+                .putBoolean("llm_init_pending", false)
+                .putBoolean("llm_safe_mode", false)
+                .putString("llm_safe_reason", "")
+                .commit();
     }
 
     private static float clampTts(float v) {

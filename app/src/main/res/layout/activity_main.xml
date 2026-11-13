@@ -1,175 +1,1039 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
-    android:fillViewport="true">
+    android:background="#0A0E17"
+    android:orientation="vertical">
 
+    <ScrollView
+        android:id="@+id/mainScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- HERO STATUS CARD -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card_hero"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="KOBRA OS • ASISTEN PINTAR"
+                    android:textColor="#10B981"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06" />
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="#E2E8F0"
+                    android:textSize="15sp"
+                    android:text="Memeriksa sistem..." />
+
+                <!-- 3 Indikator Status Singkat -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvPillVoice"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_pill_dark"
+                        android:gravity="center"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="8dp"
+                        android:text="🎤 Suara"
+                        android:textColor="#F8FAFC"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:contentDescription="Status suara dan izin" />
+
+                    <TextView
+                        android:id="@+id/tvPillAi"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_pill_dark"
+                        android:gravity="center"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="8dp"
+                        android:text="🧠 AI"
+                        android:textColor="#38BDF8"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:contentDescription="Status otak AI offline dan online" />
+
+                    <TextView
+                        android:id="@+id/tvPillSignal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_pill_dark"
+                        android:gravity="center"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="8dp"
+                        android:text="🔋 Sinyal"
+                        android:textColor="#F59E0B"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:contentDescription="Status baterai dan jaringan" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnSpeakKobra"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:minHeight="60dp"
+                    android:backgroundTint="#10B981"
+                    android:textColor="#04120D"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:text="🎙️ BICARA DENGAN KOBRA"
+                    android:contentDescription="Ketuk untuk langsung berbicara dengan asisten suara Kobra" />
+
+                <Button
+                    android:id="@+id/btnResetAiSafeMode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="52dp"
+                    android:backgroundTint="#F59E0B"
+                    android:textColor="#111827"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    android:text="⚠️ MODE AMAN / RESET AI"
+                    android:contentDescription="Mode Aman AI aktif. Ketuk untuk menghapus model berat atau mereset AI offline" />
+            </LinearLayout>
+
+            <!-- MENU 1: UTAMA (2x2 GRID KARTU BESAR) -->
+            <LinearLayout
+                android:id="@+id/sectionMain"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Aksi Cepat Utama"
+                    android:textColor="#94A3B8"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:id="@+id/btnSecondEyeMenu"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="136dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:contentDescription="Mata Kedua: Kamera AI, OCR, pembaca uang, warna pakaian, dan barcode">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="👁️"
+                            android:textSize="28sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Mata Kedua"
+                            android:textColor="#38BDF8"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Kamera AI, OCR, uang, warna, produk"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnStickCompass"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:minHeight="136dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:contentDescription="Mode Tongkat dan Kompas: deteksi halangan, GPS lokasi, dan rute pulang">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🧭"
+                            android:textSize="28sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Tongkat &amp; Kompas"
+                            android:textColor="#10B981"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Halangan, lokasi &amp; rute pulang"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <LinearLayout
+                        android:id="@+id/btnAiChat"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="136dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:contentDescription="Teman Ngobrol AI untuk percakapan suara dan teks offline maupun online">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="💬"
+                            android:textSize="28sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Teman Ngobrol AI"
+                            android:textColor="#F59E0B"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Chat suara &amp; teks offline/online"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnOpenKobraHome"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:minHeight="136dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:contentDescription="Buka Layar Utama Kobra OS launcher ramah tunanetra">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📱"
+                            android:textSize="28sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:text="Layar Utama Kobra"
+                            android:textColor="#F8FAFC"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Launcher ramah tunanetra"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvQuickMeta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_dark"
+                    android:padding="14dp"
+                    android:textColor="#CBD5E1"
+                    android:textSize="13sp"
+                    android:text="Info SOS &amp; Privasi dimuat..." />
+            </LinearLayout>
+
+            <!-- MENU 2: PERSIAPAN (8 PENGATURAN SISTEM TERKELOMPOK RAPI) -->
+            <LinearLayout
+                android:id="@+id/sectionSetup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Persiapan &amp; Pengaturan Sistem"
+                    android:textColor="#94A3B8"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
+
+                <Button
+                    android:id="@+id/btnPermissions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="60dp"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#F8FAFC"
+                    android:gravity="start|center_vertical"
+                    android:text="1. 🔐 Izin Sistem &amp; Sensor (Mic, Kamera, Lokasi, Audio)"
+                    android:contentDescription="Beri izin sistem dan sensor aplikasi" />
+
+                <Button
+                    android:id="@+id/btnAccessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="60dp"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#F8FAFC"
+                    android:gravity="start|center_vertical"
+                    android:text="2. ♿ Layanan Aksesibilitas Kobra"
+                    android:contentDescription="Buka pengaturan layanan aksesibilitas" />
+
+                <Button
+                    android:id="@+id/btnNotifAccess"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="60dp"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#F8FAFC"
+                    android:gravity="start|center_vertical"
+                    android:text="3. 🔔 Akses Notifikasi &amp; Keuangan"
+                    android:contentDescription="Buka pengaturan akses notifikasi dan pembaca mutasi keuangan" />
+
+                <Button
+                    android:id="@+id/btnSettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="60dp"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#38BDF8"
+                    android:gravity="start|center_vertical"
+                    android:text="4. 🧠 Pengaturan AI, Model Lokal &amp; n8n"
+                    android:contentDescription="Buka pengaturan AI, impor atau hapus model lokal, suara TTS, dan cadangan data" />
+
+                <Button
+                    android:id="@+id/btnSos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="60dp"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#F59E0B"
+                    android:gravity="start|center_vertical"
+                    android:text="5. 🆘 Kontak Darurat SOS"
+                    android:contentDescription="Atur kontak darurat SOS dan mode latihan SOS" />
+
+                <Button
+                    android:id="@+id/btnBattery"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="60dp"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#F8FAFC"
+                    android:gravity="start|center_vertical"
+                    android:text="6. 🔋 Optimasi Baterai (Bebas Pembatasan)"
+                    android:contentDescription="Bebaskan Kobra dari pembatasan hemat baterai" />
+
+                <Button
+                    android:id="@+id/btnStartService"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="60dp"
+                    android:layout_marginBottom="8dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#10B981"
+                    android:gravity="start|center_vertical"
+                    android:text="7. ⚡ Layanan Siaga Latar Belakang"
+                    android:contentDescription="Jalankan layanan siaga Kobra di latar belakang" />
+
+                <Button
+                    android:id="@+id/btnLauncher"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="60dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#F8FAFC"
+                    android:gravity="start|center_vertical"
+                    android:text="8. 🏠 Mode Launcher Utama"
+                    android:contentDescription="Jadikan Kobra sebagai layar beranda utama" />
+            </LinearLayout>
+
+            <!-- MENU 3: UTILITAS & KESEHATAN (KARTU GRID RAPI) -->
+            <LinearLayout
+                android:id="@+id/sectionUtils"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Utilitas &amp; Kesehatan Harian"
+                    android:textColor="#94A3B8"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Baris 1 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:id="@+id/btnDocumentReader"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="116dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:contentDescription="Pembaca Dokumen PDF dan TXT">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📄"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Pembaca Dokumen"
+                            android:textColor="#F8FAFC"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Berkas .PDF &amp; .TXT"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnPedometer"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:minHeight="116dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:contentDescription="Penghitung Langkah Harian Offline">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="👟"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Penghitung Langkah"
+                            android:textColor="#10B981"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvPedometerCardSub"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="0 langkah hari ini"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Baris 2 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:id="@+id/btnProductivity"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="116dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:contentDescription="Agenda, Pengingat Harian, Memo, Pengeluaran dan Jadwal Obat">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📅"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Agenda &amp; Obat"
+                            android:textColor="#38BDF8"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Memo, barang, pengeluaran"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnCheckFinance"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:minHeight="116dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:contentDescription="Cek Mutasi Keuangan Terakhir dari notifikasi bank dan e-wallet">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="💳"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Mutasi Keuangan"
+                            android:textColor="#F59E0B"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Cek transaksi terakhir"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Baris 3 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <LinearLayout
+                        android:id="@+id/btnCheckSignal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="116dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:contentDescription="Cek Sinyal Seluler, Operator, dan Kekuatan Wi-Fi">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="📶"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Sinyal &amp; Operator"
+                            android:textColor="#38BDF8"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Cek seluler &amp; Wi-Fi"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/btnMedicalCard"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:minHeight="116dp"
+                        android:background="@drawable/bg_card_dark"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="14dp"
+                        android:contentDescription="Kartu Identitas Medis Darurat">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="🏥"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="Kartu Medis"
+                            android:textColor="#EF4444"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="Golongan darah &amp; alergi"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Baris 4 Tambahan: Kompas, Sholat, Pendamping -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="10dp">
+
+                    <Button
+                        android:id="@+id/btnCompass"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="56dp"
+                        android:backgroundTint="#131A29"
+                        android:textColor="#10B981"
+                        android:textSize="13sp"
+                        android:text="🧭 Kompas"
+                        android:contentDescription="Buka kompas suara dan penanda rute pulang" />
+
+                    <Button
+                        android:id="@+id/btnPrayer"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:minHeight="56dp"
+                        android:backgroundTint="#131A29"
+                        android:textColor="#10B981"
+                        android:textSize="13sp"
+                        android:text="🕌 Sholat &amp; Kiblat"
+                        android:contentDescription="Buka jadwal sholat dan kompas kiblat offline" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnCaregiver"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="56dp"
+                    android:backgroundTint="#131A29"
+                    android:textColor="#CBD5E1"
+                    android:text="👨‍👩‍👧 Mode Pendamping (PIN Keamanan &amp; Keluarga)"
+                    android:contentDescription="Buka mode pendamping untuk PIN keamanan dan keluarga" />
+            </LinearLayout>
+
+            <!-- MENU 4: PANDUAN SUARA -->
+            <LinearLayout
+                android:id="@+id/sectionVoice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/btnVoiceGuide"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="58dp"
+                    android:layout_marginBottom="12dp"
+                    android:backgroundTint="#38BDF8"
+                    android:textColor="#04120D"
+                    android:textStyle="bold"
+                    android:text="🔊 BACAKAN PANDUAN LENGKAP"
+                    android:contentDescription="Bacakan panduan lengkap fungsi tombol Kobra OS" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Ketuk contoh perintah untuk mendengarkan pengucapannya:"
+                    android:textColor="#94A3B8"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Kategori 1: Navigasi & Layar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_dark"
+                    android:orientation="vertical"
+                    android:padding="14dp"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🧭 Navigasi &amp; Kendali Layar"
+                        android:textColor="#10B981"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/cmdNav1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, klik Kirim&quot; atau &quot;Tekan Pengaturan&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdNav2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, ketik Saya sedang di jalan&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdNav3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, geser ke bawah&quot; / &quot;Baca layar&quot; / &quot;Kembali&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <!-- Kategori 2: YouTube & Musik -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_dark"
+                    android:orientation="vertical"
+                    android:padding="14dp"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🎵 YouTube &amp; Pemutar Musik"
+                        android:textColor="#38BDF8"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/cmdMedia1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, putar murottal merdu di YouTube&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdMedia2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, putar musik lokal&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdMedia3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, jeda musik&quot; / &quot;Lanjut putar&quot; / &quot;Lagu berikutnya&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <!-- Kategori 3: Kamera & Uang -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_dark"
+                    android:orientation="vertical"
+                    android:padding="14dp"
+                    android:layout_marginBottom="10dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="👁️ Kamera, Uang &amp; Pakaian"
+                        android:textColor="#F59E0B"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/cmdCam1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, hitung lembar uang&quot; / &quot;Baca uang&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdCam2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, cocokkan baju&quot; / &quot;Cari kursi&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdCam3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, baca layar digital&quot; / &quot;Pindai struk transfer&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+                </LinearLayout>
+
+                <!-- Kategori 4: Darurat & Harian -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_card_dark"
+                    android:orientation="vertical"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="🆘 Darurat, Kesehatan &amp; Harian"
+                        android:textColor="#EF4444"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/cmdDaily1"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, tolong&quot; / &quot;Bunyikan sirine bahaya&quot; / &quot;Latihan SOS&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdDaily2"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, berapa langkah saya hari ini?&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdDaily3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, ingatkan jam 16.00 minum vitamin&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/cmdDaily4"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:paddingVertical="8dp"
+                        android:text="• &quot;Kobra, cek transaksi terakhir&quot; / &quot;Cek sinyal&quot;"
+                        android:textColor="#E2E8F0"
+                        android:textSize="14sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 4 TAB NAVIGASI BAWAH YANG BESAR & JELAS -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:background="#0F1623"
+        android:orientation="horizontal"
+        android:padding="8dp">
 
-        <TextView
-            android:id="@+id/tvStatus"
-            android:layout_width="match_parent"
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/tabMain"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:paddingBottom="16dp"
-            android:text="Memuat status..." />
+            android:layout_weight="1"
+            android:minHeight="58dp"
+            android:background="@drawable/bg_tab_active"
+            android:text="🏠\nUtama"
+            android:textAllCaps="false"
+            android:textColor="#10B981"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:contentDescription="Menu 1: Utama, Aksi cepat 2 kali 2" />
 
-        <Button
-            android:id="@+id/btnVoiceGuide"
-            android:layout_width="match_parent"
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/tabSetup"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:layout_marginBottom="10dp"
-            android:backgroundTint="#2962FF"
-            android:textColor="#FFFFFF"
-            android:text="🔊 Panduan Suara Aplikasi"
-            android:contentDescription="Panduan Suara Aplikasi. Ketuk untuk mendengarkan fungsi setiap tombol utama." />
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:minHeight="58dp"
+            android:background="@drawable/bg_tab_inactive"
+            android:text="⚙️\nPersiapan"
+            android:textAllCaps="false"
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:contentDescription="Menu 2: Persiapan, 8 pengaturan sistem" />
 
-        <Button
-            android:id="@+id/btnPermissions"
-            android:layout_width="match_parent"
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/tabUtils"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="1. Beri izin (mikrofon, kamera, lokasi, kontak, SMS, telepon)"
-            android:contentDescription="Beri izin aplikasi" />
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:minHeight="58dp"
+            android:background="@drawable/bg_tab_inactive"
+            android:text="🧰\nUtilitas"
+            android:textAllCaps="false"
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:contentDescription="Menu 3: Utilitas dan kesehatan" />
 
-        <Button
-            android:id="@+id/btnAccessibility"
-            android:layout_width="match_parent"
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/tabVoice"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="2. Aktifkan layanan aksesibilitas Kobra"
-            android:contentDescription="Buka pengaturan aksesibilitas" />
-
-        <Button
-            android:id="@+id/btnNotifAccess"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="3. Aktifkan akses notifikasi (baca notifikasi dan telepon masuk)"
-            android:contentDescription="Buka pengaturan akses notifikasi" />
-
-        <Button
-            android:id="@+id/btnSettings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="4. Pengaturan AI (OpenRouter dan n8n)"
-            android:contentDescription="Buka pengaturan AI" />
-
-        <Button
-            android:id="@+id/btnSos"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="5. Kontak darurat SOS"
-            android:contentDescription="Atur kontak darurat" />
-
-        <Button
-            android:id="@+id/btnBattery"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="6. Jangan matikan Kobra saat baterai hemat"
-            android:contentDescription="Izinkan berjalan di latar belakang" />
-
-        <Button
-            android:id="@+id/btnStartService"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="7. Jalankan Kobra di latar belakang"
-            android:contentDescription="Jalankan layanan Kobra" />
-
-        <Button
-            android:id="@+id/btnLauncher"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:text="8. Jadikan Kobra sebagai layar utama"
-            android:contentDescription="Pilih layar utama" />
-
-        <Button
-            android:id="@+id/btnCompass"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:minHeight="64dp"
-            android:backgroundTint="#00897B"
-            android:textColor="#FFFFFF"
-            android:text="🧭 Kompas Suara, Lokasi &amp; Rute Pulang"
-            android:contentDescription="Buka kompas suara offline, cek lokasi GPS, dan penanda rute pulang" />
-
-        <Button
-            android:id="@+id/btnMedicalCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:minHeight="64dp"
-            android:backgroundTint="#EF6C00"
-            android:textColor="#FFFFFF"
-            android:text="🏥 Kartu Identitas Medis Darurat"
-            android:contentDescription="Buka dan atur kartu identitas medis darurat" />
-
-        <Button
-            android:id="@+id/btnProductivity"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:minHeight="64dp"
-            android:backgroundTint="#7C4DFF"
-            android:textColor="#FFFFFF"
-            android:text="📅 Memo, Barang, Pengeluaran &amp; Obat"
-            android:contentDescription="Buka memo suara, pengingat lokasi barang, pengeluaran harian, jadwal obat, dan agenda Hijriah" />
-
-        <Button
-            android:id="@+id/btnPrayer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:minHeight="64dp"
-            android:backgroundTint="#00695C"
-            android:textColor="#FFFFFF"
-            android:text="🕌 Jadwal Sholat &amp; Kiblat Offline"
-            android:contentDescription="Buka jadwal sholat lima waktu dan kompas kiblat offline" />
-
-        <Button
-            android:id="@+id/btnCaregiver"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:minHeight="64dp"
-            android:backgroundTint="#37474F"
-            android:textColor="#FFFFFF"
-            android:text="👨‍👩‍👧 Mode Pendamping (PIN &amp; Keluarga)"
-            android:contentDescription="Buka mode pendamping untuk mengatur PIN keamanan, pengawasan, dan jadwal obat" />
-
-        <Button
-            android:id="@+id/btnSecondEyeMenu"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:minHeight="64dp"
-            android:backgroundTint="#1565C0"
-            android:textColor="#FFFFFF"
-            android:text="👁️ Mata Kedua (Uang, Baju, Layar, Struk, Barcode, Objek)"
-            android:contentDescription="Pilih mode kamera Mata Kedua: penghitung uang tunai, padu padan pakaian, pembaca layar digital, pemindai struk transfer, barcode, cari objek, atau terjemahan kamera" />
-
-        <Button
-            android:id="@+id/btnDocumentReader"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:minHeight="64dp"
-            android:backgroundTint="#4E342E"
-            android:textColor="#FFFFFF"
-            android:text="📄 Pembaca Dokumen (.TXT &amp; .PDF)"
-            android:contentDescription="Buka pembaca dokumen teks dan PDF dengan kontrol jeda, lanjut, ulangi paragraf, ringkasan AI, dan terjemahan offline" />
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:minHeight="58dp"
+            android:background="@drawable/bg_tab_inactive"
+            android:text="🗣️\nPanduan"
+            android:textAllCaps="false"
+            android:textColor="#94A3B8"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:contentDescription="Menu 4: Panduan contoh perintah suara" />
     </LinearLayout>
-</ScrollView>
+
+</LinearLayout>

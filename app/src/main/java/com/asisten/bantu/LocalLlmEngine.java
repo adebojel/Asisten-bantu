@@ -25,6 +25,8 @@ public class LocalLlmEngine {
 
     // Nama berkas model Gemma 3 1B di penyimpanan internal (/data/data/com.asisten.bantu/files/)
     public static final String MODEL_FILENAME = "gemma3-1b-it-int4.task";
+    public static final String CRASH_SAFE_MODE_REASON =
+            "Mode Aman: Model lokal terlalu berat untuk RAM perangkat (Gunakan model int4 256/512 token atau hapus model)";
 
     public interface StreamingCallback {
         void onPartialResult(String partialText, boolean isComplete);
@@ -71,6 +73,17 @@ public class LocalLlmEngine {
     public LocalLlmEngine(Context context) {
         this.context = context.getApplicationContext();
         this.mainHandler = new Handler(Looper.getMainLooper());
+        syncCrashGuardState();
+    }
+
+    private synchronized void syncCrashGuardState() {
+        KobraConfig cfg = new KobraConfig(context);
+        cfg.checkAndHandlePreviousLlmCrash();
+        if (cfg.isLlmSafeMode()) {
+            this.safeMode = true;
+            String savedReason = cfg.getLlmSafeReason();
+            this.lastError = savedReason.isEmpty() ? CRASH_SAFE_MODE_REASON : savedReason;
+        }
     }
 
     /** Mengembalikan objek File untuk model internal. */
@@ -83,12 +96,14 @@ public class LocalLlmEngine {
         return isInitialized && llmInference != null && !safeMode;
     }
 
-    /** True jika aplikasi berjalan di Mode Aman karena model belum tersedia atau memori penuh. */
+    /** True jika aplikasi berjalan di Mode Aman karena model belum tersedia atau crash/memori penuh. */
     public synchronized boolean isSafeMode() {
+        syncCrashGuardState();
         return safeMode || !isModelPresent();
     }
 
     public synchronized String getLastError() {
+        syncCrashGuardState();
         return lastError;
     }
 
@@ -121,13 +136,35 @@ public class LocalLlmEngine {
     }
 
     /**
-     * Memuat model bahasa offline ke memori. Dipanggil pada thread latar belakang.
-     * Menangani OOM / memori penuh dengan masuk ke Mode Aman tanpa crash.
+     * Memuat model bahasa offline ke memori secara on-demand. Dipanggil pada thread latar belakang.
+     * Menggunakan Native Crash-Guard (llm_crash_guard) agar proses tidak mengalami crash-loop SIGSEGV/OOM.
      */
     public synchronized boolean initEngine() {
+        return initEngineInternal(false);
+    }
+
+    /** Mereset status Mode Aman crash-guard dan mencoba memuat model secara manual atas permintaan pengguna. */
+    public synchronized boolean forceInitEngine() {
+        close();
+        new KobraConfig(context).clearLlmSafeMode();
+        this.safeMode = false;
+        this.lastError = "";
+        return initEngineInternal(true);
+    }
+
+    private synchronized boolean initEngineInternal(boolean ignoreExistingSafeMode) {
         if (isInitialized && llmInference != null) {
             safeMode = false;
             return true;
+        }
+
+        KobraConfig cfg = new KobraConfig(context);
+        if (!ignoreExistingSafeMode && (cfg.checkAndHandlePreviousLlmCrash() || cfg.isLlmSafeMode())) {
+            safeMode = true;
+            String savedReason = cfg.getLlmSafeReason();
+            lastError = savedReason.isEmpty() ? CRASH_SAFE_MODE_REASON : savedReason;
+            Log.w(TAG, "Melewati pemuatan otomatis LLM karena Native Crash-Guard aktif: " + lastError);
+            return false;
         }
 
         File modelFile = getModelFile();
@@ -143,7 +180,7 @@ public class LocalLlmEngine {
 
             LlmInference.LlmInferenceOptions options = LlmInference.LlmInferenceOptions.builder()
                     .setModelPath(modelFile.getAbsolutePath())
-                    .setMaxTokens(1024)
+                    .setMaxTokens(512)
                     .setTopK(40)
                     .setTemperature(0.3f)
                     .setResultListener((partialResult, done) -> {
@@ -200,7 +237,11 @@ public class LocalLlmEngine {
                     })
                     .build();
 
+            // Simpan flag crash-guard secara sinkron sebelum JNI native createFromOptions dipanggil
+            cfg.setLlmInitPending(true);
             llmInference = LlmInference.createFromOptions(context, options);
+            cfg.clearLlmSafeMode();
+
             isInitialized = true;
             safeMode = false;
             lastError = "";
@@ -211,13 +252,20 @@ public class LocalLlmEngine {
             Log.e(TAG, "Memori penuh (OOM) saat memuat model LLM offline. Masuk ke Mode Aman.", oom);
             cleanupPartialInference();
             safeMode = true;
-            lastError = "Memori HP tidak cukup (OOM)";
+            lastError = CRASH_SAFE_MODE_REASON;
+            cfg.setLlmInitPending(false);
+            cfg.setLlmSafeMode(true);
+            cfg.setLlmSafeReason(CRASH_SAFE_MODE_REASON);
             return false;
         } catch (Throwable t) {
             Log.e(TAG, "Gagal menginisialisasi MediaPipe LLM Inference. Masuk ke Mode Aman.", t);
             cleanupPartialInference();
             safeMode = true;
-            lastError = t.getMessage() != null ? t.getMessage() : "Gagal memuat model";
+            String errMsg = t.getMessage() != null ? t.getMessage() : CRASH_SAFE_MODE_REASON;
+            lastError = errMsg;
+            cfg.setLlmInitPending(false);
+            cfg.setLlmSafeMode(true);
+            cfg.setLlmSafeReason(errMsg);
             return false;
         }
     }
@@ -232,8 +280,23 @@ public class LocalLlmEngine {
 
     /** Memuat ulang mesin bahasa offline (misal setelah model baru diimpor). */
     public synchronized boolean reloadEngine() {
+        return forceInitEngine();
+    }
+
+    /** Menghapus berkas model lokal .task dari penyimpanan internal dan mereset Mode Aman. */
+    public synchronized boolean deleteLocalModel() {
         close();
-        return initEngine();
+        clearSessionHistory();
+        File modelFile = getModelFile();
+        File tempFile = new File(context.getFilesDir(), MODEL_FILENAME + ".tmp");
+        if (tempFile.exists()) {
+            tempFile.delete();
+        }
+        boolean deleted = !modelFile.exists() || modelFile.delete();
+        new KobraConfig(context).clearLlmSafeMode();
+        this.safeMode = false;
+        this.lastError = "";
+        return deleted;
     }
 
     /**

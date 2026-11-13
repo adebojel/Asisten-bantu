@@ -198,16 +198,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
         speaker = Speaker.get(this);
         speaker.addListener(speechListener);
 
-        // Inisialisasi Mesin LLM Offline pada Thread Latar Belakang (dengan Safe Mode Fallback)
+        // Lazy-load Mesin LLM Offline: cek crash-guard tanpa memuat model berat saat startup
         localLlmEngine = LocalLlmEngine.getInstance(this);
-        new Thread(() -> {
-            if (localLlmEngine.isModelPresent()) {
-                boolean ok = localLlmEngine.initEngine();
-                if (!ok && main != null) {
-                    main.post(() -> speaker.speak("Model AI offline tidak dapat dimuat ke memori. Kobra berjalan di Mode Aman perintah sistem lokal."));
-                }
-            }
-        }).start();
+        if (localLlmEngine.isModelPresent() && localLlmEngine.isSafeMode() && main != null) {
+            main.postDelayed(() -> speaker.speakQueued("Model AI offline berada di Mode Aman karena terlalu berat untuk RAM. Kobra tetap aktif dengan perintah sistem lokal."), 3000L);
+        }
 
         networkCallback = NetworkState.watch(this, online -> main.post(() -> {
             if (online) {

@@ -113,15 +113,45 @@
             android:textSize="16sp"
             android:text="Status model: Memeriksa..." />
 
-        <Button
-            android:id="@+id/btnImportModel"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:backgroundTint="#2962FF"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnImportModel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="64dp"
+                android:backgroundTint="#2962FF"
+                android:textColor="#FFFFFF"
+                android:text="📁 IMPOR MODEL LOKAL (.TASK)"
+                android:contentDescription="Impor berkas model offline titik task dari folder Download atau penyimpanan HP" />
+
+            <Button
+                android:id="@+id/btnDeleteModel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minHeight="64dp"
+                android:backgroundTint="#DC2626"
+                android:textColor="#FFFFFF"
+                android:text="🗑️ HAPUS MODEL LOKAL"
+                android:contentDescription="Hapus berkas model offline titik task dari penyimpanan internal HP untuk membebaskan RAM dan ruang penyimpanan" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnLoadModel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="58dp"
+            android:backgroundTint="#0D9488"
             android:textColor="#FFFFFF"
-            android:text="📁 IMPOR MODEL LOKAL (.TASK)"
-            android:contentDescription="Impor berkas model offline titik task dari folder Download atau penyimpanan HP" />
+            android:text="🧠 MUAT / UJI MODEL LOKAL"
+            android:contentDescription="Muat atau uji model AI offline ke memori secara langsung dengan batas hemat RAM" />
 
         <ProgressBar
             android:id="@+id/pbImportModel"
