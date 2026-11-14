@@ -73,6 +73,8 @@ open class ChatActivity : AppCompatActivity() {
     private var handsFreeConversation = false
     private var suppressHandsFreeRearm = false
     private var recognitionGeneration = 0L
+    private var recognitionRetryCount = 0
+    private lateinit var btnHandsFreeConversation: Button
     private var attachedImageB64: String? = null
     private var attachedBitmap: Bitmap? = null
 
@@ -155,8 +157,8 @@ open class ChatActivity : AppCompatActivity() {
         }
         findViewById<ImageButton>(R.id.btnChatMic).setOnClickListener(bargeInListener)
         voiceOrb.setOnClickListener(bargeInListener)
-        val btnHandsFree = findViewById<Button>(R.id.btnHandsFreeConversation)
-        btnHandsFree.setOnClickListener {
+        btnHandsFreeConversation = findViewById(R.id.btnHandsFreeConversation)
+        btnHandsFreeConversation.setOnClickListener {
             val enable = !handsFreeConversation
             if (enable) {
                 // Suppress the TTS completion callback so it cannot start a second recognizer.
@@ -164,12 +166,13 @@ open class ChatActivity : AppCompatActivity() {
                 speaker.stop()
                 suppressHandsFreeRearm = false
                 handsFreeConversation = true
-                btnHandsFree.text = "Percakapan hands-free: AKTIF"
+                recognitionRetryCount = 0
+                btnHandsFreeConversation.text = "Percakapan hands-free: AKTIF"
                 tvModelInfo.text = "Mode percakapan aktif • bicara bergantian"
                 startSpeechRecognition()
             } else {
                 handsFreeConversation = false
-                btnHandsFree.text = "Percakapan hands-free"
+                btnHandsFreeConversation.text = "Percakapan hands-free"
                 stopSpeechRecognition()
                 refreshModeBanner()
             }
@@ -213,6 +216,18 @@ open class ChatActivity : AppCompatActivity() {
         speaker.speak(greeting)
     }
 
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        // Tombol headset kabel/Bluetooth: satu tekan untuk mulai/berhenti bicara.
+        // Hanya tangani saat layar Chat Kobra sedang aktif agar tidak mengambil alih pemutar lain.
+        if (keyCode == KeyEvent.KEYCODE_HEADSETHOOK ||
+            keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE ||
+            keyCode == KeyEvent.KEYCODE_VOICE_ASSIST) {
+            if (event.repeatCount == 0 && !event.isCanceled) triggerVoiceBargeIn()
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (screenHelper.handleKeyEvent(this, event, speaker)) return true
         return super.dispatchKeyEvent(event)
@@ -243,6 +258,7 @@ open class ChatActivity : AppCompatActivity() {
     override fun onPause() {
         if (current === this) current = null
         handsFreeConversation = false
+        if (::btnHandsFreeConversation.isInitialized) btnHandsFreeConversation.text = "Percakapan hands-free"
         speaker.removeListener(speechListener)
         stopSpeechRecognition()
         super.onPause()
@@ -257,10 +273,10 @@ open class ChatActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 301) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startSpeechRecognition()
+                if (!isFinishing && !isDestroyed) startSpeechRecognition()
             } else {
                 handsFreeConversation = false
-                findViewById<Button>(R.id.btnHandsFreeConversation).text = "Percakapan hands-free"
+                btnHandsFreeConversation.text = "Percakapan hands-free"
                 speaker.speak("Izin mikrofon belum diberikan. Aktifkan izin mikrofon untuk memakai percakapan suara.")
             }
         }
@@ -358,7 +374,7 @@ open class ChatActivity : AppCompatActivity() {
 
             sr.setRecognitionListener(object : RecognitionListener {
                 private fun isCurrentSession(): Boolean =
-                    speechRecognizer === sr && recognitionGeneration == generation && !isFinishing
+                    speechRecognizer === sr && recognitionGeneration == generation && !isFinishing && !isDestroyed
 
                 override fun onReadyForSpeech(params: Bundle?) {
                     if (!isCurrentSession()) return
@@ -382,11 +398,11 @@ open class ChatActivity : AppCompatActivity() {
                     voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
                     refreshModeBanner()
                     if (handsFreeConversation && error != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
-                        voiceOrb.postDelayed({
-                            if (handsFreeConversation && !isListening && current === this@ChatActivity && !isFinishing) {
-                                startSpeechRecognition()
-                            }
-                        }, 900L)
+                        scheduleHandsFreeRetry("pengenalan suara")
+                    } else if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                        handsFreeConversation = false
+                        btnHandsFreeConversation.text = "Percakapan hands-free"
+                        speaker.speak("Izin mikrofon diperlukan untuk melanjutkan percakapan suara.")
                     }
                 }
                 override fun onResults(results: Bundle?) {
@@ -399,14 +415,11 @@ open class ChatActivity : AppCompatActivity() {
                     val list = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     val spoken = list?.firstOrNull()?.trim().orEmpty()
                     if (spoken.isNotEmpty()) {
+                        recognitionRetryCount = 0
                         etInput.setText(spoken)
                         sendCurrentInput()
                     } else if (handsFreeConversation) {
-                        voiceOrb.postDelayed({
-                            if (handsFreeConversation && !isListening && current === this@ChatActivity && !isFinishing) {
-                                startSpeechRecognition()
-                            }
-                        }, 500L)
+                        scheduleHandsFreeRetry("hasil suara kosong")
                     }
                 }
                 override fun onPartialResults(partialResults: Bundle?) {}
@@ -423,6 +436,24 @@ open class ChatActivity : AppCompatActivity() {
             isListening = false
             voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
         }
+    }
+
+    private fun scheduleHandsFreeRetry(reason: String) {
+        if (!handsFreeConversation || isFinishing || isDestroyed) return
+        recognitionRetryCount++
+        if (recognitionRetryCount > 3) {
+            handsFreeConversation = false
+            btnHandsFreeConversation.text = "Percakapan hands-free"
+            refreshModeBanner()
+            speaker.speak("Pengenalan suara gagal beberapa kali. Silakan tekan tombol mikrofon untuk mencoba lagi.")
+            return
+        }
+        val delayMs = 700L * recognitionRetryCount
+        voiceOrb.postDelayed({
+            if (handsFreeConversation && !isListening && current === this@ChatActivity && !isFinishing && !isDestroyed) {
+                startSpeechRecognition()
+            }
+        }, delayMs)
     }
 
     private fun stopSpeechRecognition() {
