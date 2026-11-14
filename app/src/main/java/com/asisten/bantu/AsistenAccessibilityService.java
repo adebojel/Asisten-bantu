@@ -202,6 +202,35 @@ public class AsistenAccessibilityService extends AccessibilityService {
         });
     }
 
+    /**
+     * Unified intent gate: clearly phrased device/accessibility commands are executed
+     * by the local command router; ordinary conversation stays in Chat/AI context.
+     */
+    public static boolean dispatchUnifiedInput(String raw) {
+        AsistenAccessibilityService service = instance;
+        if (service == null || raw == null || raw.trim().isEmpty()) return false;
+        String c = raw.toLowerCase(Locale.ROOT).trim();
+        boolean deviceCommand = c.startsWith("buka ") || c.startsWith("tekan ") || c.startsWith("klik ")
+                || c.startsWith("ketik ") || c.startsWith("tulis ") || c.startsWith("scroll ")
+                || c.startsWith("geser ") || c.startsWith("panggil ") || c.startsWith("telepon ")
+                || c.startsWith("telpon ") || c.startsWith("kirim pesan ") || c.startsWith("chat ke ")
+                || c.startsWith("whatsapp ke ") || c.startsWith("arahkan ke ") || c.startsWith("navigasi ke ")
+                || c.startsWith("pandu ke ") || c.startsWith("tuntun ke ")
+                || has(c, "kembali", "beranda", "layar utama", "aplikasi terbaru", "pengaturan cepat",
+                "baca layar", "isi layar", "apa di layar", "baterai", "jam berapa", "tanggal",
+                "nyalakan senter", "matikan senter", "senter", "volume", "bluetooth", "gps",
+                "status sinyal", "cek sinyal", "cek mikrofon", "status mikrofon", "nyalakan mikrofon",
+                "matikan mikrofon", "mode privasi", "layar hitam", "cari hp", "posisi saya",
+                "saya di mana", "alamat saya", "rute pulang", "arahkan pulang", "baca notifikasi",
+                "ringkas notifikasi", "baca ktp", "baca uang", "hitung uang", "scan qr", "scan barcode",
+                "cari benda", "apa di depan", "deteksi orang", "buka kompas", "kompas",
+                "ringkasan harian", "briefing pagi", "ingat bahwa", "simpan memori", "apa yang kamu ingat",
+                "saya aman", "konfirmasi aman", "sos", "darurat", "bantuan", "daftar perintah");
+        if (!deviceCommand) return false;
+        service.main.post(() -> service.route(c));
+        return true;
+    }
+
     public LocalLlmEngine getLocalLlmEngine() {
         return localLlmEngine != null ? localLlmEngine : LocalLlmEngine.getInstance(this);
     }
