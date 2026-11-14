@@ -1241,6 +1241,13 @@ public class SettingsActivity extends AppCompatActivity {
         File liteFile = LocalModelRegistry.fileFor(this, liteEntry);
 
         if (LocalModelRegistry.isValidFile(liteFile, liteEntry)) {
+            if (!LocalModelRegistry.canAttemptLiteRtModel(this)) {
+                tvImportProgress.setVisibility(View.VISIBLE);
+                tvImportProgress.setTextColor(0xFFFFD600);
+                tvImportProgress.setText("Memori bebas belum cukup. Tutup aplikasi lain dan coba lagi; model tidak dimuat agar HP tetap stabil.");
+                speaker.speak("Memori bebas belum cukup untuk menguji Qwen tiga. Tutup aplikasi lain lalu coba lagi.");
+                return;
+            }
             btnLoadModel.setEnabled(false);
             btnImportModel.setEnabled(false);
             pbImportModel.setVisibility(View.VISIBLE);
