@@ -679,8 +679,17 @@ open class ChatActivity : AppCompatActivity() {
         private val items = ArrayList<ChatMessage>()
 
         fun addMessage(msg: ChatMessage) {
+            // Bound in-memory chat history so long voice sessions do not grow the adapter forever.
+            if (items.size >= MAX_MESSAGES_IN_MEMORY) {
+                items.removeAt(0)
+                notifyItemRemoved(0)
+            }
             items.add(msg)
             notifyItemInserted(items.size - 1)
+        }
+
+        companion object {
+            private const val MAX_MESSAGES_IN_MEMORY = 120
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
