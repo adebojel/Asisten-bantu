@@ -47,6 +47,22 @@ open class ChatActivity : AppCompatActivity() {
     companion object {
         @JvmField
         var current: ChatActivity? = null
+
+        /** Voice bridge: global AccessibilityService and the visible chat share one conversation. */
+        @JvmStatic
+        fun dispatchGlobalVoice(text: String): Boolean {
+            val activity = current ?: return false
+            if (!activity.handsFreeConversation || activity.isFinishing || activity.isDestroyed) return false
+            activity.onVoice(text)
+            return true
+        }
+
+        @JvmStatic
+        fun isUnifiedConversationActive(): Boolean {
+            val activity = current
+            return activity != null && activity.handsFreeConversation &&
+                !activity.isFinishing && !activity.isDestroyed
+        }
     }
 
     private lateinit var rvMessages: RecyclerView
@@ -168,12 +184,17 @@ open class ChatActivity : AppCompatActivity() {
                 suppressHandsFreeRearm = false
                 handsFreeConversation = true
                 recognitionRetryCount = 0
-                btnHandsFreeConversation.text = "Percakapan hands-free: AKTIF"
-                tvModelInfo.text = "Mode percakapan aktif • bicara bergantian"
-                startSpeechRecognition()
+                btnHandsFreeConversation.text = "Percakapan terpadu: AKTIF"
+                tvModelInfo.text = "Percakapan Kobra terpadu • Chat + kontrol HP + suara"
+                if (AsistenAccessibilityService.isRunning()) {
+                    AsistenAccessibilityService.setUnifiedChatMode(true)
+                } else {
+                    startSpeechRecognition()
+                }
             } else {
                 handsFreeConversation = false
-                btnHandsFreeConversation.text = "Percakapan hands-free"
+                btnHandsFreeConversation.text = "Percakapan terpadu"
+                AsistenAccessibilityService.setUnifiedChatMode(false)
                 stopSpeechRecognition()
                 refreshModeBanner()
             }
@@ -259,7 +280,8 @@ open class ChatActivity : AppCompatActivity() {
     override fun onPause() {
         if (current === this) current = null
         handsFreeConversation = false
-        if (::btnHandsFreeConversation.isInitialized) btnHandsFreeConversation.text = "Percakapan hands-free"
+        AsistenAccessibilityService.setUnifiedChatMode(false)
+        if (::btnHandsFreeConversation.isInitialized) btnHandsFreeConversation.text = "Percakapan terpadu"
         speaker.removeListener(speechListener)
         stopSpeechRecognition()
         super.onPause()
