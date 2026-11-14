@@ -701,7 +701,11 @@ open class ChatActivity : AppCompatActivity() {
     private fun routeToOnlineOrFallback(question: String, systemPrompt: String) {
         if (NetworkState.isOnline(this)) {
             tvModelInfo.text = "Menghubungi ${OnlineAiRouter.getActiveProviderSummary(this)}..."
-            OnlineAiRouter.askAsync(this, question, systemPrompt, object : OnlineAiRouter.Callback {
+            val previousContext = adapter.recentConversationContext()
+            val contextualQuestion = if (previousContext.isBlank()) question else
+                "Konteks percakapan sebelumnya (gunakan untuk menjaga kesinambungan, jangan mengulang tanpa perlu):\n" +
+                    previousContext + "\n\nPesan terbaru pengguna:\n" + question
+            OnlineAiRouter.askAsync(this, contextualQuestion, systemPrompt, object : OnlineAiRouter.Callback {
                 override fun onResult(text: String, providerLabel: String) {
                     if (isFinishing || isDestroyed) return
                     replyAndSpeak(text, providerLabel)
@@ -778,6 +782,17 @@ open class ChatActivity : AppCompatActivity() {
             }
             items.add(msg)
             notifyItemInserted(items.size - 1)
+        }
+
+        /** Last bounded turns for online AI continuity; omit the current user turn (sent separately). */
+        fun recentConversationContext(): String {
+            val endExclusive = if (items.lastOrNull()?.fromUser == true) items.size - 1 else items.size
+            if (endExclusive <= 0) return ""
+            return items.subList(0, endExclusive).takeLast(12)
+                .joinToString("\\n") { item ->
+                    (if (item.fromUser) "Pengguna: " else "Kobra: ") + item.text
+                }
+                .takeLast(2600)
         }
 
         companion object {
