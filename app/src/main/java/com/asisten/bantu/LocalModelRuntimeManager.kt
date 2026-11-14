@@ -19,15 +19,15 @@ object LocalModelRuntimeManager {
 
     private val idleUnload = Runnable { release() }
 
-    fun modelFile(context: Context): File =
+    @JvmStatic fun modelFile(context: Context): File =
         File(LocalModelRegistry.directory(context), QWEN_FILE)
 
-    fun isModelAvailable(context: Context): Boolean {
+    @JvmStatic fun isModelAvailable(context: Context): Boolean {
         val file = modelFile(context)
         return file.isFile && file.length() > 1024L * 1024L
     }
 
-    fun answerAsync(context: Context, prompt: String, callback: (String?, String?) -> Unit) {
+    @JvmStatic fun answerAsync(context: Context, prompt: String, callback: (String?, String?) -> Unit) {
         val appContext = context.applicationContext
         val file = modelFile(appContext)
         if (!file.isFile || file.length() <= 1024L * 1024L) {
@@ -86,7 +86,7 @@ object LocalModelRuntimeManager {
         idleHandler.postDelayed(idleUnload, IDLE_UNLOAD_MS)
     }
 
-    fun release() {
+    @JvmStatic fun release() {
         idleHandler.removeCallbacks(idleUnload)
         if (busy.get()) return
         synchronized(this) {
