@@ -132,6 +132,22 @@
         </LinearLayout>
     </HorizontalScrollView>
 
+    <Button
+        android:id="@+id/btnHandsFreeConversation"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/bg_glass_button_primary"
+        android:contentDescription="Aktifkan percakapan suara hands-free bergantian"
+        android:text="Percakapan hands-free"
+        android:textAllCaps="false"
+        android:textColor="#06101C"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
     <!-- Safe Mode Banner -->
     <Button
         android:id="@+id/btnResetSafeModeChat"
