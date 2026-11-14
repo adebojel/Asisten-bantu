@@ -348,7 +348,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return super.onKeyEvent(event);
         }
         int code = event.getKeyCode();
-        if (code == KeyEvent.KEYCODE_HEADSETHOOK || code == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
+        if (code == KeyEvent.KEYCODE_HEADSETHOOK
+                || code == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                || code == KeyEvent.KEYCODE_VOICE_ASSIST) {
             HapticFeedback.vibrateAction(this);
             if (EmergencyBeacon.isSirenActive()) {
                 EmergencyBeacon.stopAll(this, torchId);
@@ -454,12 +456,20 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void createRecognizer() {
-        recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        // Prioritaskan pengenalan di perangkat pada Android 12+ agar perintah tetap
+        // dapat diproses tanpa internet jika paket bahasa Indonesia tersedia.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+            recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
+        } else {
+            recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        }
         recognizer.setRecognitionListener(recognitionListener);
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID");
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
     }
 
