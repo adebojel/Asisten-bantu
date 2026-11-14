@@ -1,22 +1,26 @@
 package com.asisten.bantu
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Owns the optional LiteRT-LM model instance for the process.
- * Qwen is kept separate from the legacy MediaPipe .task engine.
+ * Requests are serialized; the model is unloaded after an idle period to return RAM.
  */
 object LocalModelRuntimeManager {
     @Volatile private var engine: LiteRtLmEngine? = null
-    private val initializing = AtomicBoolean(false)
-
+    private val busy = AtomicBoolean(false)
+    private val idleHandler = Handler(Looper.getMainLooper())
     private const val QWEN_FILE = "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
+    private const val IDLE_UNLOAD_MS = 120_000L
 
-    fun modelFile(context: Context): File {
-        return File(LocalModelRegistry.directory(context), QWEN_FILE)
-    }
+    private val idleUnload = Runnable { release() }
+
+    fun modelFile(context: Context): File =
+        File(LocalModelRegistry.directory(context), QWEN_FILE)
 
     fun isModelAvailable(context: Context): Boolean {
         val file = modelFile(context)
@@ -30,19 +34,23 @@ object LocalModelRuntimeManager {
             callback(null, "Model Qwen3 .litertlm belum terpasang.")
             return
         }
-
-        val active = synchronized(this) {
-            engine ?: LiteRtLmEngine(appContext).also { engine = it }
+        if (prompt.isBlank()) {
+            callback(null, "Pertanyaan kosong.")
+            return
         }
-        if (!initializing.compareAndSet(false, true)) {
-            callback(null, "Model lokal sedang disiapkan. Coba lagi sebentar.")
+        if (!busy.compareAndSet(false, true)) {
+            callback(null, "Model lokal sedang memproses permintaan lain. Coba lagi sebentar.")
             return
         }
 
+        idleHandler.removeCallbacks(idleUnload)
+        val active = synchronized(this) {
+            engine ?: LiteRtLmEngine(appContext).also { engine = it }
+        }
         active.initializeAsync(file, object : LiteRtLmEngine.Callback {
             override fun onReady(success: Boolean, message: String) {
-                initializing.set(false)
                 if (!success) {
+                    finishRequest()
                     callback(null, message)
                     return
                 }
@@ -53,10 +61,12 @@ object LocalModelRuntimeManager {
                         response.append(text)
                     }
                     override fun onComplete() {
-                        callback(response.toString().trim().takeIf { it.isNotEmpty() },
-                            if (response.isEmpty()) "Model tidak menghasilkan jawaban." else null)
+                        val answer = response.toString().trim().takeIf { it.isNotEmpty() }
+                        finishRequest()
+                        callback(answer, if (answer == null) "Model tidak menghasilkan jawaban." else null)
                     }
                     override fun onError(message: String) {
+                        finishRequest()
                         callback(null, message)
                     }
                 })
@@ -64,17 +74,24 @@ object LocalModelRuntimeManager {
             override fun onPartial(text: String) {}
             override fun onComplete() {}
             override fun onError(message: String) {
-                initializing.set(false)
+                finishRequest()
                 callback(null, message)
             }
         })
     }
 
+    private fun finishRequest() {
+        busy.set(false)
+        idleHandler.removeCallbacks(idleUnload)
+        idleHandler.postDelayed(idleUnload, IDLE_UNLOAD_MS)
+    }
+
     fun release() {
+        idleHandler.removeCallbacks(idleUnload)
+        if (busy.get()) return
         synchronized(this) {
             engine?.close()
             engine = null
-            initializing.set(false)
         }
     }
 }
