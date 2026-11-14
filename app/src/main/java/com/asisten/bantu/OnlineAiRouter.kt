@@ -251,50 +251,56 @@ object OnlineAiRouter {
         val cached = freeModelCache
         if (cached.isNotEmpty() && now - freeModelCacheAtMs < freeModelCacheTtlMs) return cached
 
-        synchronized(freeModelCacheLock) {
+        return synchronized(freeModelCacheLock) {
             val secondCheck = freeModelCache
             if (secondCheck.isNotEmpty() && now - freeModelCacheAtMs < freeModelCacheTtlMs) {
-                return secondCheck
-            }
-            return try {
-                val request = Request.Builder()
-                    .url("https://openrouter.ai/api/v1/models")
-                    .addHeader("Authorization", "Bearer $apiKey")
-                    .addHeader("HTTP-Referer", "https://github.com/adebojel/Asisten-bantu")
-                    .addHeader("X-Title", "Kobra OS")
-                    .get()
-                    .build()
-                httpClient.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) return@synchronized secondCheck
-                    val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
-                        ?: return@synchronized secondCheck
-                    val discovered = ArrayList<String>()
-                    for (i in 0 until data.length()) {
-                        val model = data.optJSONObject(i) ?: continue
-                        val id = model.optString("id", "").trim()
-                        val pricing = model.optJSONObject("pricing") ?: continue
-                        val promptPrice = pricing.optString("prompt", "")
-                        val completionPrice = pricing.optString("completion", "")
-                        val isFree = promptPrice.toDoubleOrNull() == 0.0 &&
-                                completionPrice.toDoubleOrNull() == 0.0
-                        val isTextOnly = model.optJSONArray("architecture")
-                            ?.optJSONObject(0)?.optString("modality", "")?.contains("text") ?: true
-                        if (id.isNotEmpty() && isFree && isTextOnly &&
-                                !id.contains("embedding", ignoreCase = true) &&
-                                !id.contains("audio", ignoreCase = true)) {
-                            discovered.add(id)
+                secondCheck
+            } else {
+                try {
+                    val request = Request.Builder()
+                        .url("https://openrouter.ai/api/v1/models")
+                        .addHeader("Authorization", "Bearer $apiKey")
+                        .addHeader("HTTP-Referer", "https://github.com/adebojel/Asisten-bantu")
+                        .addHeader("X-Title", "Kobra OS")
+                        .get()
+                        .build()
+                    httpClient.newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) {
+                            secondCheck
+                        } else {
+                            val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
+                            val discovered = ArrayList<String>()
+                            if (data != null) {
+                                for (i in 0 until data.length()) {
+                                    val model = data.optJSONObject(i) ?: continue
+                                    val id = model.optString("id", "").trim()
+                                    val pricing = model.optJSONObject("pricing") ?: continue
+                                    val promptPrice = pricing.optString("prompt", "")
+                                    val completionPrice = pricing.optString("completion", "")
+                                    val isFree = promptPrice.toDoubleOrNull() == 0.0 &&
+                                            completionPrice.toDoubleOrNull() == 0.0
+                                    val modality = model.optJSONObject("architecture")
+                                        ?.optString("modality", "").orEmpty()
+                                    val isTextCapable = modality.isEmpty() || modality.contains("text")
+                                    if (id.isNotEmpty() && isFree && isTextCapable &&
+                                            !id.contains("embedding", ignoreCase = true) &&
+                                            !id.contains("audio", ignoreCase = true)) {
+                                        discovered.add(id)
+                                    }
+                                }
+                            }
+                            val result = discovered.distinct().take(8)
+                            if (result.isNotEmpty()) {
+                                freeModelCache = result
+                                freeModelCacheAtMs = now
+                            }
+                            result
                         }
                     }
-                    val result = discovered.distinct().take(8)
-                    if (result.isNotEmpty()) {
-                        freeModelCache = result
-                        freeModelCacheAtMs = now
-                    }
-                    result
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Discovery model gratis OpenRouter gagal: ${t.message}")
+                    secondCheck
                 }
-            } catch (t: Throwable) {
-                Log.w(TAG, "Discovery model gratis OpenRouter gagal: ${t.message}")
-                secondCheck
             }
         }
     }
