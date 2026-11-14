@@ -311,6 +311,9 @@ open class ChatActivity : AppCompatActivity() {
         runOnUiThread {
             val clean = text.trim()
             if (clean.isNotEmpty()) {
+                // Device actions use the local command router; normal conversation
+                // continues through the same Chat/AI history and voice response path.
+                if (AsistenAccessibilityService.dispatchUnifiedInput(clean)) return@runOnUiThread
                 etInput.setText(clean)
                 sendCurrentInput()
             }
