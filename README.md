@@ -145,6 +145,10 @@ Panduan uji manual: [`UJI_DI_HP.md`](UJI_DI_HP.md).
 
 ## 🧩 Cara kerja arsitektur
 
+<div align="center">
+<img src="docs/kobra-overview.svg" alt="Diagram arsitektur hybrid Kobra OS" width="100%">
+</div>
+
 ```mermaid
 flowchart TD
     A["Perintah suara / input pengguna"] --> B["Kobra Command Router"]
