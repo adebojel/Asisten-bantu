@@ -63,6 +63,24 @@ open class ChatActivity : AppCompatActivity() {
             return activity != null && activity.handsFreeConversation &&
                 !activity.isFinishing && !activity.isDestroyed
         }
+
+        @JvmStatic
+        fun appendGlobalUser(text: String) {
+            val activity = current ?: return
+            if (activity.isFinishing || activity.isDestroyed) return
+            activity.runOnUiThread {
+                if (!activity.isFinishing && !activity.isDestroyed) activity.addUserMessage(text)
+            }
+        }
+
+        @JvmStatic
+        fun appendGlobalAssistant(text: String, source: String = "Kontrol Kobra") {
+            val activity = current ?: return
+            if (activity.isFinishing || activity.isDestroyed) return
+            activity.runOnUiThread {
+                if (!activity.isFinishing && !activity.isDestroyed) activity.addAiMessage(text, source)
+            }
+        }
     }
 
     private lateinit var rvMessages: RecyclerView
