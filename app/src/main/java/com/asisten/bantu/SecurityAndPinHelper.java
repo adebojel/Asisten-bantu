@@ -90,7 +90,7 @@ public final class SecurityAndPinHelper {
         input.setContentDescription("Kolom PIN keamanan untuk membuka " + menuName);
 
         new AlertDialog.Builder(context)
-                .setTitle("🔒 Kunci PIN: " + menuName)
+                .setTitle("Kunci PIN: " + menuName)
                 .setMessage("Masukkan PIN keamanan (4-6 digit) untuk melanjutkan.")
                 .setView(input)
                 .setCancelable(false)

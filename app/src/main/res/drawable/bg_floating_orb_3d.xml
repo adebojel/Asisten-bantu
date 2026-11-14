@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer soft cyan ambient halo -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="34dp"
+                android:startColor="#5500E5FF"
+                android:centerColor="#2600E5FF"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+
+    <!-- 3D Glassmorphic dark translucent sphere body with cyan metallic rim -->
+    <item
+        android:bottom="4dp"
+        android:left="4dp"
+        android:right="4dp"
+        android:top="4dp">
+        <shape android:shape="oval">
+            <gradient
+                android:angle="135"
+                android:startColor="#E610233E"
+                android:centerColor="#D9081426"
+                android:endColor="#E6030712" />
+            <stroke
+                android:width="1.8dp"
+                android:color="#B300E5FF" />
+        </shape>
+    </item>
+
+    <!-- Top-left inner glass specular reflection -->
+    <item
+        android:bottom="28dp"
+        android:left="12dp"
+        android:right="14dp"
+        android:top="8dp">
+        <shape android:shape="oval">
+            <gradient
+                android:angle="270"
+                android:startColor="#44FFFFFF"
+                android:endColor="#00FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

@@ -13,14 +13,18 @@ import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Size;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
@@ -39,12 +43,14 @@ import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.objects.DetectedObject;
 import com.google.mlkit.vision.objects.ObjectDetection;
 import com.google.mlkit.vision.objects.ObjectDetector;
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -55,26 +61,26 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Mata Kedua Kobra:
- * - Baca KTP & KK (offline)
- * - Baca & Penghitung Lembar Uang Tunai berurutan (offline OCR + AI fallback)
- * - Deteksi warna & kecocokan padu padan pakaian (offline)
- * - Pembaca layar perangkat digital real-time (ATM, timbangan, meteran)
- * - Pemindai struk & screenshot transfer bank (kamera / galeri)
- * - Pemindai Barcode & QR Code offline (kemasan, obat, URL phishing check)
- * - Deteksi objek sekitar dengan panduan bunyi bip kamera
- * - Terjemahan & Ringkasan hasil OCR dengan ML Kit Translate & Gemma 3 1B
+ * Mata Kedua Kobra OS (HUD 3D):
+ * - SCAN Semua Objek di Depan (menyebutkan seluruh objek & posisi secara suara)
+ * - Baca Teks / OCR instan
+ * - Deteksi Uang & Warna
+ * - Tanya AI tentang Kamera (Gemini Vision / OpenRouter / Offline fallback)
+ * - Mendukung seluruh mode spesifik (money_count, receipt, barcode, find_object, translate_ocr, ktp, face, outfit, digital_screen)
  */
 public class VisionActivity extends AppCompatActivity {
 
-    static volatile VisionActivity current;
+    public static volatile VisionActivity current;
 
     private static final Pattern NIK = Pattern.compile("(?<!\\d)\\d{16}(?!\\d)");
 
     private PreviewView previewView;
     private TextView tvResult, tvStatus;
-    private Button btnScan, btnBack, btnReset, btnPickImage, btnSummarize, btnTranslate;
+    private Button btnScan, btnReset, btnPickImage, btnSummarize, btnTranslate;
+    private Button btnScanAllObjects, btnReadTextOcr, btnDetectMoneyColor, btnAskAiCamera;
+    private ImageButton btnBack;
     private String mode = "describe";
+    private String pendingAiCameraQuestion = null;
     private ImageCapture imageCapture;
     private Camera boundCamera;
     private SensorManager sensorManager;
@@ -90,9 +96,9 @@ public class VisionActivity extends AppCompatActivity {
     private final TextRecognizer ocr = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private BarcodeScanner barcodeScanner;
     private ObjectDetector streamObjectDetector;
+    private ObjectDetector singleShotObjectDetector;
     private ToneGenerator toneGenerator;
 
-    // Status mode lanjutan
     private long runningCashTotal = 0L;
     private int billCount = 0;
     private String firstOutfitColor = null;
@@ -122,6 +128,11 @@ public class VisionActivity extends AppCompatActivity {
         btnSummarize = findViewById(R.id.btnSummarizeVision);
         btnTranslate = findViewById(R.id.btnTranslateVision);
 
+        btnScanAllObjects = findViewById(R.id.btnScanAllObjects);
+        btnReadTextOcr = findViewById(R.id.btnReadTextOcr);
+        btnDetectMoneyColor = findViewById(R.id.btnDetectMoneyColor);
+        btnAskAiCamera = findViewById(R.id.btnAskAiCamera);
+
         String m = getIntent().getStringExtra("mode");
         mode = m == null ? "describe" : m;
         speaker = Speaker.get(this);
@@ -150,11 +161,62 @@ public class VisionActivity extends AppCompatActivity {
         btnSummarize.setOnClickListener(v -> summarizeLastResult());
         btnTranslate.setOnClickListener(v -> translateLastResult(TranslateLanguage.INDONESIAN));
 
+        if (btnScanAllObjects != null) {
+            btnScanAllObjects.setOnClickListener(v -> {
+                HapticFeedback.vibrateAction(this);
+                mode = "scan_all";
+                tvStatus.setText("Mode: SCAN Semua Objek di Depan");
+                captureNow();
+            });
+        }
+        if (btnReadTextOcr != null) {
+            btnReadTextOcr.setOnClickListener(v -> {
+                HapticFeedback.vibrateAction(this);
+                mode = "ocr_instant";
+                tvStatus.setText("Mode: Baca Teks & OCR");
+                captureNow();
+            });
+        }
+        if (btnDetectMoneyColor != null) {
+            btnDetectMoneyColor.setOnClickListener(v -> {
+                HapticFeedback.vibrateAction(this);
+                mode = "money_color";
+                tvStatus.setText("Mode: Deteksi Uang & Warna");
+                captureNow();
+            });
+        }
+        if (btnAskAiCamera != null) {
+            btnAskAiCamera.setOnClickListener(v -> {
+                HapticFeedback.vibrateAction(this);
+                promptAskAiCamera();
+            });
+        }
+
         tvStatus.setText("Mode: " + modeLabel());
         speaker.speak(intro());
 
         if (Perms.has(this, Manifest.permission.CAMERA)) startCamera();
         else ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 201);
+    }
+
+    private void promptAskAiCamera() {
+        final EditText input = new EditText(this);
+        input.setHint("Misal: Ini obat apa? atau Berapa sisa saldo di layar?");
+        input.setTextColor(0xFFE2E8F0);
+        input.setHintTextColor(0xFF94A3B8);
+        new AlertDialog.Builder(this)
+                .setTitle("Tanya AI tentang Kamera")
+                .setMessage("Tulis pertanyaan singkat, lalu kamera akan langsung memotret dan menjawab:")
+                .setView(input)
+                .setPositiveButton("Potret & Tanya AI", (d, w) -> {
+                    String q = input.getText().toString().trim();
+                    pendingAiCameraQuestion = q.isEmpty() ? "Jelaskan apa yang terlihat di depan kamera secara rinci dan aman untuk tunanetra." : q;
+                    mode = "ask_ai_camera";
+                    tvStatus.setText("Mode: Tanya AI Kamera");
+                    captureNow();
+                })
+                .setNegativeButton("Batal", null)
+                .show();
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
@@ -198,6 +260,9 @@ public class VisionActivity extends AppCompatActivity {
         if (streamObjectDetector != null) {
             try { streamObjectDetector.close(); } catch (Exception ignored) {}
         }
+        if (singleShotObjectDetector != null) {
+            try { singleShotObjectDetector.close(); } catch (Exception ignored) {}
+        }
         cameraExec.shutdown();
         super.onDestroy();
     }
@@ -234,7 +299,7 @@ public class VisionActivity extends AppCompatActivity {
         if (requestCode == 201 && grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             startCamera();
         } else {
-            speak("Izin kamera belum aktif. Buka Kobra, lalu tekan Izin.");
+            speak("Izin kamera belum aktif. Aktifkan izin kamera di Pengaturan.");
         }
     }
 
@@ -344,7 +409,7 @@ public class VisionActivity extends AppCompatActivity {
         }
     }
 
-    private void handleLiveObjects(List<com.google.mlkit.vision.objects.DetectedObject> objs, int w, int h) {
+    private void handleLiveObjects(List<DetectedObject> objs, int w, int h) {
         OfflineVision.ObjectGuidance g = OfflineVision.findNearestObject(objs, w, h);
         if (g == null) {
             runOnUiThread(() -> tvStatus.setText("Mode: Cari Objek (memindai sekitar...)"));
@@ -375,7 +440,6 @@ public class VisionActivity extends AppCompatActivity {
         } catch (Exception ignored) {}
     }
 
-    /** Dipanggil dari tombol SCAN atau dari perintah suara "Kobra scan". */
     public void captureNow() {
         if (imageCapture == null) { speak("Kamera belum siap."); return; }
         if (busy) return;
@@ -402,17 +466,17 @@ public class VisionActivity extends AppCompatActivity {
         billCount = 0;
         firstOutfitColor = null;
         lastLiveText = "";
-        tvResult.setText("Hitungan / perbandingan direset.");
+        tvResult.setText("Hitungan dan sesi pemindaian direset.");
         speak("Hitungan dan sesi pemindaian direset.");
     }
 
     private void openGalleryPicker() {
         HapticFeedback.vibrateAction(this);
-        speak("Pilih gambar atau tangkapan layar transfer dari galeri HP.");
+        speak("Pilih gambar atau tangkapan layar dari galeri HP.");
         try {
             imagePickerLauncher.launch(new String[]{"image/*"});
         } catch (Exception e) {
-            speak("Gagal membuka galeri gambar di HP ini.");
+            speak("Gagal membuka galeri gambar.");
         }
     }
 
@@ -427,8 +491,8 @@ public class VisionActivity extends AppCompatActivity {
                         done("Gambar tidak dapat dibuka.");
                         return;
                     }
-                    if ("receipt".equals(mode) || "describe".equals(mode) || "digital_screen".equals(mode)) {
-                        analyzeReceiptOrScreen(bmp, "receipt".equals(mode) || "describe".equals(mode));
+                    if ("receipt".equals(mode) || "digital_screen".equals(mode)) {
+                        analyzeReceiptOrScreen(bmp, "receipt".equals(mode));
                     } else {
                         analyze(bmp);
                     }
@@ -494,6 +558,18 @@ public class VisionActivity extends AppCompatActivity {
     private void analyze(Bitmap bmp) {
         if (bmp == null) { done("Foto tidak bisa dibaca. Coba lagi."); return; }
         switch (mode) {
+            case "scan_all":
+                scanAllObjectsAloud(bmp);
+                return;
+            case "ocr_instant":
+                readInstantOcr(bmp);
+                return;
+            case "money_color":
+                detectMoneyAndColor(bmp);
+                return;
+            case "ask_ai_camera":
+                askAiWithBitmap(bmp, pendingAiCameraQuestion != null ? pendingAiCameraQuestion : promptFor("describe"));
+                return;
             case "ktp":
                 readKtp(bmp);
                 return;
@@ -534,14 +610,114 @@ public class VisionActivity extends AppCompatActivity {
         }
     }
 
+    private void scanAllObjectsAloud(Bitmap bmp) {
+        if (singleShotObjectDetector == null) {
+            singleShotObjectDetector = ObjectDetection.getClient(new ObjectDetectorOptions.Builder()
+                    .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
+                    .enableMultipleObjects()
+                    .enableClassification()
+                    .build());
+        }
+        tvStatus.setText("Memindai semua objek di depan...");
+        singleShotObjectDetector.process(InputImage.fromBitmap(bmp, 0))
+                .addOnSuccessListener(objs -> {
+                    if (objs != null && !objs.isEmpty()) {
+                        StringBuilder sb = new StringBuilder("Terdeteksi " + objs.size() + " objek di depan: ");
+                        int w = bmp.getWidth();
+                        for (int i = 0; i < objs.size(); i++) {
+                            DetectedObject obj = objs.get(i);
+                            String name = obj.getLabels().isEmpty() ? "benda" : obj.getLabels().get(0).getText().toLowerCase(Locale.ROOT);
+                            float cx = obj.getBoundingBox().centerX();
+                            String dir = cx < w * 0.35f ? "di kiri" : (cx > w * 0.65f ? "di kanan" : "di tengah");
+                            if (i > 0) sb.append(", ");
+                            sb.append(name).append(" ").append(dir);
+                        }
+                        sb.append(". Warna dominan: ").append(OfflineVision.detailedColorName(bmp)).append(".");
+                        lastCapturedRawText = sb.toString();
+                        done(sb.toString());
+                    } else if (canUseAi()) {
+                        askAiWithBitmap(bmp, "Sebutkan semua objek atau rintangan yang tampak di depan kamera beserta posisinya.");
+                    } else {
+                        OfflineVision.describe(bmp, this::done);
+                    }
+                })
+                .addOnFailureListener(e -> OfflineVision.describe(bmp, this::done));
+    }
+
+    private void readInstantOcr(Bitmap bmp) {
+        tvStatus.setText("Membaca teks OCR...");
+        ocr.process(InputImage.fromBitmap(bmp, 0))
+                .addOnSuccessListener(res -> {
+                    String raw = res.getText() == null ? "" : res.getText().replaceAll("\\s+", " ").trim();
+                    lastCapturedRawText = raw;
+                    if (raw.isEmpty()) {
+                        done("Tidak ada teks yang terbaca pada gambar. Coba dekatkan kamera dan pastikan cahaya cukup.");
+                    } else {
+                        done("Teks terbaca: " + raw);
+                    }
+                })
+                .addOnFailureListener(e -> done("Gagal membaca teks OCR."));
+    }
+
+    private void detectMoneyAndColor(Bitmap bmp) {
+        tvStatus.setText("Mendeteksi nominal uang & warna...");
+        String color = OfflineVision.detailedColorName(bmp);
+        ocr.process(InputImage.fromBitmap(bmp, 0))
+                .addOnSuccessListener(res -> {
+                    MoneyAndReceiptParser.BillResult bill = MoneyAndReceiptParser.parseRupiahBill(res.getText(), bmp);
+                    if (bill.amount > 0) {
+                        done("Uang " + MoneyAndReceiptParser.formatRupiah(bill.amount) + ". Warna objek: " + color + ".");
+                    } else if (canUseAi()) {
+                        askAiWithBitmap(bmp, "Sebutkan nominal uang kertas atau koin jika ada, dan sebutkan warna utamanya.");
+                    } else {
+                        done("Nominal uang belum terbaca jelas. Warna benda di tengah: " + color + ".");
+                    }
+                })
+                .addOnFailureListener(e -> done("Warna benda di tengah: " + color + "."));
+    }
+
+    private void askAiWithBitmap(Bitmap bmp, String prompt) {
+        tvStatus.setText("Menghubungi Vision AI...");
+        speak("Sebentar, saya analisis gambar kamera.");
+        if (!NetworkState.isOnline(this)) {
+            OfflineVision.describe(bmp, this::done);
+            return;
+        }
+        String geminiKey = CommandRouter.resolveGeminiApiKey(this);
+        if (!geminiKey.isEmpty()) {
+            cameraExec.execute(() -> {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                bmp.compress(Bitmap.CompressFormat.JPEG, 76, baos);
+                String b64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP);
+                String reply = CommandRouter.callGeminiBlocking(this, prompt, b64);
+                runOnUiThread(() -> {
+                    if (reply != null && !reply.isEmpty()) {
+                        lastCapturedRawText = reply;
+                        done(reply);
+                    } else if (config.hasAi()) {
+                        askAi(bmp, prompt);
+                    } else {
+                        OfflineVision.describe(bmp, this::done);
+                    }
+                });
+            });
+            return;
+        }
+        if (config.hasAi()) {
+            askAi(bmp, prompt);
+        } else {
+            OfflineVision.describe(bmp, this::done);
+        }
+    }
+
     private void analyzeOutfit(Bitmap bmp) {
         String centerColor = OfflineVision.detailedColorName(bmp);
         if (firstOutfitColor == null) {
             firstOutfitColor = centerColor;
             String singleFrameSummary = OfflineVision.analyzeOutfitHarmony(bmp);
             done("Pakaian pertama (atasan) berwarna " + centerColor + ". "
-                    + "Sekarang scan pakaian kedua (bawahan) untuk cek kecocokan, atau tekan RESET. "
-                    + "Analisis cepat satu frame: " + singleFrameSummary);
+                    + "Sekarang scan pakaian kedua (bawahan) untuk cek kecocokan, atau tekan Reset. "
+                    + "Analisis cepat: " + singleFrameSummary);
         } else {
             String first = firstOutfitColor;
             firstOutfitColor = null;
@@ -562,7 +738,7 @@ public class VisionActivity extends AppCompatActivity {
                     } else if (bill.amount > 0) {
                         done(bill.explanation + ".");
                     } else {
-                        done("Nominal uang belum terbaca jelas. Dekatkan kamera ke angka uang dan pastikan cahaya cukup.");
+                        done("Nominal uang belum terbaca jelas. Dekatkan kamera ke angka uang.");
                     }
                 })
                 .addOnFailureListener(e -> {
@@ -618,7 +794,7 @@ public class VisionActivity extends AppCompatActivity {
                     lastCapturedRawText = raw;
                     if (raw.isEmpty() && canUseAi()) {
                         askAi(bmp, isReceipt
-                                ? "Baca bukti transfer bank ini: sebutkan bank/aplikasi, status transaksi, nominal transfer rupiah, nama pengirim, dan nama penerima."
+                                ? "Baca bukti transfer bank ini: sebutkan bank/aplikasi, status transaksi, nominal rupiah, pengirim, dan penerima."
                                 : "Baca seluruh angka dan teks yang tampil di layar perangkat digital ini secara jelas.");
                         return;
                     }
@@ -688,22 +864,13 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private boolean canUseAi() {
-        return config.hasAi() && NetworkState.isOnline(this);
+        return NetworkState.isOnline(this) && (config.hasAi() || !CommandRouter.resolveGeminiApiKey(this).isEmpty());
     }
 
     private void askAi(Bitmap bmp, String prompt) {
-        tvStatus.setText("Menganalisis dengan AI online...");
-        speak("Sebentar, saya analisis gambarnya.");
-        ai.describeImage(prompt, bmp, new AiClient.Callback() {
-            @Override public void onResult(String text) {
-                lastCapturedRawText = text;
-                done(text);
-            }
-            @Override public void onError(String message) { done(message); }
-        });
+        askAiWithBitmap(bmp, prompt);
     }
 
-    /** Baca KTP offline dengan ML Kit. Tidak butuh internet. */
     private void readKtp(Bitmap bmp) {
         ocr.process(InputImage.fromBitmap(bmp, 0))
                 .addOnSuccessListener(result -> {
@@ -744,7 +911,7 @@ public class VisionActivity extends AppCompatActivity {
 
     private void done(String text) {
         busy = false;
-        tvStatus.setText("Selesai. Tekan SCAN untuk foto berikutnya.");
+        tvStatus.setText("Selesai. Pilih mode pindai di bawah.");
         tvResult.setText(text);
         speak(text);
     }
@@ -764,40 +931,41 @@ public class VisionActivity extends AppCompatActivity {
             case "barcode": return "Pemindai Barcode & QR Offline";
             case "find_object": return "Cari Objek (Bip Kamera Offline)";
             case "translate_ocr": return "Penerjemah Teks Kamera Offline";
-            default: return "Lihat sekitar (online jika tersedia, offline otomatis)";
+            case "scan_all": return "SCAN Semua Objek";
+            case "ocr_instant": return "Baca Teks / OCR";
+            case "money_color": return "Deteksi Uang & Warna";
+            case "ask_ai_camera": return "Tanya AI tentang Kamera";
+            default: return "Mata Kedua HUD 3D";
         }
     }
 
     private String intro() {
         switch (mode) {
-            case "ktp": return "Mode baca KTP. Dekatkan KTP ke kamera, lalu bilang Kobra scan atau tekan SCAN.";
-            case "money": return "Mode baca uang. Arahkan kamera ke uang, lalu bilang Kobra scan.";
-            case "money_count": return "Mode penghitung lembar uang tunai. Scan satu per satu lembar uang, Kobra akan menjumlahkannya secara otomatis.";
-            case "color": return "Mode warna. Arahkan kamera ke benda, lalu bilang Kobra scan.";
-            case "outfit": return "Mode padu padan pakaian. Scan baju atasan dulu lalu scan bawahan, atau foto keduanya sekaligus.";
-            case "face": return "Mode hitung orang. Arahkan kamera, lalu bilang Kobra scan.";
-            case "digital_screen": return "Mode pembaca layar perangkat digital aktif. Arahkan ke layar ATM, timbangan, atau meteran.";
-            case "receipt": return "Mode pemindai struk dan bukti transfer bank. Tekan SCAN untuk memotret struk atau tekan GALERI untuk memilih screenshot transfer.";
-            case "barcode": return "Mode pemindai barcode dan QR offline aktif. Arahkan ke kemasan obat atau kode QR.";
-            case "find_object": return "Mode deteksi objek aktif. Bunyi bip akan lebih cepat saat objek dekat atau di tengah layar.";
-            case "translate_ocr": return "Mode penerjemah kamera. Arahkan ke teks asing lalu tekan SCAN.";
-            default: return "Mode lihat sekitar. Arahkan kamera ke depan, lalu bilang Kobra scan.";
+            case "ktp": return "Mode baca KTP. Dekatkan KTP ke kamera, lalu tekan Scan.";
+            case "money": return "Mode baca uang. Arahkan kamera ke uang, lalu tekan Scan.";
+            case "money_count": return "Mode penghitung lembar uang tunai. Scan satu per satu lembar uang.";
+            case "color": return "Mode warna. Arahkan kamera ke benda, lalu tekan Scan.";
+            case "outfit": return "Mode padu padan pakaian. Scan baju atasan dulu lalu bawahan.";
+            case "face": return "Mode hitung orang. Arahkan kamera, lalu tekan Scan.";
+            case "digital_screen": return "Mode pembaca layar perangkat digital aktif.";
+            case "receipt": return "Mode pemindai struk dan bukti transfer bank.";
+            case "barcode": return "Mode pemindai barcode dan QR offline aktif.";
+            case "find_object": return "Mode deteksi objek aktif dengan bunyi bip.";
+            case "translate_ocr": return "Mode penerjemah kamera offline.";
+            default: return "Mata Kedua Kobra siap. Tersedia tombol Scan Semua Objek, Baca Teks OCR, Uang dan Warna, serta Tanya AI Kamera.";
         }
     }
 
     private static String promptFor(String mode) {
         switch (mode) {
             case "money":
-                return "Ini uang kertas atau koin apa? Sebutkan nominal rupiahnya dengan jelas. "
-                        + "Jika tidak yakin, katakan tidak yakin dan sarankan cara memotret yang lebih baik.";
+                return "Ini uang kertas atau koin apa? Sebutkan nominal rupiahnya dengan jelas.";
             case "color":
                 return "Sebutkan warna utama benda di tengah gambar dalam satu kalimat singkat.";
             case "face":
-                return "Berapa orang yang terlihat di gambar? Jelaskan posisinya singkat: kiri, tengah, kanan, dekat atau jauh. "
-                        + "Jika tidak ada orang, katakan tidak ada.";
+                return "Berapa orang yang terlihat di gambar? Jelaskan posisinya singkat.";
             default:
-                return "Jelaskan apa yang ada di depan kamera secara singkat. Sebutkan jika ada bahaya seperti "
-                        + "tangga, lubang, kendaraan, kaca, atau halangan di depan.";
+                return "Jelaskan apa yang ada di depan kamera secara singkat. Sebutkan jika ada bahaya seperti tangga, lubang, kendaraan, kaca, atau halangan.";
         }
     }
 }

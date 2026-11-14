@@ -143,12 +143,17 @@ public class LocalLlmEngine {
         return initEngineInternal(false);
     }
 
-    /** Mereset status Mode Aman crash-guard dan mencoba memuat model secara manual atas permintaan pengguna. */
-    public synchronized boolean forceInitEngine() {
+    /** Mereset flag Mode Aman crash-guard di memori dan SharedPreferences tanpa memuat model saat itu juga. */
+    public synchronized void resetSafeModeFlag() {
         close();
         new KobraConfig(context).clearLlmSafeMode();
         this.safeMode = false;
         this.lastError = "";
+    }
+
+    /** Mereset status Mode Aman crash-guard dan mencoba memuat model secara manual atas permintaan pengguna. */
+    public synchronized boolean forceInitEngine() {
+        resetSafeModeFlag();
         return initEngineInternal(true);
     }
 

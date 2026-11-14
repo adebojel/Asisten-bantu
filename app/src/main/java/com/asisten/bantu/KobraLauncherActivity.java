@@ -10,6 +10,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -22,7 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/** Layar utama Kobra: tombol besar dan daftar aplikasi, semuanya bisa dijalankan lewat suara. */
+/** Peluncur Layar Utama 3D Glass Tile Kobra OS: ramah tunanetra & 100% bebas emoji. */
 public class KobraLauncherActivity extends AppCompatActivity {
 
     private TextView tvClock, tvListen, tvScreenReader;
@@ -47,10 +48,16 @@ public class KobraLauncherActivity extends AppCompatActivity {
         rv.setAdapter(new AppAdapter(loadApps()));
 
         findViewById(R.id.btnReadScreen).setOnClickListener(v -> readScreen());
-        findViewById(R.id.btnMic).setOnClickListener(v -> {
-            if (AsistenAccessibilityService.getInstance() == null) speak("Aktifkan aksesibilitas Kobra dulu di menu Setup.");
-            else AsistenAccessibilityService.requestListen();
-        });
+        ImageButton btnMic = findViewById(R.id.btnMic);
+        if (btnMic != null) {
+            btnMic.setOnClickListener(v -> {
+                if (AsistenAccessibilityService.getInstance() == null) {
+                    speak("Aktifkan aksesibilitas Kobra dulu di Pengaturan.");
+                } else {
+                    AsistenAccessibilityService.requestListen();
+                }
+            });
+        }
         findViewById(R.id.btnVisionMoney).setOnClickListener(v -> openVision("money"));
         findViewById(R.id.btnVisionColor).setOnClickListener(v -> openVision("color"));
         findViewById(R.id.btnVisionFace).setOnClickListener(v -> openVision("face"));
@@ -58,10 +65,10 @@ public class KobraLauncherActivity extends AppCompatActivity {
         findViewById(R.id.btnNavStick).setOnClickListener(v ->
                 KobraScreenHelper.safeStartActivity(this, new Intent(this, NavigationActivity.class), Speaker.get(this), "Gagal membuka Mode Tongkat."));
         findViewById(R.id.btnAiChat).setOnClickListener(v ->
-                KobraScreenHelper.safeStartActivity(this, new Intent(this, AiChatActivity.class), Speaker.get(this), "Gagal membuka Teman Ngobrol AI."));
+                KobraScreenHelper.safeStartActivity(this, new Intent(this, AiChatActivity.class), Speaker.get(this), "Gagal membuka Asisten AI."));
         findViewById(R.id.btnSosEmergency).setOnClickListener(v -> {
             AsistenAccessibilityService s = AsistenAccessibilityService.getInstance();
-            if (s == null) speak("Aktifkan aksesibilitas Kobra dulu di menu Setup.");
+            if (s == null) speak("Aktifkan aksesibilitas Kobra dulu di Pengaturan.");
             else s.triggerSos();
         });
 
@@ -87,7 +94,7 @@ public class KobraLauncherActivity extends AppCompatActivity {
 
     private void readScreen() {
         AsistenAccessibilityService s = AsistenAccessibilityService.getInstance();
-        if (s == null) { speak("Aktifkan aksesibilitas Kobra dulu di menu Setup."); return; }
+        if (s == null) { speak("Aktifkan aksesibilitas Kobra dulu di Pengaturan."); return; }
         String text = s.readScreenText();
         tvScreenReader.setText(text);
         speak(text);
@@ -100,7 +107,7 @@ public class KobraLauncherActivity extends AppCompatActivity {
     }
 
     private void speak(String text) {
-        tvListen.setText("🗣️ " + text);
+        tvListen.setText("Suara: " + text);
         Speaker.get(this).speak(text);
     }
 

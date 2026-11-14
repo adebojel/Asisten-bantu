@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer metallic shadow rim -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#66000000" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <!-- Glass panel with translucent dark fill and top specular edge -->
+    <item android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="135"
+                android:startColor="#E6142036"
+                android:centerColor="#E00E1627"
+                android:endColor="#EB0A101D" />
+            <stroke
+                android:width="1.2dp"
+                android:color="#4000E5FF" />
+            <corners android:radius="20dp" />
+        </shape>
+    </item>
+    <!-- Top glass reflection sheen -->
+    <item
+        android:left="1dp"
+        android:right="1dp"
+        android:top="1dp"
+        android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="90"
+                android:startColor="#00FFFFFF"
+                android:centerColor="#00FFFFFF"
+                android:endColor="#1AFFFFFF" />
+            <corners android:radius="19dp" />
+        </shape>
+    </item>
+</layer-list>

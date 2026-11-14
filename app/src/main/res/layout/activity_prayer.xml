@@ -2,112 +2,147 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
+    android:background="@drawable/bg_hud_backdrop"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="18dp">
 
-        <TextView
+        <!-- Header HUD Sholat & Kiblat -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🕌 JADWAL SHOLAT &amp; KIBLAT OFFLINE"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="#00E676"
-            android:gravity="center"
-            android:paddingBottom="10dp" />
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/bg_glass_card_gold"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <ImageView
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:contentDescription="Jadwal Sholat dan Kiblat"
+                android:src="@drawable/ic_3d_prayer_dome" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.05"
+                    android:text="JADWAL SHOLAT &amp; KIBLAT OFFLINE"
+                    android:textColor="#FFD600"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hisab astronomi lokal &amp; pemandu arah kiblat suara."
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvPrayerCoords"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#151515"
+            android:background="@drawable/bg_telemetry_pill"
             android:padding="12dp"
-            android:textColor="#FFFFEB3B"
-            android:textSize="15sp"
-            android:text="Memuat koordinat lokasi..." />
+            android:text="Memuat koordinat lokasi..."
+            android:textColor="#00E5FF"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/tvPrayerTimes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:background="#1A1A1A"
+            android:background="@drawable/bg_glass_card_cyan"
             android:padding="16dp"
-            android:textColor="#FFFFFF"
-            android:textSize="19sp"
-            android:textStyle="bold"
-            android:text="Menghitung jadwal sholat..." />
+            android:text="Menghitung jadwal sholat..."
+            android:textColor="#F8FAFC"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvQiblaInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:background="#151515"
-            android:padding="16dp"
+            android:background="@drawable/bg_glass_card"
             android:gravity="center"
+            android:padding="16dp"
+            android:text="Mengkalibrasi kompas kiblat..."
             android:textColor="#00E676"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:text="Mengkalibrasi kompas kiblat..." />
+            android:textSize="19sp"
+            android:textStyle="bold" />
 
         <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/swQiblaBeep"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:minHeight="56dp"
+            android:background="@drawable/bg_glass_card"
             android:checked="true"
-            android:text="🔔 Bunyikan isyarat nada saat menghadap Kiblat"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:contentDescription="Aktifkan atau matikan nada pemandu arah kiblat" />
+            android:contentDescription="Aktifkan atau matikan nada pemandu arah kiblat"
+            android:minHeight="56dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:text="Bunyikan isyarat nada saat menghadap Kiblat"
+            android:textColor="#F8FAFC"
+            android:textSize="15sp" />
 
         <Button
             android:id="@+id/btnRefreshPrayerGps"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:minHeight="58dp"
-            android:backgroundTint="#00897B"
-            android:textColor="#FFFFFF"
-            android:text="📍 PERBARUI LOKASI GPS"
-            android:contentDescription="Perbarui lokasi GPS untuk jadwal sholat dan arah kiblat yang akurat" />
+            android:layout_height="56dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_glass_button_secondary"
+            android:contentDescription="Perbarui lokasi GPS untuk jadwal sholat dan arah kiblat yang akurat"
+            android:text="PERBARUI LOKASI GPS"
+            android:textColor="#00E5FF"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnSpeakPrayer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="58dp"
             android:layout_marginTop="10dp"
-            android:minHeight="60dp"
-            android:backgroundTint="#2962FF"
-            android:textColor="#FFFFFF"
-            android:text="🔊 BACAKAN JADWAL SHOLAT"
-            android:contentDescription="Bacakan jadwal sholat lima waktu hari ini" />
+            android:background="@drawable/bg_glass_button_primary"
+            android:contentDescription="Bacakan jadwal sholat lima waktu hari ini"
+            android:text="BACAKAN JADWAL SHOLAT"
+            android:textColor="#04120D"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnSpeakQibla"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="58dp"
             android:layout_marginTop="10dp"
-            android:minHeight="60dp"
-            android:backgroundTint="#7C4DFF"
-            android:textColor="#FFFFFF"
-            android:text="🧭 BACAKAN ARAH KIBLAT SAAT INI"
-            android:contentDescription="Bacakan sudut arah kiblat dan posisi hadap Anda sekarang" />
+            android:background="@drawable/bg_glass_button_secondary"
+            android:contentDescription="Bacakan sudut arah kiblat dan posisi hadap Anda sekarang"
+            android:text="BACAKAN ARAH KIBLAT SAAT INI"
+            android:textColor="#FFD600"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnBackPrayer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:minHeight="60dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_glass_button_secondary"
+            android:contentDescription="Kembali ke beranda"
             android:text="KEMBALI"
-            android:contentDescription="Kembali ke beranda" />
+            android:textColor="#E2E8F0" />
     </LinearLayout>
 </ScrollView>

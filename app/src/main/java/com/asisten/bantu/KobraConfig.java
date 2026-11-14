@@ -131,6 +131,59 @@ public final class KobraConfig {
     public boolean isLayeredConfirmEnabled() { return prefs.getBoolean("layered_confirm", true); }
     public void setLayeredConfirmEnabled(boolean enabled) { prefs.edit().putBoolean("layered_confirm", enabled).apply(); }
 
+    public String getGeminiApiKey() { return prefs.getString("gemini_api_key", "").trim(); }
+    public void setGeminiApiKey(String key) { prefs.edit().putString("gemini_api_key", key == null ? "" : key.trim()).apply(); }
+
+    public boolean isVisualNumbersEnabled() { return prefs.getBoolean("visual_numbers_enabled", true); }
+    public void setVisualNumbersEnabled(boolean enabled) { prefs.edit().putBoolean("visual_numbers_enabled", enabled).apply(); }
+
+    public boolean isGridOverlayEnabled() { return prefs.getBoolean("grid_overlay_enabled", true); }
+    public void setGridOverlayEnabled(boolean enabled) { prefs.edit().putBoolean("grid_overlay_enabled", enabled).apply(); }
+
+    public boolean isAirGesturesEnabled() { return prefs.getBoolean("air_gestures_enabled", false); }
+    public void setAirGesturesEnabled(boolean enabled) { prefs.edit().putBoolean("air_gestures_enabled", enabled).apply(); }
+
+    public boolean isBargeInEnabled() { return prefs.getBoolean("barge_in_enabled", true); }
+    public void setBargeInEnabled(boolean enabled) { prefs.edit().putBoolean("barge_in_enabled", enabled).apply(); }
+
+    public int getGuardianIntervalMinutes() { return prefs.getInt("guardian_interval_min", 0); }
+    public void setGuardianIntervalMinutes(int minutes) {
+        prefs.edit().putInt("guardian_interval_min", Math.max(0, minutes)).apply();
+    }
+
+    public long getLastGuardianAckAt() { return prefs.getLong("guardian_last_ack_at", 0L); }
+    public void setLastGuardianAckAt(long timestampMs) {
+        prefs.edit().putLong("guardian_last_ack_at", timestampMs).apply();
+    }
+
+    public boolean isGuardianAwaitingResponse() { return prefs.getBoolean("guardian_awaiting_response", false); }
+    public void setGuardianAwaitingResponse(boolean waiting) {
+        prefs.edit().putBoolean("guardian_awaiting_response", waiting).apply();
+    }
+
+    public boolean isDailyBriefingEnabled() { return prefs.getBoolean("daily_briefing_enabled", true); }
+    public void setDailyBriefingEnabled(boolean enabled) { prefs.edit().putBoolean("daily_briefing_enabled", enabled).apply(); }
+
+    public String getActivePersonaId() { return prefs.getString("active_persona_id", "kobra_utama").trim(); }
+    public void setActivePersonaId(String personaId) {
+        prefs.edit().putString("active_persona_id", personaId == null || personaId.trim().isEmpty() ? "kobra_utama" : personaId.trim()).apply();
+    }
+
+    public boolean isFloatingOrbEnabled() { return prefs.getBoolean("floating_orb_enabled", true); }
+    public void setFloatingOrbEnabled(boolean enabled) { prefs.edit().putBoolean("floating_orb_enabled", enabled).apply(); }
+
+    public boolean isFloatingOrbAutoHide() { return prefs.getBoolean("floating_orb_auto_hide", true); }
+    public void setFloatingOrbAutoHide(boolean enabled) { prefs.edit().putBoolean("floating_orb_auto_hide", enabled).apply(); }
+
+    public float getFloatingOrbAlpha() {
+        float val = prefs.getFloat("floating_orb_alpha", 0.45f);
+        return Math.max(0.25f, Math.min(1.0f, val));
+    }
+    public void setFloatingOrbAlpha(float alpha) {
+        float clamped = Math.max(0.25f, Math.min(1.0f, alpha));
+        prefs.edit().putFloat("floating_orb_alpha", clamped).apply();
+    }
+
     public void setSavedLocation(double lat, double lon) {
         prefs.edit()
                 .putString("saved_lat", String.valueOf(lat))

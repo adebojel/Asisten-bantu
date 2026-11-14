@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Active neon cyan/gold outer aura -->
+    <item>
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="36dp"
+                android:startColor="#9900E5FF"
+                android:centerColor="#55FFD600"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+
+    <!-- Active illuminated 3D core with gold & cyan rim -->
+    <item
+        android:bottom="4dp"
+        android:left="4dp"
+        android:right="4dp"
+        android:top="4dp">
+        <shape android:shape="oval">
+            <gradient
+                android:angle="135"
+                android:startColor="#F2123859"
+                android:centerColor="#EB0A1F38"
+                android:endColor="#F2040B1A" />
+            <stroke
+                android:width="2.4dp"
+                android:color="#FFFFD600" />
+        </shape>
+    </item>
+
+    <!-- Inner specular glass reflection -->
+    <item
+        android:bottom="28dp"
+        android:left="12dp"
+        android:right="14dp"
+        android:top="8dp">
+        <shape android:shape="oval">
+            <gradient
+                android:angle="270"
+                android:startColor="#66FFFFFF"
+                android:endColor="#00FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,6 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="12dp" android:background="#111111" android:layout_marginBottom="5dp">
-    <TextView android:id="@+id/tvAppName" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="WhatsApp" android:textColor="#FFFFFF" android:textSize="15sp"/>
-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="▶️" android:textColor="#00E676"/>
-</LinearLayout>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_glass_card"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="14dp">
 
+    <ImageView
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:contentDescription="Aplikasi"
+        android:src="@drawable/ic_3d_launcher_grid" />
+
+    <TextView
+        android:id="@+id/tvAppName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:textColor="#E2E8F0"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <ImageView
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:contentDescription="Buka"
+        android:src="@drawable/ic_3d_chevron_right" />
+</LinearLayout>

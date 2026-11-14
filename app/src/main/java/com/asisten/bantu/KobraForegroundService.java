@@ -14,10 +14,11 @@ import android.os.IBinder;
 import androidx.core.app.NotificationCompat;
 
 /**
- * Menjaga Kobra tetap hidup di latar belakang. Mencoba tipe mikrofon agar Android mengizinkan
- * pengenalan suara saat layar mati; jika sistem menolak, jatuh ke tipe penggunaan khusus.
+ * Menjaga Kobra tetap hidup di latar belakang dan menyediakan tombol aksi notifikasi
+ * untuk menampilkan ulang Gelembung Mikrofon 3D Melayang Global apabila sempat ditutup.
  */
 public class KobraForegroundService extends Service {
+    public static final String ACTION_SHOW_FLOATING_ORB = "com.asisten.bantu.ACTION_SHOW_FLOATING_ORB";
     private static final String CHANNEL_ID = "kobra_v7";
     private static final int NOTIF_ID = 1001;
 
@@ -33,19 +34,36 @@ public class KobraForegroundService extends Service {
         super.onCreate();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel ch = new NotificationChannel(CHANNEL_ID, "Kobra OS", NotificationManager.IMPORTANCE_LOW);
-            ch.setDescription("Kobra OS tetap aktif");
-            getSystemService(NotificationManager.class).createNotificationChannel(ch);
+            ch.setDescription("Layanan suara dan gelembung aksesibilitas Kobra OS tetap aktif");
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm != null) nm.createNotificationChannel(ch);
         }
     }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && ACTION_SHOW_FLOATING_ORB.equals(intent.getAction())) {
+            new KobraConfig(this).setFloatingOrbEnabled(true);
+            AsistenAccessibilityService.showFloatingOrb();
+        }
+
         PendingIntent open = PendingIntent.getActivity(this, 0,
-                new Intent(this, KobraLauncherActivity.class), PendingIntent.FLAG_IMMUTABLE);
+                new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
+
+        Intent orbIntent = new Intent(this, KobraForegroundService.class);
+        orbIntent.setAction(ACTION_SHOW_FLOATING_ORB);
+        PendingIntent showOrbPending = PendingIntent.getService(
+                this,
+                1,
+                orbIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
         Notification n = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Kobra OS aktif")
-                .setContentText("Ucapkan Kobra lalu perintah Anda")
-                .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+                .setContentTitle("Kobra OS Siaga")
+                .setContentText("Gelembung 3D dan kendali suara aktif di seluruh aplikasi")
+                .setSmallIcon(R.drawable.ic_3d_kobra_logo)
                 .setContentIntent(open)
+                .addAction(0, "Tampilkan Gelembung", showOrbPending)
                 .setOngoing(true)
                 .build();
         if (!tryStart(n, true) && !tryStart(n, false)) {

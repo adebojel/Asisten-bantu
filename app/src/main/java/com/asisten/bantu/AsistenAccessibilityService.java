@@ -1,6 +1,7 @@
 package com.asisten.bantu;
 
 import android.Manifest;
+import android.accessibilityservice.AccessibilityGestureEvent;
 import android.accessibilityservice.AccessibilityService;
 import android.app.Activity;
 import android.app.SearchManager;
@@ -44,14 +45,13 @@ import android.telecom.TelecomManager;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.widget.Button;
+import com.asisten.bantu.voiceaccess.VoiceAccessEngine;
 import com.google.mlkit.nl.translate.TranslateLanguage;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -73,12 +73,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private static final long CONFIRM_TIMEOUT_MS = 30000L;
     private static final long CONVERSATION_WINDOW_MS = 15000L;
     private static final long WATCHDOG_MS = 15000L;
-
-    private static final int COLOR_IDLE = 0xFF00E676;
-    private static final int COLOR_LISTEN = 0xFFFFEB3B;
-    private static final int COLOR_SPEAK = 0xFF2962FF;
-    private static final int COLOR_OFF = 0xFF9E9E9E;
-    private static final int COLOR_NO_PERM = 0xFFD32F2F;
 
     private static final String HELP =
             "Daftar perintah suara Kobra OS berdasarkan kategori. "
@@ -109,7 +103,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private String lastSpoken = "";
     private Pending pending;
     private WindowManager windowManager;
-    private Button floatingButton;
+    private FloatingVoiceOrbManager floatingOrbManager;
+    private VoiceAccessEngine voiceAccessEngine;
     private String torchId;
     private ConnectivityManager.NetworkCallback networkCallback;
     private boolean batteryReceiverRegistered = false;
@@ -128,6 +123,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private int fallSecondsRemaining = 0;
     private long lastFallTriggerAt = 0L;
     private boolean pocketLocked = false;
+    private long airGestureNearAt = 0L;
     private View screenCurtainView;
     private View pocketGuardView;
     private long lastCurtainTapAt = 0L;
@@ -188,6 +184,22 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (s != null) s.onFloatingClick();
     }
 
+    /** Menampilkan ulang gelembung mikrofon 3D melayang apabila sempat ditutup sementara. */
+    public static void showFloatingOrb() {
+        AsistenAccessibilityService s = instance;
+        if (s != null && s.floatingOrbManager != null) {
+            s.floatingOrbManager.show(true);
+        }
+    }
+
+    /** Menyegarkan tampilan dan perilaku gelembung melayang dari Pengaturan. */
+    public static void refreshFloatingOrbSettings() {
+        AsistenAccessibilityService s = instance;
+        if (s != null && s.floatingOrbManager != null) {
+            s.floatingOrbManager.refreshFromConfig();
+        }
+    }
+
     // ----------------------------------------------------------------- siklus hidup
 
     @Override protected void onServiceConnected() {
@@ -197,6 +209,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
         speaker.addListener(speechListener);
+        UnifiedAccessibilityEngine.onServiceConnected(this);
+        voiceAccessEngine = new VoiceAccessEngine(this);
 
         // Lazy-load Mesin LLM Offline: cek crash-guard tanpa memuat model berat saat startup
         localLlmEngine = LocalLlmEngine.getInstance(this);
@@ -219,12 +233,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
         tripMonitor = new TripMonitorHelper(this);
         initTorch();
         initHardwareSensors();
-        setupFloatingButton();
+        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        setupFloatingOrb();
 
         if (config.isPrivacyMode()) {
             micOn = false;
-            setIndicator(COLOR_OFF, "🔒");
-            speaker.speak("Kobra OS aktif dalam Mode Privasi Penuh. Mikrofon dan kamera dimatikan. Ketuk tombol Kobra untuk mengaktifkan kembali.");
+            updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
+            speaker.speak("Kobra OS aktif dalam Mode Privasi Penuh. Mikrofon dan kamera dimatikan. Ketuk gelembung Kobra untuk mengaktifkan kembali.");
         } else {
             speaker.speak("Kobra OS aktif. Sebut kata Kobra lalu perintah. Bilang Kobra bantuan untuk daftar perintah.");
             main.postDelayed(this::startListening, 2000);
@@ -236,18 +251,35 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
-        if (event != null && event.getPackageName() != null
-                && "com.google.android.youtube".equals(event.getPackageName().toString())
-                && main != null) {
-            main.postDelayed(() -> KobraAccessibilityService.tryConsumeYoutubeAutoPlay(
-                    getRootInActiveWindow(), "com.google.android.youtube"), 900L);
+        UnifiedAccessibilityEngine.onAccessibilityEvent(this, event);
+        if (voiceAccessEngine != null && event != null
+                && (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)) {
+            voiceAccessEngine.refreshOverlaysIfActive();
         }
     }
 
-    @Override public void onInterrupt() { stopMic(); }
+    @Override public boolean onGesture(AccessibilityGestureEvent gestureEvent) {
+        if (UnifiedAccessibilityEngine.onGesture(this, gestureEvent)) {
+            return true;
+        }
+        return super.onGesture(gestureEvent);
+    }
+
+    @Override public void onInterrupt() {
+        stopMic();
+        UnifiedAccessibilityEngine.stopExternalTts();
+    }
+
+    @Override public boolean onUnbind(Intent intent) {
+        if (instance == this) instance = null;
+        UnifiedAccessibilityEngine.onServiceDestroyed();
+        return super.onUnbind(intent);
+    }
 
     @Override public void onDestroy() {
         instance = null;
+        UnifiedAccessibilityEngine.onServiceDestroyed();
         stopMic();
         destroyRecognizer();
         cancelFallCountdown(false);
@@ -287,9 +319,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
             localLlmEngine.close();
             localLlmEngine = null;
         }
-        try {
-            if (windowManager != null && floatingButton != null) windowManager.removeView(floatingButton);
-        } catch (Exception ignored) { }
+        if (voiceAccessEngine != null) {
+            voiceAccessEngine.onDestroy();
+            voiceAccessEngine = null;
+        }
+        if (floatingOrbManager != null) {
+            floatingOrbManager.destroy();
+            floatingOrbManager = null;
+        }
         super.onDestroy();
     }
 
@@ -332,14 +369,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private final Speaker.Listener speechListener = new Speaker.Listener() {
         @Override public void onSpeechStart() {
             stopMic();
-            setIndicator(COLOR_SPEAK, "🔊");
+            updateOrbState(FloatingVoiceOrbManager.OrbState.SPEAKING);
         }
         @Override public void onSpeechEnd() {
             if (config != null && config.isPrivacyMode()) {
-                setIndicator(COLOR_OFF, "🔒");
+                updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
                 return;
             }
-            setIndicator(micOn ? COLOR_IDLE : COLOR_OFF, micOn ? "🐍" : "🔇");
+            updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
             scheduleRetry(350);
         }
     };
@@ -359,7 +396,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             if (!micOn || listening || pocketLocked || (config != null && config.isPrivacyMode())
                     || speaker == null || speaker.isSpeaking()) return;
             if (!Perms.has(this, Manifest.permission.RECORD_AUDIO)) {
-                setIndicator(COLOR_NO_PERM, "🎤✖");
+                updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
                 if (!warnedNoPermission) {
                     warnedNoPermission = true;
                     speaker.speak("Izin mikrofon belum aktif. Buka aplikasi Kobra, lalu tekan Izin.");
@@ -368,7 +405,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             }
             warnedNoPermission = false;
             if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-                setIndicator(COLOR_NO_PERM, "🎤✖");
+                updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
                 speaker.speak("Layanan pengenalan suara tidak tersedia di HP ini. Pasang Google atau aplikasi pengenalan suara.");
                 micOn = false;
                 return;
@@ -377,7 +414,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             try {
                 recognizer.startListening(recognizerIntent);
                 listening = true;
-                setIndicator(COLOR_LISTEN, "🎤");
+                updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING);
             } catch (Exception e) {
                 Log.w(TAG, "Gagal mulai mendengarkan", e);
                 destroyRecognizer();
@@ -416,11 +453,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private final RecognitionListener recognitionListener = new RecognitionListener() {
-        @Override public void onReadyForSpeech(Bundle params) { setIndicator(COLOR_LISTEN, "🎤"); }
+        @Override public void onReadyForSpeech(Bundle params) { updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING); }
         @Override public void onBeginningOfSpeech() { }
         @Override public void onRmsChanged(float rmsdB) { }
         @Override public void onBufferReceived(byte[] buffer) { }
-        @Override public void onEndOfSpeech() { listening = false; }
+        @Override public void onEndOfSpeech() {
+            listening = false;
+            updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
+        }
         @Override public void onPartialResults(Bundle partialResults) { }
         @Override public void onEvent(int eventType, Bundle params) { }
 
@@ -430,16 +470,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
                 case SpeechRecognizer.ERROR_CLIENT:
                     destroyRecognizer();
+                    updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
                     scheduleRetry(1500);
                     break;
                 case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                    setIndicator(COLOR_NO_PERM, "🎤✖");
+                    updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
                     break;
                 case SpeechRecognizer.ERROR_NO_MATCH:
                 case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                    updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
                     scheduleRetry(300);
                     break;
                 default:
+                    updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
                     scheduleRetry(1500);
                     break;
             }
@@ -447,47 +490,56 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         @Override public void onResults(Bundle results) {
             listening = false;
+            updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
             ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (matches != null && !matches.isEmpty()) handleSpoken(matches.get(0));
             if (!speaker.isSpeaking()) scheduleRetry(300);
         }
     };
 
-    // ----------------------------------------------------------------- tombol mengambang
+    // ----------------------------------------------------------------- gelembung suara melayang 3D
 
-    private void setupFloatingButton() {
+    private void setupFloatingOrb() {
         try {
-            windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-            floatingButton = new Button(this);
-            floatingButton.setTextSize(14f);
-            floatingButton.setTextColor(0xFF000000);
-            floatingButton.setContentDescription("Tombol Kobra. Ketuk untuk bicara. Tahan lama untuk mematikan mikrofon.");
-            floatingButton.setOnClickListener(v -> onFloatingClick());
-            floatingButton.setOnLongClickListener(v -> {
-                micOn = !micOn;
-                if (micOn) {
-                    speaker.speak("Mikrofon aktif.");
-                    startListening();
-                } else {
-                    stopMic();
-                    setIndicator(COLOR_OFF, "🔇");
-                    speaker.speak("Mikrofon mati. Ketuk tombol Kobra untuk bicara.");
+            floatingOrbManager = new FloatingVoiceOrbManager(this, new FloatingVoiceOrbManager.OrbActionListener() {
+                @Override public void onSingleTap() {
+                    if (listening) {
+                        stopMic();
+                        updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
+                    } else {
+                        onFloatingClick();
+                    }
                 }
-                return true;
+
+                @Override public void onDoubleTap() {
+                    if (config != null && config.isBargeInEnabled() && speaker.isSpeaking()) {
+                        speaker.stop();
+                    }
+                    if (voiceAccessEngine != null) {
+                        voiceAccessEngine.toggleNumberBadges(AsistenAccessibilityService.this::say);
+                    } else {
+                        say("Lencana nomor layar belum siap.");
+                    }
+                }
+
+                @Override public void onLongPress() {
+                    if (config != null && config.isBargeInEnabled() && speaker.isSpeaking()) {
+                        speaker.stop();
+                    }
+                    if (voiceAccessEngine != null) {
+                        voiceAccessEngine.handleCommand("baca layar", AsistenAccessibilityService.this::say);
+                    } else {
+                        say(readScreenText());
+                    }
+                }
+
+                @Override public void onDismissed() {
+                    say("Gelembung mikrofon disembunyikan sementara. Buka aplikasi Kobra OS atau ketuk notifikasi untuk menampilkannya kembali.");
+                }
             });
-            WindowManager.LayoutParams p = new WindowManager.LayoutParams(
-                    WindowManager.LayoutParams.WRAP_CONTENT,
-                    WindowManager.LayoutParams.WRAP_CONTENT,
-                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                    PixelFormat.TRANSLUCENT);
-            p.gravity = Gravity.TOP | Gravity.END;
-            p.x = 10;
-            p.y = 300;
-            windowManager.addView(floatingButton, p);
-            setIndicator(COLOR_IDLE, "🐍");
+            floatingOrbManager.show(false);
         } catch (Exception e) {
-            Log.w(TAG, "Tombol mengambang gagal", e);
+            Log.w(TAG, "Gelembung mikrofon melayang gagal dimuat", e);
         }
     }
 
@@ -508,13 +560,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
         scheduleRetry(200);
     }
 
-    private void setIndicator(int color, String label) {
-        if (main == null) return;
-        main.post(() -> {
-            if (floatingButton == null) return;
-            floatingButton.setBackgroundColor(color);
-            floatingButton.setText(label);
-        });
+    private void updateOrbState(FloatingVoiceOrbManager.OrbState state) {
+        if (floatingOrbManager != null) {
+            floatingOrbManager.setOrbState(state);
+        }
     }
 
     // ----------------------------------------------------------------- pemrosesan ucapan
@@ -767,14 +816,26 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
         if (has(c, "ulangi")) { say(lastSpoken); return; }
+        if (CommandRouter.tryRouteFastOrVisual(this, c, voiceAccessEngine, this::say)) { return; }
         if (has(c, "matikan mode privasi", "keluar mode privasi", "nonaktifkan privasi")) { exitPrivacyMode(); return; }
         if (has(c, "mode privasi penuh", "mode privasi", "privasi penuh", "putus kamera mikrofon", "matikan kamera dan mikrofon")) {
             enterPrivacyMode();
             return;
         }
+        if (has(c, "tampilkan gelembung", "munculkan gelembung")) {
+            if (config != null) config.setFloatingOrbEnabled(true);
+            showFloatingOrb();
+            say("Gelembung mikrofon melayang ditampilkan.");
+            return;
+        }
+        if (has(c, "sembunyikan gelembung", "tutup gelembung")) {
+            if (floatingOrbManager != null) floatingOrbManager.hideTemporary();
+            say("Gelembung mikrofon disembunyikan sementara.");
+            return;
+        }
         if (has(c, "cek mikrofon", "status mikrofon")) { say(micOn ? "Mikrofon aktif." : "Mikrofon mati."); return; }
-        if (has(c, "matikan mikrofon")) { micOn = false; stopMic(); setIndicator(COLOR_OFF, "🔇"); say("Mikrofon dimatikan."); return; }
-        if (has(c, "nyalakan mikrofon", "hidupkan mikrofon")) { micOn = true; say("Mikrofon aktif."); return; }
+        if (has(c, "matikan mikrofon")) { micOn = false; stopMic(); updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED); say("Mikrofon dimatikan."); return; }
+        if (has(c, "nyalakan mikrofon", "hidupkan mikrofon")) { micOn = true; updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE); say("Mikrofon aktif."); return; }
         if (has(c, "talkback")) { handleTalkback(c); return; }
 
         // Pencari HP (Find My Phone) & Layar Hitam (Screen Curtain) & Mode Bertahan Hidup
@@ -1015,39 +1076,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         String local = OfflineAi.get(this).answer(c);
         if (local != null) { say(local); return; }
 
-        // Sisanya: MediaPipe LLM Offline (bila offline, dengan Safe Mode Fallback), n8n (jika webhook diatur), lalu AI OpenRouter
-        if (!NetworkState.isOnline(this)) {
-            LocalLlmEngine engine = getLocalLlmEngine();
-            if (engine != null && engine.isModelPresent()) {
-                if (engine.isSafeMode() && !engine.getLastError().isEmpty()) {
-                    say("Mode Aman aktif karena " + engine.getLastError() + ". Anda tetap bisa memakai kalkulator suara dan perintah sistem lokal.");
-                } else if (engine.isInitialized()) {
-                    say("Memproses dengan otak offline...");
-                    engine.generateResponseAsync(c, speaker);
-                } else {
-                    say("Menyiapkan otak offline, harap tunggu...");
-                    new Thread(() -> {
-                        if (engine.initEngine()) {
-                            engine.generateResponseAsync(c, speaker);
-                        } else {
-                            main.post(() -> say("Gagal memuat model offline. Beralih ke Mode Aman perintah sistem lokal."));
-                        }
-                    }).start();
-                }
-            } else {
-                say("Mode Aman aktif. Perintah itu butuh internet atau model offline titik task, dan saat ini internet terputus.");
-            }
-            return;
-        }
-        if (!config.getN8nUrl().isEmpty()) {
-            say("Sebentar, saya teruskan ke otomatisasi.");
-            N8nClient.send(config.getN8nUrl(), c, new N8nClient.Callback() {
-                @Override public void onResult(String text) { say(text); }
-                @Override public void onError(String message) { askAi(c); }
-            });
-            return;
-        }
-        askAi(c);
+        // Sisanya: Hybrid CommandRouter (Jalur 2 Gemma 3 1B Offline <-> Jalur 3 Gemini API / OpenRouter)
+        CommandRouter.routeComplexFallback(this, c, getLocalLlmEngine(), config, speaker);
     }
 
     private static String afterLast(String s, String keyword) {
@@ -1359,7 +1389,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "pembaca layar global", "aktifkan pembaca global")) {
-            openSettings(Settings.ACTION_ACCESSIBILITY_SETTINGS, "Pengaturan aksesibilitas dibuka. Pilih Kobra Pembaca Layar Global bila ingin membacakan aplikasi pihak ketiga.");
+            boolean next = !UnifiedAccessibilityEngine.isGlobalReaderEnabled(this);
+            UnifiedAccessibilityEngine.setGlobalReaderEnabled(this, next);
+            say(next ? "Pembaca layar global terpadu diaktifkan." : "Pembaca layar global terpadu dimatikan.");
             return true;
         }
 
@@ -1823,18 +1855,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
         speaker.speak(text);
     }
 
-    private void askAi(String cmd) {
-        if (!config.hasAi()) {
-            say("Maaf, saya belum mengenali perintah itu. Bilang Kobra bantuan untuk daftar perintah.");
-            return;
-        }
-        say("Sebentar, saya tanyakan ke AI.");
-        new AiClient(config).chat(AiClient.SYSTEM_TUNANETRA, cmd, new AiClient.Callback() {
-            @Override public void onResult(String text) { say(text); }
-            @Override public void onError(String message) { say(message); }
-        });
-    }
-
     // ----------------------------------------------------------------- membuka mode
 
     private void launch(Class<? extends Activity> cls, String mode) {
@@ -1860,11 +1880,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void global(int action, String message) {
-        boolean ok = performGlobalAction(action);
-        if (!ok) {
-            KobraAccessibilityService g = KobraAccessibilityService.getInstance();
-            if (g != null) ok = g.performGlobalNavAction(action);
-        }
+        boolean ok = UnifiedAccessibilityEngine.performGlobalNavAction(this, action);
         say(ok ? message : "Tidak bisa melakukan itu sekarang.");
     }
 
@@ -1913,8 +1929,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             ok = s.performAction(down ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
         }
         if (!ok) {
-            KobraAccessibilityService g = KobraAccessibilityService.getInstance();
-            if (g != null) ok = g.scrollGlobal(down);
+            ok = UnifiedAccessibilityEngine.scrollGlobal(this, down);
         }
         if (!ok) {
             say("Tidak ada daftar yang bisa digulir.");
@@ -1934,11 +1949,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void clickByName(String name) {
-        boolean ok = clickAny(name);
-        if (!ok) {
-            KobraAccessibilityService g = KobraAccessibilityService.getInstance();
-            if (g != null) ok = g.clickByNameGlobal(name);
-        }
+        boolean ok = clickAny(name) || UnifiedAccessibilityEngine.clickByNameGlobal(this, name);
         say(ok ? "Oke." : "Tombol " + name + " tidak ditemukan di layar.");
     }
 
@@ -1946,7 +1957,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private boolean clickAny(String phrase) {
         if (phrase == null || phrase.trim().isEmpty()) return false;
         AccessibilityNodeInfo root = getRootInActiveWindow();
-        if (root != null && KobraAccessibilityService.clickNodeByName(root, phrase)) {
+        if (root != null && UnifiedAccessibilityEngine.clickNodeByName(root, phrase)) {
             return true;
         }
         if (root == null) return false;
@@ -1975,16 +1986,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
             say("Teks apa yang ingin diketik?");
             return;
         }
-        boolean ok = setTextInEditable(text);
-        if (!ok) {
-            KobraAccessibilityService g = KobraAccessibilityService.getInstance();
-            if (g != null) ok = g.typeGlobalText(text);
-        }
+        boolean ok = setTextInEditable(text) || UnifiedAccessibilityEngine.typeGlobalText(this, text);
         say(ok ? "Sudah diketik." : "Tidak ada kolom isian yang aktif. Teks disalin ke clipboard.");
     }
 
     private boolean setTextInEditable(String text) {
-        return KobraAccessibilityService.typeTextInRoot(this, getRootInActiveWindow(), text);
+        return UnifiedAccessibilityEngine.typeTextInRoot(this, getRootInActiveWindow(), text);
     }
 
     private void handleTalkback(String c) {
@@ -2139,7 +2146,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             openApp("youtube");
             return;
         }
-        KobraAccessibilityService.markPendingYoutubeAutoPlay(clean);
+        UnifiedAccessibilityEngine.markPendingYoutubeAutoPlay(clean);
         Intent i = new Intent(Intent.ACTION_SEARCH);
         i.setPackage("com.google.android.youtube");
         i.putExtra(SearchManager.QUERY, clean);
@@ -2148,9 +2155,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         try {
             startActivity(i);
             say("Mencari dan memutar " + clean + " di YouTube.");
-            main.postDelayed(() -> KobraAccessibilityService.tryConsumeYoutubeAutoPlay(
+            main.postDelayed(() -> UnifiedAccessibilityEngine.tryConsumeYoutubeAutoPlay(
                     getRootInActiveWindow(), "com.google.android.youtube"), 1800L);
-            main.postDelayed(() -> KobraAccessibilityService.tryConsumeYoutubeAutoPlay(
+            main.postDelayed(() -> UnifiedAccessibilityEngine.tryConsumeYoutubeAutoPlay(
                     getRootInActiveWindow(), "com.google.android.youtube"), 3200L);
         } catch (ActivityNotFoundException e) {
             openUrl("https://www.youtube.com/results?search_query=" + Uri.encode(clean));
@@ -2515,6 +2522,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void handleProximity(float distance, float maxRange) {
+        boolean near = distance < maxRange && distance < 3.0f;
+        if (config != null && config.isAirGesturesEnabled() && !config.isPrivacyMode()) {
+            long now = System.currentTimeMillis();
+            if (near) {
+                airGestureNearAt = now;
+            } else if (airGestureNearAt > 0L && now - airGestureNearAt <= 900L) {
+                airGestureNearAt = 0L;
+                if (!pocketLocked) {
+                    onFloatingClick();
+                    return;
+                }
+            }
+        }
         if (config == null || !config.isPocketLockEnabled()) {
             if (pocketLocked) {
                 pocketLocked = false;
@@ -2522,7 +2542,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
             }
             return;
         }
-        boolean near = distance < maxRange && distance < 3.0f;
         if (near && !pocketLocked) {
             pocketLocked = true;
             stopMic();
@@ -2629,15 +2648,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (NavigationActivity.current != null) {
             try { NavigationActivity.current.finish(); } catch (Exception ignored) {}
         }
-        setIndicator(COLOR_OFF, "🔒");
+        updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
         HapticFeedback.vibrateSuccess(this);
-        say("Mode privasi penuh aktif. Mikrofon dan kamera telah diputus seketika. Ketuk tombol Kobra untuk mengaktifkan kembali.");
+        say("Mode privasi penuh aktif. Mikrofon dan kamera telah diputus seketika. Ketuk gelembung Kobra untuk mengaktifkan kembali.");
     }
 
     private void exitPrivacyMode() {
         config.setPrivacyMode(false);
         micOn = true;
-        setIndicator(COLOR_IDLE, "🐍");
+        updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
         HapticFeedback.vibrateSuccess(this);
         say("Mode privasi dimatikan. Mikrofon dan kamera aktif kembali.");
         scheduleRetry(300);

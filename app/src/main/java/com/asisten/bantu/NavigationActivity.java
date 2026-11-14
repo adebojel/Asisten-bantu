@@ -9,6 +9,7 @@ import android.util.Size;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,22 +26,28 @@ import com.google.mlkit.vision.objects.DetectedObject;
 import com.google.mlkit.vision.objects.ObjectDetection;
 import com.google.mlkit.vision.objects.ObjectDetector;
 import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Mode tongkat: mendeteksi benda besar di depan dan memberi peringatan dengan suara dan getaran. */
+/**
+ * Mode Tongkat & Sonar Radar 3D:
+ * Memvisualisasikan rintangan secara real-time di SonarRadarView, memberi peringatan suara & getaran,
+ * serta dilengkapi tombol SOS Darurat 3D & Guardian Check-In.
+ */
 public class NavigationActivity extends AppCompatActivity {
 
-    static volatile NavigationActivity current;
+    public static volatile NavigationActivity current;
 
     private static final long SPEAK_COOLDOWN_MS = 2500L;
     private static final double NEAR_RATIO = 0.25;
 
     private PreviewView previewView;
-    private TextView tvStatus, tvObstacle;
-    private Button btnStart, btnStop;
+    private SonarRadarView sonarRadarView;
+    private TextView tvStatus, tvObstacle, tvGuardianStatusNav;
+    private Button btnStart, btnStop, btnEmergencySos, btnGuardianAck, btnGuardianCheckNow;
     private ObjectDetector detector;
     private Speaker speaker;
     private Vibrator vibrator;
@@ -52,14 +59,44 @@ public class NavigationActivity extends AppCompatActivity {
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_navigation);
+        setContentView(R.layout.activity_radar);
         previewView = findViewById(R.id.previewViewNav);
+        sonarRadarView = findViewById(R.id.sonarRadarView);
         tvStatus = findViewById(R.id.tvNavStatus);
         tvObstacle = findViewById(R.id.tvObstacle);
+        tvGuardianStatusNav = findViewById(R.id.tvGuardianStatusNav);
         btnStart = findViewById(R.id.btnStartNav);
         btnStop = findViewById(R.id.btnStopNav);
+        btnEmergencySos = findViewById(R.id.btnEmergencySosNav);
+        btnGuardianAck = findViewById(R.id.btnGuardianAckNav);
+        btnGuardianCheckNow = findViewById(R.id.btnGuardianCheckNowNav);
+        ImageButton btnBackRadar = findViewById(R.id.btnBackRadar);
+        if (btnBackRadar != null) btnBackRadar.setOnClickListener(v -> finish());
+
         speaker = Speaker.get(this);
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        if (btnEmergencySos != null) {
+            btnEmergencySos.setOnClickListener(v -> {
+                HapticFeedback.vibrateWarning(this);
+                EmergencyBeacon.triggerAll(this, null);
+                speaker.speak("SOS darurat diaktifkan. Sirine dibunyikan dan pesan darurat disiapkan.");
+            });
+        }
+        if (btnGuardianAck != null) {
+            btnGuardianAck.setOnClickListener(v -> {
+                HapticFeedback.vibrateSuccess(this);
+                GuardianManager.acknowledgeSafe(this, true);
+                refreshGuardianStatus();
+            });
+        }
+        if (btnGuardianCheckNow != null) {
+            btnGuardianCheckNow.setOnClickListener(v -> {
+                HapticFeedback.vibrateAction(this);
+                GuardianManager.triggerManualCheckInNow(this);
+                refreshGuardianStatus();
+            });
+        }
 
         if (new KobraConfig(this).isPrivacyMode()) {
             tvStatus.setText("Mode Privasi Penuh Aktif");
@@ -79,9 +116,25 @@ public class NavigationActivity extends AppCompatActivity {
         btnStart.setOnClickListener(v -> startNavigation());
         btnStop.setOnClickListener(v -> stopNavigation());
 
-        speaker.speak("Mode tongkat siap. Bilang Kobra mulai untuk mulai, atau Kobra berhenti.");
+        speaker.speak("Mode tongkat radar tiga dimensi siap. Bilang Kobra mulai atau ketuk Mulai Radar.");
         if (Perms.has(this, Manifest.permission.CAMERA)) startCamera();
         else ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 202);
+    }
+
+    private void refreshGuardianStatus() {
+        if (tvGuardianStatusNav == null) return;
+        KobraConfig cfg = new KobraConfig(this);
+        int interval = cfg.getGuardianIntervalMinutes();
+        if (cfg.isGuardianAwaitingResponse()) {
+            tvGuardianStatusNav.setText("Guardian: Menunggu konfirmasi aman!");
+            tvGuardianStatusNav.setTextColor(0xFFFFD600);
+        } else if (interval > 0) {
+            tvGuardianStatusNav.setText("Guardian Aktif (setiap " + interval + " menit)");
+            tvGuardianStatusNav.setTextColor(0xFF00E5FF);
+        } else {
+            tvGuardianStatusNav.setText("Guardian Check-In: Manual / Mati");
+            tvGuardianStatusNav.setTextColor(0xFF94A3B8);
+        }
     }
 
     @Override public boolean dispatchKeyEvent(KeyEvent event) {
@@ -97,6 +150,7 @@ public class NavigationActivity extends AppCompatActivity {
     @Override protected void onResume() {
         super.onResume();
         current = this;
+        refreshGuardianStatus();
     }
 
     @Override protected void onPause() {
@@ -107,6 +161,9 @@ public class NavigationActivity extends AppCompatActivity {
 
     @Override protected void onDestroy() {
         navigating = false;
+        if (detector != null) {
+            try { detector.close(); } catch (Exception ignored) {}
+        }
         analyzerExec.shutdown();
         super.onDestroy();
     }
@@ -116,7 +173,7 @@ public class NavigationActivity extends AppCompatActivity {
         if (requestCode == 202 && grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             startCamera();
         } else {
-            speaker.speak("Izin kamera belum aktif. Buka Kobra, lalu tekan Izin.");
+            speaker.speak("Izin kamera belum aktif.");
         }
     }
 
@@ -148,41 +205,58 @@ public class NavigationActivity extends AppCompatActivity {
             return;
         }
         processing = true;
-        InputImage img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+        int rot = proxy.getImageInfo().getRotationDegrees();
+        int imgW = (rot == 90 || rot == 270) ? proxy.getHeight() : proxy.getWidth();
+        int imgH = (rot == 90 || rot == 270) ? proxy.getWidth() : proxy.getHeight();
+        InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
         detector.process(img)
-                .addOnSuccessListener(this::onObjects)
+                .addOnSuccessListener(objs -> onObjects(objs, imgW, imgH))
                 .addOnCompleteListener(t -> {
                     processing = false;
                     proxy.close();
                 });
     }
 
-    private void onObjects(List<DetectedObject> objects) {
+    private void onObjects(List<DetectedObject> objects, int imgW, int imgH) {
         if (!navigating) return;
+        List<SonarRadarView.ObstacleBlip> blips = new ArrayList<>();
         DetectedObject nearest = null;
         double nearestRatio = 0;
+
+        float safeW = Math.max(1f, imgW);
+        float safeH = Math.max(1f, imgH);
         for (DetectedObject o : objects) {
             double w = o.getBoundingBox().width();
             double h = o.getBoundingBox().height();
-            double ratio = Math.max(w, h) / 640.0;
+            double ratio = Math.max(w / safeW, h / safeH);
+            String lbl = o.getLabels().isEmpty() ? "objek" : o.getLabels().get(0).getText().toLowerCase(Locale.ROOT);
+            float nx = ((o.getBoundingBox().centerX() / safeW) - 0.5f) * 1.6f;
+            float ny = ((o.getBoundingBox().centerY() / safeH) - 0.5f) * 1.6f;
+            blips.add(new SonarRadarView.ObstacleBlip(nx, ny, ratio >= NEAR_RATIO, lbl));
+
             if (ratio > nearestRatio) {
                 nearestRatio = ratio;
                 nearest = o;
             }
         }
+        if (sonarRadarView != null) {
+            sonarRadarView.updateObstacles(blips);
+        }
+
         if (nearest == null) {
-            tvObstacle.setText("Jalan di depan terlihat aman");
+            tvObstacle.setText("Jalur di depan terlihat bersih");
             return;
         }
-        String label = "halangan";
-        if (!nearest.getLabels().isEmpty()) label = nearest.getLabels().get(0).getText().toLowerCase(Locale.ROOT);
+        String label = nearest.getLabels().isEmpty()
+                ? "halangan"
+                : nearest.getLabels().get(0).getText().toLowerCase(Locale.ROOT);
         boolean close = nearestRatio >= NEAR_RATIO;
-        tvObstacle.setText((close ? "Ada " + label + " dekat di depan" : "Ada " + label + " di depan, masih jauh"));
+        tvObstacle.setText(close ? "BAHAYA DEKAT: " + label : "Terdeteksi: " + label + " (jarak aman)");
 
         long now = System.currentTimeMillis();
         if (close && now - lastSpeakAt > SPEAK_COOLDOWN_MS) {
             lastSpeakAt = now;
-            speaker.speak("Awas, ada " + label + " dekat di depan. Berhenti atau pelan-pelan.");
+            speaker.speak("Awas, ada " + label + " dekat di depan. Pelan-pelan atau berhenti.");
             vibrate();
         }
     }
@@ -198,14 +272,15 @@ public class NavigationActivity extends AppCompatActivity {
 
     public void startNavigation() {
         navigating = true;
-        tvStatus.setText("Mode tongkat aktif");
-        speaker.speak("Mode tongkat aktif. Saya bantu awasi halangan di depan.");
+        tvStatus.setText("Sonar Radar 3D AKTIF");
+        speaker.speak("Mode tongkat aktif. Radar memantau halangan di depan.");
     }
 
     public void stopNavigation() {
         if (!navigating) return;
         navigating = false;
-        tvStatus.setText("Mode tongkat berhenti");
+        if (sonarRadarView != null) sonarRadarView.updateObstacles(new ArrayList<>());
+        tvStatus.setText("Sonar Radar berhenti");
         speaker.speak("Mode tongkat berhenti.");
     }
 }

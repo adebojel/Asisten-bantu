@@ -279,7 +279,7 @@ public class DocumentReaderActivity extends AppCompatActivity {
     }
 
     private void updatePlayButton() {
-        btnPlayPause.setText(isPlaying ? "⏸ JEDA" : "▶ PUTAR");
+        btnPlayPause.setText(isPlaying ? "JEDA" : "PUTAR");
     }
 
     private void loadDocument(Uri uri) {

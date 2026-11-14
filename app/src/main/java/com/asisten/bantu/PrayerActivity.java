@@ -192,7 +192,7 @@ public class PrayerActivity extends AppCompatActivity implements SensorEventList
         int absDiff = Math.abs(diff);
         if (absDiff <= 10) {
             tvQiblaInfo.setTextColor(0xFF00E676);
-            tvQiblaInfo.setText("✅ TEPAT MENGHADAP KIBLAT\nHadap: " + currentHeading + "° | Kiblat: " + qiblaDeg + "°");
+            tvQiblaInfo.setText("TEPAT MENGHADAP KIBLAT\nHadap: " + currentHeading + "° | Kiblat: " + qiblaDeg + "°");
             if (!alignedAnnounced) {
                 alignedAnnounced = true;
                 HapticFeedback.vibrateSuccess(this);

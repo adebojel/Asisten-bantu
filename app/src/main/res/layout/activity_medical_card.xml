@@ -2,167 +2,215 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
+    android:background="@drawable/bg_hud_backdrop"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="18dp">
 
-        <TextView
+        <!-- Header HUD Kartu Medis -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🏥 KARTU MEDIS DARURAT"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#FFFF00"
-            android:gravity="center"
-            android:paddingBottom="8dp" />
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/bg_glass_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
+
+            <ImageView
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:contentDescription="Kartu Medis Darurat"
+                android:src="@drawable/ic_3d_medical_cross" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.05"
+                    android:text="KARTU MEDIS DARURAT"
+                    android:textColor="#FF6B6B"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Identitas medis cepat untuk petugas penyelamat."
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvMedSummary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#1A1A1A"
+            android:layout_marginBottom="14dp"
+            android:background="@drawable/bg_glass_card_gold"
             android:padding="14dp"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold"
+            android:text="Belum ada data medis tersimpan."
+            android:textColor="#F8FAFC"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="Belum ada data medis tersimpan." />
+            android:background="@drawable/bg_glass_card_cyan"
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Nama Lengkap"
-            android:textColor="#FFFF00"
-            android:textSize="16sp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nama Lengkap"
+                android:textColor="#00E5FF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etMedName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="56dp"
-            android:hint="Masukkan nama lengkap"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp"
-            android:contentDescription="Kolom nama lengkap pemilik kartu medis" />
+            <EditText
+                android:id="@+id/etMedName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_glass_input"
+                android:contentDescription="Kolom nama lengkap pemilik kartu medis"
+                android:hint="Masukkan nama lengkap"
+                android:minHeight="52dp"
+                android:padding="12dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Golongan Darah"
-            android:textColor="#FFFF00"
-            android:textSize="16sp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Golongan Darah"
+                android:textColor="#00E5FF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etMedBlood"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="56dp"
-            android:hint="Contoh: O, A, B, AB (Rhesus +/-)"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp"
-            android:contentDescription="Kolom golongan darah" />
+            <EditText
+                android:id="@+id/etMedBlood"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_glass_input"
+                android:contentDescription="Kolom golongan darah"
+                android:hint="Contoh: O, A, B, AB (Rhesus +/-)"
+                android:minHeight="52dp"
+                android:padding="12dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Alergi (Obat / Makanan)"
-            android:textColor="#FFFF00"
-            android:textSize="16sp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Alergi (Obat / Makanan)"
+                android:textColor="#00E5FF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etMedAllergy"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="56dp"
-            android:hint="Contoh: Penisilin, kacang, atau tidak ada"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp"
-            android:contentDescription="Kolom riwayat alergi obat atau makanan" />
+            <EditText
+                android:id="@+id/etMedAllergy"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_glass_input"
+                android:contentDescription="Kolom riwayat alergi obat atau makanan"
+                android:hint="Contoh: Penisilin, kacang, atau tidak ada"
+                android:minHeight="52dp"
+                android:padding="12dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Kondisi Medis / Obat Rutin"
-            android:textColor="#FFFF00"
-            android:textSize="16sp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Kondisi Medis / Obat Rutin"
+                android:textColor="#00E5FF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etMedCondition"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="56dp"
-            android:hint="Contoh: Diabetes, asma, hipertensi"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp"
-            android:contentDescription="Kolom kondisi medis atau obat rutin" />
+            <EditText
+                android:id="@+id/etMedCondition"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_glass_input"
+                android:contentDescription="Kolom kondisi medis atau obat rutin"
+                android:hint="Contoh: Diabetes, asma, hipertensi"
+                android:minHeight="52dp"
+                android:padding="12dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Kontak Keluarga Darurat"
-            android:textColor="#FFFF00"
-            android:textSize="16sp" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Kontak Keluarga Darurat"
+                android:textColor="#00E5FF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etMedFamily"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="56dp"
-            android:hint="Nama dan nomor keluarga"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="18dp"
-            android:contentDescription="Kolom kontak keluarga darurat" />
+            <EditText
+                android:id="@+id/etMedFamily"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_glass_input"
+                android:contentDescription="Kolom kontak keluarga darurat"
+                android:hint="Nama dan nomor keluarga"
+                android:minHeight="52dp"
+                android:padding="12dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnSaveMed"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="64dp"
-            android:backgroundTint="#00C853"
-            android:textColor="#000000"
-            android:textStyle="bold"
-            android:text="💾 SIMPAN KARTU MEDIS"
-            android:contentDescription="Simpan kartu identitas medis darurat" />
+            android:layout_height="60dp"
+            android:background="@drawable/bg_glass_button_primary"
+            android:contentDescription="Simpan kartu identitas medis darurat"
+            android:text="SIMPAN KARTU MEDIS"
+            android:textColor="#04120D"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnSpeakMed"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="60dp"
             android:layout_marginTop="10dp"
-            android:minHeight="64dp"
-            android:backgroundTint="#D32F2F"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:text="🔊 BACAKAN KERAS KARTU MEDIS"
-            android:contentDescription="Bacakan kartu identitas medis darurat dengan suara keras" />
+            android:background="@drawable/bg_glass_button_danger"
+            android:contentDescription="Bacakan kartu identitas medis darurat dengan suara keras"
+            android:text="BACAKAN KERAS KARTU MEDIS"
+            android:textColor="#FFF1F2"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnBackMed"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_marginTop="10dp"
-            android:minHeight="60dp"
+            android:background="@drawable/bg_glass_button_secondary"
+            android:contentDescription="Kembali"
             android:text="KEMBALI"
-            android:contentDescription="Kembali" />
+            android:textColor="#E2E8F0" />
     </LinearLayout>
 </ScrollView>

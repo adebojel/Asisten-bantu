@@ -1,19 +1,25 @@
 package com.asisten.bantu;
 
+import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.provider.OpenableColumns;
+import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
@@ -25,6 +31,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SwitchCompat;
+import androidx.core.app.ActivityCompat;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -35,21 +42,35 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Pengaturan API key, model AI offline .task, kontrol suara TTS, kontras, catatan, dan cadangan data JSON. */
+/**
+ * Pusat Pengaturan Terpadu Kobra OS (5 Kategori Modern):
+ * 1) Izin Sistem & Asisten Digital Default
+ * 2) Kecerdasan Buatan & Model (Gemini API Key, OpenRouter, Gemma 3 1B .task)
+ * 3) Memori AI Lokal (Persistent Memory Manager CRUD)
+ * 4) Kontrol Suara, Nomor Layar, Grid, Air Gestures, Barge-In & TTS
+ * 5) Keamanan, Daily Briefing, Guardian Check-In, Backup/Restore JSON, OTA & Crash Log
+ */
 public class SettingsActivity extends AppCompatActivity {
 
-    private EditText etKey, etModel, etN8n, etNotes;
-    private TextView tvStatus, tvModelStatus, tvImportProgress, tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus;
-    private Button btnImportModel, btnDeleteModel, btnLoadModel, btnTestTts, btnBackupData, btnRestoreData, btnCheckUpdate, btnViewCrashLog;
+    private EditText etGeminiKey, etKey, etModel, etN8n, etNotes;
+    private TextView tvStatus, tvSystemPermSummary, tvModelStatus, tvImportProgress;
+    private TextView tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus, tvMemoryCountInfo, tvFloatingOrbAlpha;
+    private Button btnImportModel, btnDeleteModel, btnLoadModel, btnTestTts;
+    private Button btnBackupData, btnRestoreData, btnCheckUpdate, btnViewCrashLog;
+    private LinearLayout layoutMemoryList;
     private ProgressBar pbImportModel;
-    private SeekBar sbSpeechRate, sbSpeechPitch;
-    private SwitchCompat swHighContrast;
-    private RadioGroup rgAssistantStyle;
+    private SeekBar sbSpeechRate, sbSpeechPitch, sbFloatingOrbAlpha;
+    private SwitchCompat swFloatingOrb, swFloatingOrbAutoHide;
+    private SwitchCompat swGlobalScreenReader, swVisualNumbers, swGridOverlay, swAirGestures, swBargeIn;
+    private SwitchCompat swHighContrast, swFallDetection, swPocketLock, swDailyBriefing;
+    private RadioGroup rgAssistantStyle, rgGuardianInterval;
     private RadioButton rbStyleRingkas, rbStyleRamah, rbStyleDaerah;
+    private RadioButton rbGuardOff, rbGuard15, rbGuard30, rbGuard60;
     private boolean loadingFields = false;
     private KobraConfig config;
     private Speaker speaker;
@@ -61,23 +82,17 @@ public class SettingsActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<String[]> modelPickerLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
-                if (uri != null) {
-                    processSelectedModelFile(uri);
-                }
+                if (uri != null) processSelectedModelFile(uri);
             });
 
     private final ActivityResultLauncher<String> backupLauncher =
             registerForActivityResult(new ActivityResultContracts.CreateDocument("application/json"), uri -> {
-                if (uri != null) {
-                    exportBackupToUri(uri);
-                }
+                if (uri != null) exportBackupToUri(uri);
             });
 
     private final ActivityResultLauncher<String[]> restoreLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
-                if (uri != null) {
-                    importBackupFromUri(uri);
-                }
+                if (uri != null) importBackupFromUri(uri);
             });
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +104,7 @@ public class SettingsActivity extends AppCompatActivity {
         final View contentRoot = ((android.view.ViewGroup) findViewById(android.R.id.content)).getChildAt(0);
         if (config.hasSecurityPin() && !getIntent().getBooleanExtra(CaregiverActivity.EXTRA_PIN_UNLOCKED, false)) {
             if (contentRoot != null) contentRoot.setVisibility(View.INVISIBLE);
-            SecurityAndPinHelper.requirePinIfSet(this, config, speaker, "Pengaturan AI & Cadangan",
+            SecurityAndPinHelper.requirePinIfSet(this, config, speaker, "Pusat Pengaturan Kobra OS",
                     new SecurityAndPinHelper.PinCallback() {
                         @Override public void onUnlocked() {
                             if (contentRoot != null) contentRoot.setVisibility(View.VISIBLE);
@@ -100,37 +115,185 @@ public class SettingsActivity extends AppCompatActivity {
                     });
         }
 
+        // Bind views
+        etGeminiKey = findViewById(R.id.etGeminiApiKey);
         etKey = findViewById(R.id.etApiKey);
         etModel = findViewById(R.id.etModel);
         etN8n = findViewById(R.id.etN8nUrl);
         etNotes = findViewById(R.id.etNotes);
         tvStatus = findViewById(R.id.tvSettingsStatus);
+        tvSystemPermSummary = findViewById(R.id.tvSystemPermSummary);
         tvModelStatus = findViewById(R.id.tvModelStatus);
         tvImportProgress = findViewById(R.id.tvImportProgress);
         tvSpeechRate = findViewById(R.id.tvSpeechRate);
         tvSpeechPitch = findViewById(R.id.tvSpeechPitch);
         tvBackupStatus = findViewById(R.id.tvBackupStatus);
+        tvUpdateStatus = findViewById(R.id.tvUpdateStatus);
+        tvMemoryCountInfo = findViewById(R.id.tvMemoryCountInfo);
+        layoutMemoryList = findViewById(R.id.layoutMemoryList);
+
         btnImportModel = findViewById(R.id.btnImportModel);
         btnDeleteModel = findViewById(R.id.btnDeleteModel);
         btnLoadModel = findViewById(R.id.btnLoadModel);
         pbImportModel = findViewById(R.id.pbImportModel);
         sbSpeechRate = findViewById(R.id.sbSpeechRate);
         sbSpeechPitch = findViewById(R.id.sbSpeechPitch);
+
+        swFloatingOrb = findViewById(R.id.swFloatingOrb);
+        swFloatingOrbAutoHide = findViewById(R.id.swFloatingOrbAutoHide);
+        tvFloatingOrbAlpha = findViewById(R.id.tvFloatingOrbAlpha);
+        sbFloatingOrbAlpha = findViewById(R.id.sbFloatingOrbAlpha);
+        swGlobalScreenReader = findViewById(R.id.swGlobalScreenReader);
+        swVisualNumbers = findViewById(R.id.swVisualNumbers);
+        swGridOverlay = findViewById(R.id.swGridOverlay);
+        swAirGestures = findViewById(R.id.swAirGestures);
+        swBargeIn = findViewById(R.id.swBargeIn);
         swHighContrast = findViewById(R.id.swHighContrast);
+        swFallDetection = findViewById(R.id.swFallDetection);
+        swPocketLock = findViewById(R.id.swPocketLock);
+        swDailyBriefing = findViewById(R.id.swDailyBriefing);
+
         rgAssistantStyle = findViewById(R.id.rgAssistantStyle);
         rbStyleRingkas = findViewById(R.id.rbStyleRingkas);
         rbStyleRamah = findViewById(R.id.rbStyleRamah);
         rbStyleDaerah = findViewById(R.id.rbStyleDaerah);
+
+        rgGuardianInterval = findViewById(R.id.rgGuardianInterval);
+        rbGuardOff = findViewById(R.id.rbGuardOff);
+        rbGuard15 = findViewById(R.id.rbGuard15);
+        rbGuard30 = findViewById(R.id.rbGuard30);
+        rbGuard60 = findViewById(R.id.rbGuard60);
+
         btnTestTts = findViewById(R.id.btnTestTts);
         btnBackupData = findViewById(R.id.btnBackupData);
         btnRestoreData = findViewById(R.id.btnRestoreData);
         btnCheckUpdate = findViewById(R.id.btnCheckUpdate);
         btnViewCrashLog = findViewById(R.id.btnViewCrashLog);
-        tvUpdateStatus = findViewById(R.id.tvUpdateStatus);
         appUpdater = new AppUpdater(this);
         tvUpdateStatus.setText("Versi terpasang: " + BuildConfig.VERSION_NAME);
 
+        // Card 1: System Permissions & Default Digital Assistant
+        findViewById(R.id.btnSettingsPermissions).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            try {
+                ActivityCompat.requestPermissions(this, Perms.required(), 100);
+            } catch (Throwable t) {
+                Toast.makeText(this, "Gagal meminta izin: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        });
+        findViewById(R.id.btnSettingsAccessibility).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            KobraScreenHelper.safeStartActivity(this, new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+                    speaker, "Pengaturan Aksesibilitas tidak tersedia di HP ini.");
+        });
+        findViewById(R.id.btnSettingsOverlay).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            Intent i = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            KobraScreenHelper.safeStartActivity(this, i, speaker, "Pengaturan Overlay tidak tersedia.");
+        });
+        findViewById(R.id.btnSettingsNotifAccess).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            KobraScreenHelper.safeStartActivity(this, new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS),
+                    speaker, "Pengaturan Akses Notifikasi tidak tersedia.");
+        });
+        findViewById(R.id.btnSettingsBattery).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            askBatteryExemption();
+        });
+        findViewById(R.id.btnSettingsStartService).setOnClickListener(v -> {
+            HapticFeedback.vibrateSuccess(this);
+            KobraForegroundService.start(this);
+            speaker.speak("Layanan latar belakang Kobra diaktifkan.");
+        });
+        findViewById(R.id.btnSettingsLauncher).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            KobraScreenHelper.safeStartActivity(this, new Intent(Settings.ACTION_HOME_SETTINGS),
+                    speaker, "Pengaturan Launcher Utama tidak didukung langsung.");
+        });
+        findViewById(R.id.btnSettingsDefaultAssistant).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            Intent voiceIntent = new Intent(Settings.ACTION_VOICE_INPUT_SETTINGS);
+            if (!KobraScreenHelper.safeStartActivity(this, voiceIntent, speaker, "")) {
+                KobraScreenHelper.safeStartActivity(this, new Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS),
+                        speaker, "Pengaturan Asisten Digital Default tidak tersedia di perangkat ini.");
+            }
+            speaker.speak("Pilih Kobra OS sebagai Asisten Digital Default Anda.");
+        });
+
         loadFieldsFromConfig();
+        refreshSystemPermSummary();
+        refreshMemoryListUi();
+
+        // Card 3: Local Memory Manager
+        findViewById(R.id.btnAddMemory).setOnClickListener(v -> showMemoryDialog(null));
+        findViewById(R.id.btnClearMemories).setOnClickListener(v -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Hapus Semua Memori AI?")
+                    .setMessage("Semua fakta pribadi yang tersimpan di Memori Lokal akan dihapus.")
+                    .setPositiveButton("Hapus Semua", (d, w) -> {
+                        LocalMemoryStore.clearAll(this);
+                        refreshMemoryListUi();
+                        speaker.speak("Semua memori lokal telah dihapus.");
+                    })
+                    .setNegativeButton("Batal", null)
+                    .show();
+        });
+
+        // Card 4: Voice & Sensors listeners
+        swFloatingOrb.setOnCheckedChangeListener((b, isChecked) -> {
+            if (loadingFields) return;
+            config.setFloatingOrbEnabled(isChecked);
+            if (isChecked) {
+                AsistenAccessibilityService.showFloatingOrb();
+                speaker.speak("Gelembung mikrofon melayang global diaktifkan.");
+            } else {
+                AsistenAccessibilityService.refreshFloatingOrbSettings();
+                speaker.speak("Gelembung mikrofon melayang global dimatikan.");
+            }
+        });
+        swFloatingOrbAutoHide.setOnCheckedChangeListener((b, isChecked) -> {
+            if (loadingFields) return;
+            config.setFloatingOrbAutoHide(isChecked);
+            AsistenAccessibilityService.refreshFloatingOrbSettings();
+            speaker.speak(isChecked
+                    ? "Mode otomatis sembunyi ke pinggir layar diaktifkan."
+                    : "Mode otomatis sembunyi ke pinggir layar dimatikan.");
+        });
+        sbFloatingOrbAlpha.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                int percent = 25 + progress;
+                tvFloatingOrbAlpha.setText("Tingkat Transparansi Gelembung: " + percent + "%");
+                if (fromUser) {
+                    config.setFloatingOrbAlpha(percent / 100f);
+                    AsistenAccessibilityService.refreshFloatingOrbSettings();
+                }
+            }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+
+        swGlobalScreenReader.setOnCheckedChangeListener((b, isChecked) -> {
+            if (loadingFields) return;
+            UnifiedAccessibilityEngine.setGlobalReaderEnabled(this, isChecked);
+            speaker.speak(isChecked ? "Pembaca layar global diaktifkan." : "Pembaca layar global dimatikan.");
+        });
+        swVisualNumbers.setOnCheckedChangeListener((b, isChecked) -> {
+            if (!loadingFields) config.setVisualNumbersEnabled(isChecked);
+        });
+        swGridOverlay.setOnCheckedChangeListener((b, isChecked) -> {
+            if (!loadingFields) config.setGridOverlayEnabled(isChecked);
+        });
+        swAirGestures.setOnCheckedChangeListener((b, isChecked) -> {
+            if (!loadingFields) config.setAirGesturesEnabled(isChecked);
+        });
+        swBargeIn.setOnCheckedChangeListener((b, isChecked) -> {
+            if (!loadingFields) config.setBargeInEnabled(isChecked);
+        });
+        swHighContrast.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            config.setHighContrast(isChecked);
+            applyHighContrastVisual(isChecked);
+        });
 
         sbSpeechRate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -158,15 +321,9 @@ public class SettingsActivity extends AppCompatActivity {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        swHighContrast.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            config.setHighContrast(isChecked);
-            applyHighContrastVisual(isChecked);
-        });
-
         rgAssistantStyle.setOnCheckedChangeListener((group, checkedId) -> {
             if (loadingFields) return;
-            String style = styleFromCheckedId(checkedId);
-            config.setAssistantStyle(style);
+            config.setAssistantStyle(styleFromCheckedId(checkedId));
             speaker.speak("Gaya bahasa asisten diatur ke mode " + config.getAssistantStyleLabel() + ".");
         });
 
@@ -175,81 +332,240 @@ public class SettingsActivity extends AppCompatActivity {
             speaker.speak("Ini contoh suara asisten Kobra OS dengan kecepatan dan nada yang Anda pilih.");
         });
 
+        // Card 5: Guardian SOS & Daily Briefing
+        findViewById(R.id.btnSettingsSos).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            KobraScreenHelper.safeStartActivity(this, new Intent(this, SosSetupActivity.class),
+                    speaker, "Gagal membuka Kontak Darurat SOS.");
+        });
+        swFallDetection.setOnCheckedChangeListener((b, isChecked) -> {
+            if (!loadingFields) config.setFallDetectionEnabled(isChecked);
+        });
+        swPocketLock.setOnCheckedChangeListener((b, isChecked) -> {
+            if (!loadingFields) config.setPocketLockEnabled(isChecked);
+        });
+        swDailyBriefing.setOnCheckedChangeListener((b, isChecked) -> {
+            if (!loadingFields) config.setDailyBriefingEnabled(isChecked);
+        });
+        rgGuardianInterval.setOnCheckedChangeListener((group, checkedId) -> {
+            if (loadingFields) return;
+            int min = guardianMinutesFromId(checkedId);
+            GuardianManager.scheduleCheckIn(this, min);
+            speaker.speak(min > 0
+                    ? "Guardian Check-In dijadwalkan setiap " + min + " menit."
+                    : "Guardian Check-In berkala dimatikan.");
+        });
+        findViewById(R.id.btnTestDailyBriefing).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            GuardianManager.speakDailyBriefing(this);
+        });
+        findViewById(R.id.btnTestGuardianCheck).setOnClickListener(v -> {
+            HapticFeedback.vibrateAction(this);
+            GuardianManager.triggerManualCheckInNow(this);
+        });
+
+        // Save, Test AI, Model, Backup, OTA, Crash Log
         Button save = findViewById(R.id.btnSaveSettings);
         Button test = findViewById(R.id.btnTestAi);
-        Button back = findViewById(R.id.btnBackSettings);
+        ImageButton back = findViewById(R.id.btnBackSettings);
 
         save.setOnClickListener(v -> {
             saveFields();
-            tvStatus.setText("Pengaturan tersimpan.");
-            speaker.speak("Seluruh pengaturan, suara asisten, dan catatan tersimpan.");
+            tvStatus.setText("Seluruh pengaturan tersimpan.");
+            speaker.speak("Seluruh pengaturan, API key, sensor, dan keamanan telah disimpan.");
         });
 
         test.setOnClickListener(v -> {
             saveFields();
             tvStatus.setText("Menguji koneksi AI...");
-            new AiClient(config).chat(AiClient.SYSTEM_TUNANETRA,
-                    "Perkenalkan dirimu dalam satu kalimat singkat.", new AiClient.Callback() {
-                        @Override public void onResult(String text) {
-                            tvStatus.setText("AI menjawab: " + text);
-                            speaker.speak(text);
-                        }
-                        @Override public void onError(String message) {
-                            tvStatus.setText("Gagal: " + message);
+            String gemini = CommandRouter.resolveGeminiApiKey(this);
+            if (!gemini.isEmpty()) {
+                executor.execute(() -> {
+                    String res = CommandRouter.callGeminiBlocking(this, "Perkenalkan dirimu sebagai Kobra OS dalam satu kalimat singkat.", null);
+                    mainHandler.post(() -> {
+                        if (res != null && !res.isEmpty()) {
+                            tvStatus.setText("Gemini menjawab: " + res);
+                            speaker.speak(res);
+                        } else {
+                            testOpenRouterFallback();
                         }
                     });
+                });
+            } else {
+                testOpenRouterFallback();
+            }
         });
 
         btnImportModel.setOnClickListener(v -> {
-            // Membuka pemilih berkas SAF Android dengan tipe */* agar berkas .task tidak terblokir
             speaker.speak("Membuka pengelola berkas. Pilih berkas model berakhiran titik task.");
             try {
                 modelPickerLauncher.launch(new String[]{"*/*"});
             } catch (Exception e) {
                 tvImportProgress.setVisibility(View.VISIBLE);
                 tvImportProgress.setText("Gagal membuka pemilih berkas: " + e.getMessage());
-                speaker.speak("Gagal membuka pemilih berkas di HP ini.");
             }
         });
-
         btnDeleteModel.setOnClickListener(v -> confirmDeleteLocalModel());
         btnLoadModel.setOnClickListener(v -> loadOrTestLocalModel());
 
         btnBackupData.setOnClickListener(v -> {
             saveFields();
             String dateStr = new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date());
-            String fileName = "KobraOS_Backup_" + dateStr + ".json";
             speaker.speak("Pilih lokasi penyimpanan untuk berkas cadangan data.");
             try {
-                backupLauncher.launch(fileName);
+                backupLauncher.launch("KobraOS_Backup_" + dateStr + ".json");
             } catch (Exception e) {
-                tvBackupStatus.setTextColor(0xFFFF5252);
                 tvBackupStatus.setText("Gagal membuka penyimpanan: " + e.getMessage());
-                speaker.speak("Gagal membuka penyimpanan untuk mencadangkan data.");
             }
         });
-
         btnRestoreData.setOnClickListener(v -> {
             speaker.speak("Pilih berkas cadangan Kobra OS berakhiran titik j s o n.");
             try {
                 restoreLauncher.launch(new String[]{"application/json", "*/*"});
             } catch (Exception e) {
-                tvBackupStatus.setTextColor(0xFFFF5252);
                 tvBackupStatus.setText("Gagal membuka pemilih berkas: " + e.getMessage());
-                speaker.speak("Gagal membuka pemilih berkas cadangan.");
             }
         });
 
         btnCheckUpdate.setOnClickListener(v -> startOtaUpdateCheck());
-
-        if (btnViewCrashLog != null) {
-            btnViewCrashLog.setOnClickListener(v -> showLastCrashLogDialog());
-        }
+        btnViewCrashLog.setOnClickListener(v -> showLastCrashLogDialog());
 
         back.setOnClickListener(v -> {
             saveFields();
             finish();
         });
+    }
+
+    private void testOpenRouterFallback() {
+        new AiClient(config).chat(AiClient.SYSTEM_TUNANETRA,
+                "Perkenalkan dirimu dalam satu kalimat singkat.", new AiClient.Callback() {
+                    @Override public void onResult(String text) {
+                        tvStatus.setText("OpenRouter menjawab: " + text);
+                        speaker.speak(text);
+                    }
+                    @Override public void onError(String message) {
+                        tvStatus.setText("Gagal uji AI: " + message);
+                        speaker.speak(message);
+                    }
+                });
+    }
+
+    private void refreshSystemPermSummary() {
+        if (tvSystemPermSummary == null) return;
+        boolean mic = Perms.has(this, Manifest.permission.RECORD_AUDIO);
+        boolean cam = Perms.has(this, Manifest.permission.CAMERA);
+        boolean acc = AsistenAccessibilityService.getInstance() != null;
+        boolean notif = KobraNotificationService.isConnected();
+        boolean ovl = Settings.canDrawOverlays(this);
+        tvSystemPermSummary.setText(
+                "Mikrofon: " + (mic ? "Aktif" : "Belum") +
+                " • Kamera: " + (cam ? "Aktif" : "Belum") +
+                " • Aksesibilitas: " + (acc ? "Aktif" : "Mati") +
+                "\nOverlay: " + (ovl ? "Aktif" : "Belum") +
+                " • Notifikasi: " + (notif ? "Aktif" : "Belum")
+        );
+    }
+
+    private void refreshMemoryListUi() {
+        if (layoutMemoryList == null) return;
+        layoutMemoryList.removeAllViews();
+        List<LocalMemoryStore.MemoryItem> items = LocalMemoryStore.listMemories(this);
+        tvMemoryCountInfo.setText(items.isEmpty()
+                ? "Belum ada memori tersimpan. Tambah manual atau katakan ingat bahwa..."
+                : "Total " + items.size() + " memori tersimpan (selalu disertakan dalam konteks AI).");
+
+        for (LocalMemoryStore.MemoryItem item : items) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setPadding(18, 14, 18, 14);
+            row.setBackgroundResource(R.drawable.bg_telemetry_pill);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.bottomMargin = 10;
+            row.setLayoutParams(lp);
+
+            TextView tv = new TextView(this);
+            tv.setText("[" + item.getCategory() + "] " + item.getText());
+            tv.setTextColor(0xFFE2E8F0);
+            tv.setTextSize(12f);
+            LinearLayout.LayoutParams tvLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+            tv.setLayoutParams(tvLp);
+
+            Button btnEdit = new Button(this);
+            btnEdit.setText("Ubah");
+            btnEdit.setAllCaps(false);
+            btnEdit.setTextSize(11f);
+            btnEdit.setTextColor(0xFF00E5FF);
+            btnEdit.setBackgroundResource(R.drawable.bg_glass_button_secondary);
+            btnEdit.setOnClickListener(v -> showMemoryDialog(item));
+
+            Button btnDel = new Button(this);
+            btnDel.setText("Hapus");
+            btnDel.setAllCaps(false);
+            btnDel.setTextSize(11f);
+            btnDel.setTextColor(0xFFFFE4E6);
+            btnDel.setBackgroundResource(R.drawable.bg_glass_button_danger);
+            btnDel.setOnClickListener(v -> {
+                LocalMemoryStore.deleteMemory(this, item.getId());
+                refreshMemoryListUi();
+                speaker.speak("Memori dihapus.");
+            });
+
+            row.addView(tv);
+            row.addView(btnEdit);
+            row.addView(btnDel);
+            layoutMemoryList.addView(row);
+        }
+    }
+
+    private void showMemoryDialog(LocalMemoryStore.MemoryItem existing) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(36, 20, 36, 10);
+
+        final EditText etText = new EditText(this);
+        etText.setHint("Contoh: Saya suka jawaban singkat atau Saya alergi debu");
+        if (existing != null) etText.setText(existing.getText());
+
+        final EditText etCat = new EditText(this);
+        etCat.setHint("Kategori (mis. Preferensi, Kesehatan, Keluarga)");
+        etCat.setText(existing != null ? existing.getCategory() : "Preferensi");
+
+        box.addView(etText);
+        box.addView(etCat);
+
+        new AlertDialog.Builder(this)
+                .setTitle(existing == null ? "Tambah Memori AI Lokal" : "Ubah Memori AI Lokal")
+                .setView(box)
+                .setPositiveButton("Simpan", (d, w) -> {
+                    String txt = etText.getText().toString().trim();
+                    String cat = etCat.getText().toString().trim();
+                    if (txt.isEmpty()) return;
+                    if (existing == null) {
+                        LocalMemoryStore.addMemory(this, txt, cat.isEmpty() ? "Preferensi" : cat);
+                        speaker.speak("Memori baru disimpan.");
+                    } else {
+                        LocalMemoryStore.updateMemory(this, existing.getId(), txt, cat.isEmpty() ? "Preferensi" : cat);
+                        speaker.speak("Memori diperbarui.");
+                    }
+                    refreshMemoryListUi();
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void askBatteryExemption() {
+        try {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            if (pm != null && pm.isIgnoringBatteryOptimizations(getPackageName())) {
+                Toast.makeText(this, "Kobra sudah bebas dari pembatasan baterai.", Toast.LENGTH_SHORT).show();
+                speaker.speak("Kobra sudah bebas dari pembatasan baterai.");
+                return;
+            }
+            Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    Uri.parse("package:" + getPackageName()));
+            KobraScreenHelper.safeStartActivity(this, i, speaker, "Pengaturan baterai tidak tersedia.");
+        } catch (Throwable ignored) {}
     }
 
     private void showLastCrashLogDialog() {
@@ -290,7 +606,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void startOtaUpdateCheck() {
         btnCheckUpdate.setEnabled(false);
-        tvUpdateStatus.setTextColor(0xFFFFFF00);
+        tvUpdateStatus.setTextColor(0xFFFFD600);
         tvUpdateStatus.setText("Memeriksa rilis terbaru Kobra OS (versi saat ini " + BuildConfig.VERSION_NAME + ")...");
         speaker.speak("Memeriksa pembaruan Kobra OS dari GitHub.");
 
@@ -298,10 +614,9 @@ public class SettingsActivity extends AppCompatActivity {
             @Override public void onUpdateAvailable(AppUpdater.ReleaseInfo info) {
                 if (isFinishing() || isDestroyed()) return;
                 btnCheckUpdate.setEnabled(true);
-                tvUpdateStatus.setTextColor(0xFF00E676);
-                tvUpdateStatus.setText("Tersedia versi baru: " + info.tagName + " — " + info.releaseNotesForSpeech);
-                speaker.speak("Pembaruan Kobra OS tersedia, versi " + info.tagName
-                        + ". Catatan rilis: " + info.releaseNotesForSpeech);
+                tvUpdateStatus.setTextColor(0xFF00E5FF);
+                tvUpdateStatus.setText("Tersedia versi baru: " + info.tagName + " - " + info.releaseNotesForSpeech);
+                speaker.speak("Pembaruan Kobra OS tersedia, versi " + info.tagName);
 
                 new AlertDialog.Builder(SettingsActivity.this)
                         .setTitle("Pembaruan Kobra OS " + info.tagName)
@@ -314,7 +629,7 @@ public class SettingsActivity extends AppCompatActivity {
             @Override public void onUpToDate(String currentVersion, String latestTag) {
                 if (isFinishing() || isDestroyed()) return;
                 btnCheckUpdate.setEnabled(true);
-                tvUpdateStatus.setTextColor(0xFF00E676);
+                tvUpdateStatus.setTextColor(0xFF00E5FF);
                 String msg = "Kobra OS sudah menggunakan versi terbaru (" + currentVersion
                         + (latestTag.isEmpty() ? "" : ", rilis: " + latestTag) + ").";
                 tvUpdateStatus.setText(msg);
@@ -332,28 +647,26 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void beginApkDownload(AppUpdater.ReleaseInfo info) {
-        tvUpdateStatus.setTextColor(0xFFFFFF00);
+        tvUpdateStatus.setTextColor(0xFFFFD600);
         tvUpdateStatus.setText("Mengunduh APK " + info.tagName + "...");
         appUpdater.downloadAndInstall(info, new AppUpdater.DownloadCallback() {
             @Override public void onStarted(long downloadId, String fileName) {
                 if (isFinishing() || isDestroyed()) return;
                 tvUpdateStatus.setText("Mengunduh " + fileName + " lewat DownloadManager...");
-                speaker.speak("Mengunduh paket pembaruan Kobra OS. Harap tunggu hingga unduhan selesai.");
+                speaker.speak("Mengunduh paket pembaruan Kobra OS.");
             }
 
             @Override public void onCompleted(Uri apkUri, File apkFile) {
                 if (isFinishing() || isDestroyed()) return;
-                tvUpdateStatus.setTextColor(0xFF00E676);
+                tvUpdateStatus.setTextColor(0xFF00E5FF);
                 tvUpdateStatus.setText("Unduhan selesai. Membuka installer paket...");
                 boolean launched = AppUpdater.launchPackageInstaller(SettingsActivity.this, apkUri);
                 if (!launched) {
                     pendingInstallUri = apkUri;
-                    tvUpdateStatus.setTextColor(0xFFFFAB40);
+                    tvUpdateStatus.setTextColor(0xFFFFD600);
                     tvUpdateStatus.setText("Aktifkan izin instal aplikasi untuk Kobra OS lalu kembali ke halaman ini.");
-                    speaker.speak("Aktifkan izin instal aplikasi dari sumber ini untuk Kobra OS, lalu kembali untuk melanjutkan pemasangan.");
                 } else {
                     pendingInstallUri = null;
-                    speaker.speak("Installer pembaruan Kobra OS dibuka.");
                 }
             }
 
@@ -379,6 +692,8 @@ public class SettingsActivity extends AppCompatActivity {
     @Override protected void onResume() {
         super.onResume();
         updateModelStatus();
+        refreshSystemPermSummary();
+        refreshMemoryListUi();
         if (pendingInstallUri != null && getPackageManager().canRequestPackageInstalls()) {
             Uri uri = pendingInstallUri;
             pendingInstallUri = null;
@@ -394,10 +709,32 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void loadFieldsFromConfig() {
         loadingFields = true;
+        etGeminiKey.setText(config.getGeminiApiKey());
         etKey.setText(config.getApiKey());
         etModel.setText(config.getModel());
         etN8n.setText(config.getN8nUrl());
         etNotes.setText(config.getNotes());
+
+        swFloatingOrb.setChecked(config.isFloatingOrbEnabled());
+        swFloatingOrbAutoHide.setChecked(config.isFloatingOrbAutoHide());
+        int orbPercent = Math.max(25, Math.min(100, Math.round(config.getFloatingOrbAlpha() * 100f)));
+        sbFloatingOrbAlpha.setProgress(orbPercent - 25);
+        tvFloatingOrbAlpha.setText("Tingkat Transparansi Gelembung: " + orbPercent + "%");
+
+        swGlobalScreenReader.setChecked(UnifiedAccessibilityEngine.isGlobalReaderEnabled(this));
+        swVisualNumbers.setChecked(config.isVisualNumbersEnabled());
+        swGridOverlay.setChecked(config.isGridOverlayEnabled());
+        swAirGestures.setChecked(config.isAirGesturesEnabled());
+        swBargeIn.setChecked(config.isBargeInEnabled());
+        swFallDetection.setChecked(config.isFallDetectionEnabled());
+        swPocketLock.setChecked(config.isPocketLockEnabled());
+        swDailyBriefing.setChecked(config.isDailyBriefingEnabled());
+
+        int gMin = config.getGuardianIntervalMinutes();
+        if (gMin == 15) rbGuard15.setChecked(true);
+        else if (gMin == 30) rbGuard30.setChecked(true);
+        else if (gMin >= 60) rbGuard60.setChecked(true);
+        else rbGuardOff.setChecked(true);
 
         float rate = config.getSpeechRate();
         float pitch = config.getSpeechPitch();
@@ -407,18 +744,21 @@ public class SettingsActivity extends AppCompatActivity {
         tvSpeechPitch.setText(String.format(Locale.US, "Nada Suara (Pitch): %.1fx", pitch));
 
         String style = config.getAssistantStyle();
-        if (KobraConfig.STYLE_RINGKAS.equals(style)) {
-            rbStyleRingkas.setChecked(true);
-        } else if (KobraConfig.STYLE_DAERAH.equals(style)) {
-            rbStyleDaerah.setChecked(true);
-        } else {
-            rbStyleRamah.setChecked(true);
-        }
+        if (KobraConfig.STYLE_RINGKAS.equals(style)) rbStyleRingkas.setChecked(true);
+        else if (KobraConfig.STYLE_DAERAH.equals(style)) rbStyleDaerah.setChecked(true);
+        else rbStyleRamah.setChecked(true);
 
         boolean hc = config.isHighContrast();
         swHighContrast.setChecked(hc);
         applyHighContrastVisual(hc);
         loadingFields = false;
+    }
+
+    private int guardianMinutesFromId(int id) {
+        if (id == R.id.rbGuard15) return 15;
+        if (id == R.id.rbGuard30) return 30;
+        if (id == R.id.rbGuard60) return 60;
+        return 0;
     }
 
     private String styleFromCheckedId(int checkedId) {
@@ -428,20 +768,14 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void applyHighContrastVisual(boolean highContrast) {
-        View root = findViewById(android.R.id.content);
-        if (root != null) {
-            root.setBackgroundColor(highContrast ? 0xFF000000 : 0xFF0A0A0A);
-        }
-        int textColor = highContrast ? 0xFFFFFF00 : 0xFFFFFFFF;
+        int textColor = highContrast ? 0xFFFFFF00 : 0xFFE2E8F0;
+        etGeminiKey.setTextColor(textColor);
         etKey.setTextColor(textColor);
         etModel.setTextColor(textColor);
         etN8n.setTextColor(textColor);
         etNotes.setTextColor(textColor);
         tvSpeechRate.setTextColor(textColor);
         tvSpeechPitch.setTextColor(textColor);
-        rbStyleRingkas.setTextColor(textColor);
-        rbStyleRamah.setTextColor(textColor);
-        rbStyleDaerah.setTextColor(textColor);
     }
 
     private static float progressToTtsValue(int progress) {
@@ -465,18 +799,18 @@ public class SettingsActivity extends AppCompatActivity {
             long mb = modelFile.length() / (1024 * 1024);
             if (engine.isInitialized()) {
                 tvModelStatus.setText("Status model: Aktif & Siap (" + mb + " MB, " + LocalLlmEngine.MODEL_FILENAME + ")");
-                tvModelStatus.setTextColor(0xFF00E676);
+                tvModelStatus.setTextColor(0xFF00E5FF);
             } else if (engine.isSafeMode()) {
                 String err = engine.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : engine.getLastError();
                 tvModelStatus.setText("Status model: " + err + " (" + mb + " MB)");
-                tvModelStatus.setTextColor(0xFFFFAB40);
+                tvModelStatus.setTextColor(0xFFFFD600);
             } else {
                 tvModelStatus.setText("Status model: Terpasang (" + mb + " MB, lazy-load hemat RAM)");
-                tvModelStatus.setTextColor(0xFF38BDF8);
+                tvModelStatus.setTextColor(0xFF00E5FF);
             }
         } else {
             tvModelStatus.setText("Status model: Belum terpasang / Mode Aman (Pilih berkas .task dari HP)");
-            tvModelStatus.setTextColor(0xFFFFEB3B);
+            tvModelStatus.setTextColor(0xFFFFD600);
         }
     }
 
@@ -491,20 +825,14 @@ public class SettingsActivity extends AppCompatActivity {
         long mb = modelFile.length() / (1024 * 1024);
         new AlertDialog.Builder(this)
                 .setTitle("Hapus Model Lokal?")
-                .setMessage("Hapus berkas model " + LocalLlmEngine.MODEL_FILENAME + " (" + mb + " MB) dari penyimpanan internal dan reset Mode Aman?")
+                .setMessage("Hapus berkas model " + LocalLlmEngine.MODEL_FILENAME + " (" + mb + " MB)?")
                 .setPositiveButton("Hapus", (d, w) -> {
                     boolean deleted = engine.deleteLocalModel();
                     updateModelStatus();
                     tvImportProgress.setVisibility(View.VISIBLE);
-                    if (deleted) {
-                        tvImportProgress.setTextColor(0xFF00E676);
-                        tvImportProgress.setText("Model lokal berhasil dihapus. Ruang penyimpanan dibebaskan.");
-                        speaker.speak("Berkas model lokal berhasil dihapus dan Mode Aman direset.");
-                    } else {
-                        tvImportProgress.setTextColor(0xFFFF5252);
-                        tvImportProgress.setText("Gagal menghapus berkas model lokal.");
-                        speaker.speak("Gagal menghapus berkas model lokal.");
-                    }
+                    tvImportProgress.setTextColor(deleted ? 0xFF00E5FF : 0xFFFF5252);
+                    tvImportProgress.setText(deleted ? "Model lokal berhasil dihapus." : "Gagal menghapus berkas model.");
+                    speaker.speak(deleted ? "Model lokal berhasil dihapus." : "Gagal menghapus berkas model.");
                 })
                 .setNegativeButton("Batal", null)
                 .show();
@@ -513,7 +841,7 @@ public class SettingsActivity extends AppCompatActivity {
     private void loadOrTestLocalModel() {
         LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
         if (!engine.isModelPresent()) {
-            speaker.speak("Berkas model lokal belum terpasang. Impor berkas titik task terlebih dahulu.");
+            speaker.speak("Berkas model lokal belum terpasang.");
             updateModelStatus();
             return;
         }
@@ -522,9 +850,9 @@ public class SettingsActivity extends AppCompatActivity {
         pbImportModel.setVisibility(View.VISIBLE);
         pbImportModel.setIndeterminate(true);
         tvImportProgress.setVisibility(View.VISIBLE);
-        tvImportProgress.setTextColor(0xFFFFFF00);
-        tvImportProgress.setText("Memuat model lokal (batas 512 token, dengan Crash-Guard aktif)...");
-        speaker.speak("Mencoba memuat model lokal ke memori dengan perlindungan crash guard.");
+        tvImportProgress.setTextColor(0xFFFFD600);
+        tvImportProgress.setText("Memuat model lokal (batas 512 token, Crash-Guard aktif)...");
+        speaker.speak("Mencoba memuat model lokal ke memori.");
 
         executor.execute(() -> {
             boolean ready = engine.forceInitEngine();
@@ -534,12 +862,12 @@ public class SettingsActivity extends AppCompatActivity {
                 pbImportModel.setVisibility(View.GONE);
                 updateModelStatus();
                 if (ready) {
-                    tvImportProgress.setTextColor(0xFF00E676);
-                    tvImportProgress.setText("Model lokal berhasil dimuat dan siap digunakan (512 token).");
-                    speaker.speak("Model AI offline berhasil dimuat dan siap digunakan.");
+                    tvImportProgress.setTextColor(0xFF00E5FF);
+                    tvImportProgress.setText("Model lokal berhasil dimuat dan siap digunakan.");
+                    speaker.speak("Model AI offline berhasil dimuat.");
                 } else {
                     String err = engine.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : engine.getLastError();
-                    tvImportProgress.setTextColor(0xFFFFAB40);
+                    tvImportProgress.setTextColor(0xFFFFD600);
                     tvImportProgress.setText(err);
                     speaker.speak("Model tidak dapat dimuat ke RAM. Kobra tetap aman di Mode Aman.");
                 }
@@ -548,7 +876,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void exportBackupToUri(Uri uri) {
-        tvBackupStatus.setTextColor(0xFFFFFF00);
+        tvBackupStatus.setTextColor(0xFFFFD600);
         tvBackupStatus.setText("Mengekspor cadangan data...");
         executor.execute(() -> {
             try {
@@ -560,8 +888,8 @@ public class SettingsActivity extends AppCompatActivity {
                 }
                 mainHandler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
-                    tvBackupStatus.setTextColor(0xFF00E676);
-                    tvBackupStatus.setText("Cadangan JSON berhasil disimpan (tanpa berkas .task).");
+                    tvBackupStatus.setTextColor(0xFF00E5FF);
+                    tvBackupStatus.setText("Cadangan JSON berhasil disimpan.");
                     speaker.speak("Cadangan data Kobra OS berhasil disimpan.");
                 });
             } catch (Exception e) {
@@ -570,7 +898,6 @@ public class SettingsActivity extends AppCompatActivity {
                     if (isFinishing() || isDestroyed()) return;
                     tvBackupStatus.setTextColor(0xFFFF5252);
                     tvBackupStatus.setText("Gagal mencadangkan data: " + msg);
-                    speaker.speak("Gagal mencadangkan data. " + msg);
                 });
             }
         });
@@ -581,10 +908,9 @@ public class SettingsActivity extends AppCompatActivity {
         if (!name.isEmpty() && !name.toLowerCase(Locale.ROOT).endsWith(".json")) {
             tvBackupStatus.setTextColor(0xFFFF5252);
             tvBackupStatus.setText("Berkas bukan JSON: " + name);
-            speaker.speak("Berkas yang dipilih bukan berkas cadangan JSON.");
             return;
         }
-        tvBackupStatus.setTextColor(0xFFFFFF00);
+        tvBackupStatus.setTextColor(0xFFFFD600);
         tvBackupStatus.setText("Memulihkan data dari berkas cadangan...");
         executor.execute(() -> {
             try (InputStream is = getContentResolver().openInputStream(uri)) {
@@ -600,10 +926,11 @@ public class SettingsActivity extends AppCompatActivity {
                 mainHandler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
                     loadFieldsFromConfig();
+                    refreshMemoryListUi();
                     speaker.applyVoiceSettings();
-                    tvBackupStatus.setTextColor(0xFF00E676);
-                    tvBackupStatus.setText("Berhasil memulihkan " + count + " entri pengaturan dan kontak darurat.");
-                    speaker.speak("Data cadangan berhasil dipulihkan sebanyak " + count + " pengaturan.");
+                    tvBackupStatus.setTextColor(0xFF00E5FF);
+                    tvBackupStatus.setText("Berhasil memulihkan " + count + " entri pengaturan.");
+                    speaker.speak("Data cadangan berhasil dipulihkan.");
                 });
             } catch (Exception e) {
                 String msg = e.getMessage() != null ? e.getMessage() : "Format tidak valid";
@@ -611,7 +938,6 @@ public class SettingsActivity extends AppCompatActivity {
                     if (isFinishing() || isDestroyed()) return;
                     tvBackupStatus.setTextColor(0xFFFF5252);
                     tvBackupStatus.setText("Gagal memulihkan data: " + msg);
-                    speaker.speak("Gagal memulihkan data cadangan. " + msg);
                 });
             }
         });
@@ -619,52 +945,38 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void processSelectedModelFile(Uri uri) {
         String fileName = queryFileName(uri);
-
-        // Validasi ekstensi .task
         if (!fileName.toLowerCase(Locale.ROOT).endsWith(".task")) {
-            speaker.speak("Berkas yang dipilih bukan berkas model titik task. Silakan pilih berkas yang berakhiran titik task.");
+            speaker.speak("Berkas yang dipilih bukan berkas model titik task.");
             tvImportProgress.setVisibility(View.VISIBLE);
             tvImportProgress.setTextColor(0xFFFF5252);
-            tvImportProgress.setText("Gagal: Berkas bukan bertipe .task (" + (!fileName.isEmpty() ? fileName : "format tidak dikenal") + ").");
+            tvImportProgress.setText("Gagal: Berkas bukan bertipe .task.");
             return;
         }
 
-        long fileSize = queryFileSize(uri);
-        final long finalFileSize = fileSize;
-
-        speaker.speak("Memulai penyalinan model titik task dari penyimpanan HP. Harap tunggu sebentar.");
+        final long finalFileSize = queryFileSize(uri);
         btnImportModel.setEnabled(false);
         pbImportModel.setVisibility(View.VISIBLE);
         pbImportModel.setProgress(0);
         tvImportProgress.setVisibility(View.VISIBLE);
-        tvImportProgress.setTextColor(0xFFFFFF00);
-        tvImportProgress.setText("Menyiapkan penyalinan: " + fileName);
+        tvImportProgress.setTextColor(0xFFFFD600);
+        tvImportProgress.setText("Menyalin: " + fileName);
 
         executor.execute(() -> {
             File filesDir = getFilesDir();
             File destFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME);
             File tempFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME + ".tmp");
-
-            if (tempFile.exists()) {
-                tempFile.delete();
-            }
+            if (tempFile.exists()) tempFile.delete();
 
             try (InputStream is = getContentResolver().openInputStream(uri);
                  FileOutputStream fos = new FileOutputStream(tempFile)) {
-
-                if (is == null) {
-                    throw new IOException("Tidak dapat membaca data berkas yang dipilih.");
-                }
-
-                byte[] buffer = new byte[65536]; // Buffer 64 KB untuk penyalinan cepat & hemat memori
+                if (is == null) throw new IOException("Tidak dapat membaca berkas.");
+                byte[] buffer = new byte[65536];
                 int read;
                 long totalRead = 0;
                 long lastUpdateTime = 0;
-
                 while ((read = is.read(buffer)) != -1) {
                     fos.write(buffer, 0, read);
                     totalRead += read;
-
                     long now = System.currentTimeMillis();
                     if (now - lastUpdateTime > 350) {
                         lastUpdateTime = now;
@@ -683,13 +995,7 @@ public class SettingsActivity extends AppCompatActivity {
                     }
                 }
                 fos.flush();
-
-                // Hapus berkas tujuan lama terlebih dahulu untuk mencegah penumpukan ruang penyimpanan
-                if (destFile.exists()) {
-                    destFile.delete();
-                }
-
-                // Ganti nama berkas sementara menjadi nama resmi yang dibaca LocalLlmEngine
+                if (destFile.exists()) destFile.delete();
                 if (!tempFile.renameTo(destFile)) {
                     copyFile(tempFile, destFile);
                     tempFile.delete();
@@ -704,11 +1010,10 @@ public class SettingsActivity extends AppCompatActivity {
                     config.clearLlmSafeMode();
                     updateModelStatus();
                     long mb = destFile.length() / (1024 * 1024);
-                    tvImportProgress.setTextColor(0xFF00E676);
-                    tvImportProgress.setText("Model tersimpan (" + mb + " MB). Ketuk Muat / Uji Model Lokal atau langsung pakai di AI Chat.");
-                    speaker.speak("Penyalinan model offline selesai. Model siap dimuat saat Anda membuka obrolan atau menekan tombol Muat Model Lokal.");
+                    tvImportProgress.setTextColor(0xFF00E5FF);
+                    tvImportProgress.setText("Model tersimpan (" + mb + " MB).");
+                    speaker.speak("Penyalinan model offline selesai.");
                 });
-
             } catch (Exception e) {
                 if (tempFile.exists()) tempFile.delete();
                 final String err = e.getMessage() != null ? e.getMessage() : "Kesalahan sistem";
@@ -718,7 +1023,6 @@ public class SettingsActivity extends AppCompatActivity {
                     pbImportModel.setVisibility(View.GONE);
                     tvImportProgress.setTextColor(0xFFFF5252);
                     tvImportProgress.setText("Gagal mengimpor model: " + err);
-                    speaker.speak("Gagal mengimpor model offline. " + err);
                 });
             }
         });
@@ -730,9 +1034,7 @@ public class SettingsActivity extends AppCompatActivity {
             try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     int col = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    if (col >= 0) {
-                        result = cursor.getString(col);
-                    }
+                    if (col >= 0) result = cursor.getString(col);
                 }
             } catch (Exception ignored) {}
         }
@@ -749,9 +1051,7 @@ public class SettingsActivity extends AppCompatActivity {
             try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     int col = cursor.getColumnIndex(OpenableColumns.SIZE);
-                    if (col >= 0) {
-                        size = cursor.getLong(col);
-                    }
+                    if (col >= 0) size = cursor.getLong(col);
                 }
             } catch (Exception ignored) {}
         }
@@ -769,14 +1069,32 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void saveFields() {
+        String gKey = etGeminiKey.getText().toString().trim();
+        config.setGeminiApiKey(gKey);
+        CommandRouter.setUserGeminiApiKey(this, gKey);
         config.setApiKey(etKey.getText().toString());
         config.setModel(etModel.getText().toString());
         config.setN8nUrl(etN8n.getText().toString());
         config.setNotes(etNotes.getText().toString());
+
+        config.setFloatingOrbEnabled(swFloatingOrb.isChecked());
+        config.setFloatingOrbAutoHide(swFloatingOrbAutoHide.isChecked());
+        config.setFloatingOrbAlpha((25 + sbFloatingOrbAlpha.getProgress()) / 100f);
+
+        UnifiedAccessibilityEngine.setGlobalReaderEnabled(this, swGlobalScreenReader.isChecked());
+        config.setVisualNumbersEnabled(swVisualNumbers.isChecked());
+        config.setGridOverlayEnabled(swGridOverlay.isChecked());
+        config.setAirGesturesEnabled(swAirGestures.isChecked());
+        config.setBargeInEnabled(swBargeIn.isChecked());
+        config.setFallDetectionEnabled(swFallDetection.isChecked());
+        config.setPocketLockEnabled(swPocketLock.isChecked());
+        config.setDailyBriefingEnabled(swDailyBriefing.isChecked());
+
         config.setSpeechRate(progressToTtsValue(sbSpeechRate.getProgress()));
         config.setSpeechPitch(progressToTtsValue(sbSpeechPitch.getProgress()));
         config.setHighContrast(swHighContrast.isChecked());
         config.setAssistantStyle(styleFromCheckedId(rgAssistantStyle.getCheckedRadioButtonId()));
         speaker.applyVoiceSettings();
+        AsistenAccessibilityService.refreshFloatingOrbSettings();
     }
 }

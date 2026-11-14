@@ -1,1 +1,17 @@
-<resources><style name="Theme.KobraOS" parent="Theme.Material3.DayNight"><item name="colorPrimary">#00E676</item><item name="android:windowBackground">#000000</item><item name="colorOnBackground">#FFFFFF</item></style></resources>
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.KobraOS" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#00E5FF</item>
+        <item name="colorOnPrimary">#050811</item>
+        <item name="colorSecondary">#FFD600</item>
+        <item name="colorOnSecondary">#050811</item>
+        <item name="colorSurface">#0E1627</item>
+        <item name="colorOnSurface">#E2E8F0</item>
+        <item name="android:windowBackground">#050811</item>
+        <item name="colorOnBackground">#E2E8F0</item>
+        <item name="android:statusBarColor">#050811</item>
+        <item name="android:navigationBarColor">#050811</item>
+        <item name="android:textColorPrimary">#E2E8F0</item>
+        <item name="android:textColorSecondary">#94A3B8</item>
+    </style>
+</resources>

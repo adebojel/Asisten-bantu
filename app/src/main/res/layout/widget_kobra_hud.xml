@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget_glass"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="14dp">
+
+    <ImageView
+        android:id="@+id/widget_orb_icon"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:contentDescription="Pemicu suara cepat Kobra OS"
+        android:src="@drawable/ic_3d_mic_orb" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="KOBRA OS HUD"
+            android:textColor="#00E5FF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Ketuk untuk perintah suara"
+            android:textColor="#E2E8F0"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/widget_vision_btn"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/bg_glass_button_secondary"
+        android:contentDescription="Buka Mata Kedua"
+        android:padding="7dp"
+        android:src="@drawable/ic_3d_eye_vision" />
+</LinearLayout>

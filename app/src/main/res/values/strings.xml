@@ -1,7 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Kobra OS</string>
-    <string name="setup_title">KOBRA OS • ASISTEN PINTAR</string>
-    <string name="accessibility_desc">Kobra OS membantu tunanetra dengan perintah suara, membaca layar, dan menekan tombol lewat suara.</string>
-    <string name="global_reader_name">Kobra Pembaca Layar Global</string>
-    <string name="global_reader_desc">Pembaca layar opsional untuk membacakan tombol dan menu di aplikasi pihak ketiga di luar Kobra OS serta mendukung gestur dua jari.</string>
+    <string name="setup_title">KOBRA OS HUD</string>
+    <string name="accessibility_desc">Kobra OS memadukan Voice Access offline, pembaca layar, kontrol AI lokal, radar tongkat, dan pengaman Guardian SOS.</string>
+    <string name="global_reader_name">Kobra Aksesibilitas Satu Pintu</string>
+    <string name="global_reader_desc">Layanan aksesibilitas tunggal Kobra OS untuk Voice Access bernomor, membaca layar, klik otomatis, gestur udara, dan Barge-In.</string>
+    <string name="voice_interaction_label">Kobra Asisten Digital</string>
+    <string name="widget_description">Panel cepat 3D Kobra OS untuk pemicu suara instan dan status siaga.</string>
+    <string name="guardian_channel_name">Guardian Check-In Kobra OS</string>
 </resources>

@@ -2,106 +2,152 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
+    android:background="@drawable/bg_hud_backdrop"
     android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="18dp">
 
-        <TextView
+        <!-- Header HUD SOS -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="🆘 KONTAK DARURAT"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="#FF5252"
-            android:gravity="center"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_glass_card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="16dp">
 
-        <EditText
-            android:id="@+id/etName1"
-            android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="Nama Kontak 1"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="10dp" />
+            <ImageView
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:contentDescription="Ikon Darurat SOS"
+                android:src="@drawable/ic_3d_sos_shield" />
 
-        <EditText
-            android:id="@+id/etPhone1"
-            android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="No HP 1"
-            android:inputType="phone"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="10dp" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-        <EditText
-            android:id="@+id/etName2"
-            android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="Nama Kontak 2"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="10dp" />
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:letterSpacing="0.06"
+                    android:text="KONTAK DARURAT SOS"
+                    android:textColor="#FF6B6B"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
 
-        <EditText
-            android:id="@+id/etPhone2"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Panggilan otomatis &amp; SMS lokasi darurat."
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Form Kontak -->
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="55dp"
-            android:hint="No HP 2"
-            android:inputType="phone"
-            android:textColor="#FFFFFF"
-            android:textColorHint="#9E9E9E"
-            android:background="#222222"
-            android:padding="12dp"
-            android:layout_marginBottom="20dp" />
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_glass_card_cyan"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <EditText
+                android:id="@+id/etName1"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_glass_input"
+                android:hint="Nama Kontak Darurat 1"
+                android:padding="14dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
+
+            <EditText
+                android:id="@+id/etPhone1"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_glass_input"
+                android:hint="Nomor HP 1"
+                android:inputType="phone"
+                android:padding="14dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
+
+            <EditText
+                android:id="@+id/etName2"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:layout_marginBottom="10dp"
+                android:background="@drawable/bg_glass_input"
+                android:hint="Nama Kontak Darurat 2"
+                android:padding="14dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
+
+            <EditText
+                android:id="@+id/etPhone2"
+                android:layout_width="match_parent"
+                android:layout_height="54dp"
+                android:background="@drawable/bg_glass_input"
+                android:hint="Nomor HP 2"
+                android:inputType="phone"
+                android:padding="14dp"
+                android:textColor="#F8FAFC"
+                android:textColorHint="#64748B" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/btnSaveSos"
             android:layout_width="match_parent"
-            android:layout_height="65dp"
-            android:text="💾 SIMPAN"
-            android:backgroundTint="#00C853"
-            android:contentDescription="Simpan kontak darurat SOS" />
+            android:layout_height="60dp"
+            android:background="@drawable/bg_glass_button_primary"
+            android:contentDescription="Simpan kontak darurat SOS"
+            android:text="SIMPAN KONTAK DARURAT"
+            android:textColor="#04120D"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnSosPractice"
             android:layout_width="match_parent"
-            android:layout_height="62dp"
-            android:layout_marginTop="12dp"
-            android:text="🧪 MODE LATIHAN SOS (SIMULASI)"
-            android:backgroundTint="#2962FF"
-            android:textColor="#FFFFFF"
-            android:contentDescription="Jalankan simulasi latihan SOS tanpa mengirim SMS atau menelepon asli" />
+            android:layout_height="58dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_glass_button_secondary"
+            android:contentDescription="Jalankan simulasi latihan SOS tanpa mengirim SMS atau menelepon asli"
+            android:text="MODE LATIHAN SOS (SIMULASI)"
+            android:textColor="#00E5FF"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/btnOpenMedicalCard"
             android:layout_width="match_parent"
-            android:layout_height="62dp"
+            android:layout_height="58dp"
             android:layout_marginTop="10dp"
-            android:text="🏥 KARTU IDENTITAS MEDIS DARURAT"
-            android:backgroundTint="#EF6C00"
-            android:textColor="#FFFFFF"
-            android:contentDescription="Buka dan atur kartu identitas medis darurat" />
+            android:background="@drawable/bg_glass_button_danger"
+            android:contentDescription="Buka dan atur kartu identitas medis darurat"
+            android:text="KARTU IDENTITAS MEDIS DARURAT"
+            android:textColor="#FFF1F2"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvSosStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_glass_card"
+            android:padding="14dp"
             android:text="Belum diatur (Default: 112)"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp"
-            android:layout_marginTop="16dp" />
+            android:textColor="#F8FAFC"
+            android:textSize="15sp" />
     </LinearLayout>
 </ScrollView>
