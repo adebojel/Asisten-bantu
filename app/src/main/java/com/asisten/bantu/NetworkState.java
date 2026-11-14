@@ -34,11 +34,10 @@ public final class NetworkState {
     private static boolean hasUsableInternet(NetworkCapabilities caps) {
         if (caps == null) return false;
         if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) return false;
-        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-                || caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-                || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-                || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
-                || caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
+        // NET_CAPABILITY_INTERNET only means the network is configured for internet.
+        // VALIDATED confirms Android has verified actual public-internet connectivity.
+        // Do not report captive portals or unvalidated Wi-Fi/mobile networks as online.
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
     }
 
     public static String connectionType(Context c) {
