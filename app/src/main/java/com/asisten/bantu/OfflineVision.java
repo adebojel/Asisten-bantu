@@ -187,7 +187,7 @@ public final class OfflineVision {
                 .addOnFailureListener(e -> cb.onResult("Gagal mengenali benda di depan kamera."));
     }
 
-    /** Menentukan benda terdekat beserta arah posisi (kiri/tengah/kanan) untuk panduan bunyi bip kamera. */
+    /** Memilih objek dengan area gambar terbesar; ukuran kotak bukan pengukuran jarak fisik. */
     public static ObjectGuidance findNearestObject(List<DetectedObject> objs, int imgWidth, int imgHeight) {
         if (objs == null || objs.isEmpty() || imgWidth <= 0 || imgHeight <= 0) return null;
         DetectedObject best = null;
@@ -207,8 +207,10 @@ public final class OfflineVision {
         String label = best.getLabels().isEmpty()
                 ? "sebuah benda"
                 : translateForSearch(best.getLabels().get(0).getText());
-        String dist = bestRatio >= 0.25 ? "sangat dekat" : (bestRatio >= 0.10 ? "jarak sedang" : "agak jauh");
-        String spoken = label + " terdeteksi di " + dir + ", " + dist + ".";
+        String apparentSize = bestRatio >= 0.25 ? "tampak besar di gambar"
+                : (bestRatio >= 0.10 ? "tampak sedang di gambar" : "tampak kecil di gambar");
+        String spoken = label + " terdeteksi di " + dir + ", " + apparentSize
+                + ". Jarak sebenarnya tidak dapat dipastikan dari kamera.";
         return new ObjectGuidance(label, dir, Math.min(1.0, bestRatio * 2.5), spoken);
     }
 
