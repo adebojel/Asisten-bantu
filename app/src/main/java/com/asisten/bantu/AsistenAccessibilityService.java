@@ -291,6 +291,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         UnifiedAccessibilityEngine.onServiceDestroyed();
         stopMic();
         destroyRecognizer();
+        if (speaker != null) {
+            speaker.removeListener(speechListener);
+        }
         cancelFallCountdown(false);
         EmergencyBeacon.stopAll(this, torchId);
         SystemUtilityHelper.stopLocalAudio(this);
@@ -300,6 +303,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             tripMonitor.stop(false);
         }
         if (main != null) {
+            main.removeCallbacks(watchdog);
             main.removeCallbacks(medicationCheckerTick);
             main.removeCallbacks(hourlyReminderTick);
             for (ActiveTimer t : activeTimers) {
@@ -502,7 +506,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
             ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (matches != null && !matches.isEmpty()) handleSpoken(matches.get(0));
-            if (!speaker.isSpeaking()) scheduleRetry(300);
+            Speaker activeSpeaker = speaker;
+            if (micOn && activeSpeaker != null && !activeSpeaker.isSpeaking()) {
+                scheduleRetry(300);
+            }
         }
     };
 
