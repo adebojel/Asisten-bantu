@@ -689,12 +689,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         String cmd = stripWake(text);
         if (cmd == null) {
+            if (ChatActivity.isUnifiedConversationActive()) {
+                ChatActivity.dispatchGlobalVoice(text);
+                return;
+            }
             if (AiChatActivity.current != null) {
                 AiChatActivity.current.onVoice(text);
                 return;
             }
             if (System.currentTimeMillis() > conversationUntil) return;
             cmd = text;
+        } else if (ChatActivity.isUnifiedConversationActive()) {
+            ChatActivity.appendGlobalUser(raw);
         }
         conversationUntil = System.currentTimeMillis() + CONVERSATION_WINDOW_MS;
         route(cmd);
@@ -1942,6 +1948,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (text == null || text.isEmpty()) return;
         lastSpoken = text;
         conversationUntil = System.currentTimeMillis() + CONVERSATION_WINDOW_MS;
+        if (ChatActivity.isUnifiedConversationActive()) {
+            ChatActivity.appendGlobalAssistant(text, "Kontrol Kobra");
+        }
         speaker.speak(text);
     }
 
