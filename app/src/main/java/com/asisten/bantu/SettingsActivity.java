@@ -469,7 +469,7 @@ public class SettingsActivity extends AppCompatActivity {
         });
 
         btnImportModel.setOnClickListener(v -> {
-            speaker.speak("Membuka pengelola berkas. Pilih berkas model berakhiran titik task.");
+            speaker.speak("Membuka pengelola berkas. Pilih model berformat task atau litertlm.");
             try {
                 modelPickerLauncher.launch(new String[]{"*/*"});
             } catch (Exception e) {
@@ -1329,20 +1329,21 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void processSelectedModelFile(Uri uri) {
-        String fileName = queryFileName(uri);
-        if (!fileName.toLowerCase(Locale.ROOT).endsWith(".task")) {
-            speaker.speak("Berkas yang dipilih bukan berkas model titik task.");
+        String sourceName = queryFileName(uri);
+        LocalModelRegistry.ModelEntry entry = LocalModelRegistry.findByExtension(sourceName);
+        if (entry == null) {
             tvImportProgress.setVisibility(View.VISIBLE);
             tvImportProgress.setTextColor(0xFFFF5252);
-            tvImportProgress.setText("Gagal: pilih model MediaPipe .task. Model LiteRT-LM .litertlm belum didukung mesin ini.");
+            tvImportProgress.setText("Format tidak didukung. Pilih model .task atau .litertlm.");
+            speaker.speak("Format model tidak didukung. Pilih berkas task atau litertlm.");
             return;
         }
 
-        final long finalFileSize = queryFileSize(uri);
-        if (finalFileSize > 0 && finalFileSize < 1024 * 1024) {
+        final long sourceSize = queryFileSize(uri);
+        if (sourceSize > 0 && sourceSize < entry.minimumFileBytes) {
             tvImportProgress.setVisibility(View.VISIBLE);
             tvImportProgress.setTextColor(0xFFFF5252);
-            tvImportProgress.setText("Gagal: ukuran berkas terlalu kecil untuk model .task.");
+            tvImportProgress.setText("Berkas model terlalu kecil atau tidak lengkap.");
             speaker.speak("Berkas model terlalu kecil atau tidak lengkap.");
             return;
         }
@@ -1352,21 +1353,22 @@ public class SettingsActivity extends AppCompatActivity {
         pbImportModel.setProgress(0);
         tvImportProgress.setVisibility(View.VISIBLE);
         tvImportProgress.setTextColor(0xFFFFD600);
-        tvImportProgress.setText("Memeriksa ruang dan menyalin: " + fileName);
+        tvImportProgress.setText("Memeriksa ruang dan menyalin model " + entry.displayName);
 
         executor.execute(() -> {
-            File filesDir = getFilesDir();
-            File destFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME);
-            File tempFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME + ".tmp");
-            File backupFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME + ".bak");
+            File destFile = LocalModelRegistry.fileFor(SettingsActivity.this, entry);
+            File parent = destFile.getParentFile();
+            if (parent != null && !parent.exists()) parent.mkdirs();
+            File tempFile = new File(destFile.getParentFile(), destFile.getName() + ".tmp");
+            File backupFile = new File(destFile.getParentFile(), destFile.getName() + ".bak");
             boolean replaced = false;
 
             try {
-                long requiredBytes = finalFileSize > 0 ? finalFileSize : 1024L * 1024L;
-                long freeBytes = filesDir.getUsableSpace();
-                if (freeBytes < requiredBytes + (16L * 1024L * 1024L)) {
+                long requiredBytes = sourceSize > 0 ? sourceSize : entry.minimumFileBytes;
+                long freeBytes = destFile.getParentFile().getUsableSpace();
+                if (freeBytes < requiredBytes + (32L * 1024L * 1024L)) {
                     throw new IOException("Ruang internal tidak cukup. Kosongkan minimal "
-                            + ((requiredBytes / (1024 * 1024)) + 16) + " MB lalu coba lagi.");
+                            + ((requiredBytes / (1024 * 1024)) + 32) + " MB lalu coba lagi.");
                 }
                 if (tempFile.exists() && !tempFile.delete()) {
                     throw new IOException("Tidak dapat membersihkan berkas sementara sebelumnya.");
@@ -1385,7 +1387,7 @@ public class SettingsActivity extends AppCompatActivity {
                         long now = System.currentTimeMillis();
                         if (now - lastUpdateTime > 350) {
                             lastUpdateTime = now;
-                            final int percent = finalFileSize > 0 ? (int) Math.min(100, (totalRead * 100) / finalFileSize) : -1;
+                            final int percent = sourceSize > 0 ? (int) Math.min(100, (totalRead * 100) / sourceSize) : -1;
                             final long mb = totalRead / (1024 * 1024);
                             mainHandler.post(() -> {
                                 if (isFinishing() || isDestroyed()) return;
@@ -1403,28 +1405,25 @@ public class SettingsActivity extends AppCompatActivity {
                     fos.getFD().sync();
                 }
 
-                if (totalRead <= 1024 * 1024 || (finalFileSize > 0 && totalRead != finalFileSize)) {
-                    throw new IOException("Ukuran hasil salinan tidak cocok. Model asli tetap dipertahankan.");
+                if (totalRead < entry.minimumFileBytes || (sourceSize > 0 && totalRead != sourceSize)) {
+                    throw new IOException("Ukuran salinan tidak cocok. Model lama tetap dipertahankan.");
                 }
-
                 if (backupFile.exists() && !backupFile.delete()) {
                     throw new IOException("Tidak dapat membersihkan cadangan model lama.");
                 }
                 if (destFile.exists()) {
                     if (!destFile.renameTo(backupFile)) {
-                        throw new IOException("Tidak dapat mengamankan model lama sebelum penggantian.");
+                        throw new IOException("Tidak dapat mengamankan model lama.");
                     }
                     replaced = true;
                 }
                 if (!tempFile.renameTo(destFile)) {
                     copyFile(tempFile, destFile);
-                    if (destFile.length() != totalRead) {
-                        throw new IOException("Verifikasi model hasil salinan gagal.");
-                    }
+                    if (destFile.length() != totalRead) throw new IOException("Verifikasi salinan gagal.");
                     tempFile.delete();
                 }
-                if (destFile.length() != totalRead) {
-                    throw new IOException("Verifikasi ukuran model akhir gagal.");
+                if (!LocalModelRegistry.isValidFile(destFile, entry) || destFile.length() != totalRead) {
+                    throw new IOException("Verifikasi model akhir gagal.");
                 }
                 if (backupFile.exists()) backupFile.delete();
 
@@ -1432,14 +1431,15 @@ public class SettingsActivity extends AppCompatActivity {
                     if (isFinishing() || isDestroyed()) return;
                     btnImportModel.setEnabled(true);
                     pbImportModel.setVisibility(View.GONE);
-                    LocalLlmEngine engine = LocalLlmEngine.getInstance(SettingsActivity.this);
-                    engine.close();
-                    config.clearLlmSafeMode();
+                    if (entry.runtime == LocalModelRegistry.RuntimeKind.MEDIAPIPE_TASK) {
+                        LocalLlmEngine.getInstance(SettingsActivity.this).close();
+                        config.clearLlmSafeMode();
+                    }
                     updateModelStatus();
-                    long mb = destFile.length() / (1024 * 1024);
                     tvImportProgress.setTextColor(0xFF00E5FF);
-                    tvImportProgress.setText("Model " + fileName + " berhasil diimpor (" + mb + " MB).");
-                    speaker.speak("Model offline berhasil disimpan. Tekan Muat atau Uji untuk memeriksa kompatibilitas perangkat.");
+                    tvImportProgress.setText(entry.displayName + " berhasil diimpor (" +
+                            (destFile.length() / (1024 * 1024)) + " MB).");
+                    speaker.speak("Model " + entry.displayName + " berhasil disimpan. Runtime akan memeriksa kompatibilitas saat dimuat.");
                 });
             } catch (Exception e) {
                 if (tempFile.exists()) tempFile.delete();
