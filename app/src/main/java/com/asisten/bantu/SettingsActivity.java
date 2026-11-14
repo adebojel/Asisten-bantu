@@ -1273,7 +1273,9 @@ public class SettingsActivity extends AppCompatActivity {
                             tvImportProgress.setText("Qwen3 belum dapat digunakan: " + error);
                             speaker.speak("Uji Qwen tiga gagal. " + error);
                         }
-                    }));
+                    });
+                    return kotlin.Unit.INSTANCE;
+            });
             return;
         }
 
