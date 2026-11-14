@@ -43,10 +43,6 @@ import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.objects.DetectedObject;
-import com.google.mlkit.vision.objects.ObjectDetection;
-import com.google.mlkit.vision.objects.ObjectDetector;
-import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
@@ -95,8 +91,8 @@ public class VisionActivity extends AppCompatActivity {
     private final ExecutorService cameraExec = Executors.newSingleThreadExecutor();
     private final TextRecognizer ocr = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
     private BarcodeScanner barcodeScanner;
-    private ObjectDetector streamObjectDetector;
-    private ObjectDetector singleShotObjectDetector;
+    private SafeObjectDetector streamObjectDetector;
+    private SafeObjectDetector singleShotObjectDetector;
     private ToneGenerator toneGenerator;
 
     private long runningCashTotal = 0L;
@@ -327,11 +323,7 @@ public class VisionActivity extends AppCompatActivity {
                         barcodeScanner = BarcodeScanning.getClient();
                     }
                     if ("find_object".equals(mode) && streamObjectDetector == null) {
-                        streamObjectDetector = ObjectDetection.getClient(new ObjectDetectorOptions.Builder()
-                                .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
-                                .enableMultipleObjects()
-                                .enableClassification()
-                                .build());
+                        streamObjectDetector = new SafeObjectDetector(true);
                     }
                     ImageAnalysis analysis = new ImageAnalysis.Builder()
                             .setTargetResolution(new Size(640, 480))
@@ -361,9 +353,11 @@ public class VisionActivity extends AppCompatActivity {
             int w = (rot == 90 || rot == 270) ? proxy.getHeight() : proxy.getWidth();
             int h = (rot == 90 || rot == 270) ? proxy.getWidth() : proxy.getHeight();
             InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
-            streamObjectDetector.process(img)
-                    .addOnSuccessListener(objs -> handleLiveObjects(objs, w, h))
-                    .addOnCompleteListener(t -> { liveProcessing = false; proxy.close(); });
+            streamObjectDetector.process(img, (items, usedFallback) -> {
+                handleLiveLabels(items);
+                liveProcessing = false;
+                proxy.close();
+            });
         } else if ("barcode".equals(mode)) {
             if (now - lastLiveSpeakAt < 2200L || barcodeScanner == null) { proxy.close(); return; }
             liveProcessing = true;
@@ -412,25 +406,26 @@ public class VisionActivity extends AppCompatActivity {
         }
     }
 
-    private void handleLiveObjects(List<DetectedObject> objs, int w, int h) {
-        OfflineVision.ObjectGuidance g = OfflineVision.findNearestObject(objs, w, h);
-        if (g == null) {
-            runOnUiThread(() -> tvStatus.setText("Mode: Cari Objek (memindai sekitar...)"));
+    private void handleLiveLabels(List<SafeObjectDetector.DetectedItem> items) {
+        if (items == null || items.isEmpty()) {
+            runOnUiThread(() -> tvStatus.setText("Label objek belum dikenali; arah dan jarak tidak tersedia."));
             return;
         }
-        long now = System.currentTimeMillis();
-        long beepInterval = g.closeness > 0.65 ? 300L : (g.closeness > 0.30 ? 650L : 1100L);
-        if (now - lastLiveBeepAt >= beepInterval) {
-            lastLiveBeepAt = now;
-            playBeep(g.closeness > 0.55);
+        StringBuilder text = new StringBuilder("Kemungkinan objek: ");
+        for (int i = 0; i < Math.min(3, items.size()); i++) {
+            if (i > 0) text.append(", ");
+            text.append(items.get(i).label);
         }
+        text.append(". Kamera tidak menentukan arah atau jarak.");
+        String spoken = text.toString();
         runOnUiThread(() -> {
-            tvStatus.setText("Terdeteksi: " + g.label + " (" + g.direction + ")");
-            tvResult.setText(g.spokenText);
+            tvStatus.setText("Pengenalan objek cadangan aktif");
+            tvResult.setText(spoken);
         });
-        if (now - lastLiveSpeakAt >= 3200L && !speaker.isSpeaking()) {
+        long now = System.currentTimeMillis();
+        if (now - lastLiveSpeakAt >= 4000L && !speaker.isSpeaking()) {
             lastLiveSpeakAt = now;
-            speak(g.spokenText);
+            speak(spoken);
         }
     }
 
@@ -614,37 +609,24 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private void scanAllObjectsAloud(Bitmap bmp) {
-        if (singleShotObjectDetector == null) {
-            singleShotObjectDetector = ObjectDetection.getClient(new ObjectDetectorOptions.Builder()
-                    .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
-                    .enableMultipleObjects()
-                    .enableClassification()
-                    .build());
-        }
-        tvStatus.setText("Memindai semua objek di depan...");
-        singleShotObjectDetector.process(InputImage.fromBitmap(bmp, 0))
-                .addOnSuccessListener(objs -> {
-                    if (objs != null && !objs.isEmpty()) {
-                        StringBuilder sb = new StringBuilder("Terdeteksi " + objs.size() + " objek di depan: ");
-                        int w = bmp.getWidth();
-                        for (int i = 0; i < objs.size(); i++) {
-                            DetectedObject obj = objs.get(i);
-                            String name = obj.getLabels().isEmpty() ? "benda" : obj.getLabels().get(0).getText().toLowerCase(Locale.ROOT);
-                            float cx = obj.getBoundingBox().centerX();
-                            String dir = cx < w * 0.35f ? "di kiri" : (cx > w * 0.65f ? "di kanan" : "di tengah");
-                            if (i > 0) sb.append(", ");
-                            sb.append(name).append(" ").append(dir);
-                        }
-                        sb.append(". Warna dominan: ").append(OfflineVision.detailedColorName(bmp)).append(".");
-                        lastCapturedRawText = sb.toString();
-                        done(sb.toString());
-                    } else if (canUseAi()) {
-                        askAiWithBitmap(bmp, "Sebutkan semua objek atau rintangan yang tampak di depan kamera beserta posisinya.");
-                    } else {
-                        OfflineVision.describe(bmp, this::done);
-                    }
-                })
-                .addOnFailureListener(e -> OfflineVision.describe(bmp, this::done));
+        if (singleShotObjectDetector == null) singleShotObjectDetector = new SafeObjectDetector(false);
+        tvStatus.setText("Mengenali label objek (tanpa estimasi arah/jarak)...");
+        singleShotObjectDetector.process(bmp, (items, usedFallback) -> {
+            if (items != null && !items.isEmpty()) {
+                StringBuilder sb = new StringBuilder("Kemungkinan objek: ");
+                for (int i = 0; i < Math.min(5, items.size()); i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(items.get(i).label);
+                }
+                sb.append(". Fitur cadangan tidak menentukan posisi atau jarak objek.");
+                lastCapturedRawText = sb.toString();
+                done(sb.toString());
+            } else if (canUseAi()) {
+                askAiWithBitmap(bmp, "Sebutkan objek yang terlihat. Jangan mengklaim arah atau jarak jika tidak dapat dipastikan.");
+            } else {
+                done("Objek belum berhasil dikenali. Coba dekatkan kamera dan perbaiki pencahayaan.");
+            }
+        });
     }
 
     private void readInstantOcr(Bitmap bmp) {
