@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
         speaker = Speaker.get(this);
 
         mainScroll = findViewById(R.id.mainScroll);
@@ -453,7 +454,8 @@ public class MainActivity extends AppCompatActivity {
                 tvStatus.setTextColor(0xFFFFD600);
             } else {
                 String aiLabel = llm.isInitialized() ? "Gemma Lokal Aktif"
-                        : (llm.isModelPresent() ? "Gemma Lokal Siap" : (!CommandRouter.resolveGeminiApiKey(this).isEmpty() ? "Gemini & Lokal Siap" : "Mode Offline"));
+                        : (llm.isModelPresent() ? "Gemma Lokal Siap"
+                        : (NetworkState.isOnline(this) ? OnlineAiRouter.getActiveProviderSummary(this) : "Mode Offline"));
                 tvStatus.setText(aiLabel + " • Notif: " + (notifOk ? "Aktif" : "Mati") + " • Ruang: " + freeText);
                 tvStatus.setTextColor(0xFFE2E8F0);
             }

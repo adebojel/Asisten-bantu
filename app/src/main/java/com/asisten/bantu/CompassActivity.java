@@ -34,6 +34,7 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_compass);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
 
         config = new KobraConfig(this);
         speaker = Speaker.get(this);

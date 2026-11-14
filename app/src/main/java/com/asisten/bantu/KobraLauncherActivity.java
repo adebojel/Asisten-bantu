@@ -39,6 +39,7 @@ public class KobraLauncherActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
         tvClock = findViewById(R.id.tvClock);
         tvListen = findViewById(R.id.tvListen);
         tvScreenReader = findViewById(R.id.tvScreenReader);

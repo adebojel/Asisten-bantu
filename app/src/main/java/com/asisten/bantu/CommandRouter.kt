@@ -266,52 +266,36 @@ object CommandRouter {
         speaker: Speaker
     ) {
         val geminiKey = resolveGeminiApiKey(service)
-        if (geminiKey.isNotEmpty()) {
-            if (shouldUseScreenAgent(command)) {
-                runMultiStepAgentAsync(service, command, geminiKey, macroCache) { msg: String ->
-                    speaker.speak(msg)
-                }
-            } else {
-                askGeminiTextAsync(service, command, geminiKey) { reply: String ->
-                    speaker.speak(reply)
-                }
+        if (geminiKey.isNotEmpty() && shouldUseScreenAgent(command)) {
+            runMultiStepAgentAsync(service, command, geminiKey, macroCache) { msg: String ->
+                speaker.speak(msg)
             }
             return
         }
 
-        if (config.hasAi()) {
-            speaker.speak("Sebentar.")
-            val sysPrompt = KobraPersona.buildFullSystemPrompt(service)
-            AiClient(config).chat(sysPrompt, command, object : AiClient.Callback {
-                override fun onResult(text: String) {
-                    speaker.speak(text)
-                }
+        speaker.speak("Sebentar.")
+        val sysPrompt = KobraPersona.buildFullSystemPrompt(service)
+        OnlineAiRouter.askAsync(service, command, sysPrompt, object : OnlineAiRouter.Callback {
+            override fun onResult(text: String, providerLabel: String) {
+                speaker.speak(text)
+            }
 
-                override fun onError(message: String) {
+            override fun onError(message: String) {
+                val engine = service.localLlmEngine
+                if (engine != null && engine.isModelPresent && !engine.isSafeMode) {
+                    if (engine.isInitialized) {
+                        engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
+                    } else {
+                        engine.initEngineAsync(false) { ok, _ ->
+                            if (ok) engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
+                            else speaker.speak(message)
+                        }
+                    }
+                } else {
                     speaker.speak(message)
                 }
-            })
-            return
-        }
-
-        val engine = service.localLlmEngine
-        if (engine != null && engine.isModelPresent && !engine.isSafeMode) {
-            val fullInstruction = KobraPersona.buildFullSystemPrompt(service)
-            if (engine.isInitialized) {
-                engine.summarizeTextAsync(fullInstruction, "Suara", command, speaker, null)
-            } else {
-                UnifiedAccessibilityEngine.getScope().launch(Dispatchers.IO) {
-                    val ok = engine.initEngine()
-                    withContext(Dispatchers.Main) {
-                        if (ok) engine.summarizeTextAsync(fullInstruction, "Suara", command, speaker, null)
-                        else speaker.speak("API key Gemini atau OpenRouter belum diisi dan model offline dalam Mode Aman.")
-                    }
-                }
             }
-            return
-        }
-
-        speaker.speak("Perintah membutuhkan API key Gemini atau OpenRouter di Pengaturan AI.")
+        })
     }
 
     private fun executeMacroSequenceAsync(
@@ -481,28 +465,12 @@ object CommandRouter {
         }
     }
 
-    private fun askGeminiTextAsync(
-        context: Context,
-        question: String,
-        apiKey: String,
-        onReply: (String) -> Unit
-    ) {
-        UnifiedAccessibilityEngine.getScope().launch {
-            val prompt = KobraPersona.buildFullSystemPrompt(context) +
-                "\nJangan pakai simbol markdown atau daftar bernomor.\n\nPertanyaan: $question"
-            val answer = withContext(Dispatchers.IO) {
-                callGeminiRest(apiKey, prompt, null)
-            }
-            onReply(cleanForSpeech(answer ?: "Koneksi Gemini gagal atau kuota sedang penuh."))
-        }
-    }
-
     @JvmStatic
     fun callGeminiBlocking(context: Context, prompt: String, imageBase64: String? = null): String? {
         val key = resolveGeminiApiKey(context)
         if (key.isEmpty()) return null
         val fullPrompt = KobraPersona.buildFullSystemPrompt(context) + "\n\n" + prompt
-        return callGeminiRest(key, fullPrompt, imageBase64)?.let { cleanForSpeech(it) }
+        return OnlineAiRouter.callGeminiWithFallback(key, fullPrompt, imageBase64)?.let { cleanForSpeech(it) }
     }
 
     private suspend fun executeSingleStep(service: AccessibilityService, step: MacroStep): Boolean {
@@ -603,56 +571,7 @@ Balas HANYA 1 objek JSON valid tanpa markdown dengan salah satu action berikut:
     }
 
     private fun callGeminiRest(apiKey: String, prompt: String, screenshotBase64: String?): String? {
-        return try {
-            val parts = JSONArray()
-            parts.put(JSONObject().put("text", prompt))
-            if (!screenshotBase64.isNullOrEmpty()) {
-                val inlineData = JSONObject()
-                    .put("mimeType", "image/jpeg")
-                    .put("data", screenshotBase64)
-                parts.put(JSONObject().put("inlineData", inlineData))
-            }
-
-            val content = JSONObject().put("parts", parts)
-            val payload = JSONObject()
-                .put("contents", JSONArray().put(content))
-                .put(
-                    "generationConfig",
-                    JSONObject()
-                        .put("temperature", 0.2)
-                        .put("maxOutputTokens", 450)
-                )
-
-            val url =
-                "https://generativelanguage.googleapis.com/v1beta/models/$GEMINI_MODEL:generateContent?key=$apiKey"
-            val req = Request.Builder()
-                .url(url)
-                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
-
-            httpClient.newCall(req).execute().use { resp ->
-                val bodyStr = resp.body?.string().orEmpty()
-                if (!resp.isSuccessful) {
-                    Log.w(TAG, "Gemini REST error HTTP ${resp.code}: $bodyStr")
-                    return null
-                }
-                val root = JSONObject(bodyStr)
-                val candidates = root.optJSONArray("candidates") ?: return null
-                if (candidates.length() == 0) return null
-                val respParts = candidates.getJSONObject(0)
-                    .optJSONObject("content")
-                    ?.optJSONArray("parts") ?: return null
-                val sb = StringBuilder()
-                for (i in 0 until respParts.length()) {
-                    val txt = respParts.getJSONObject(i).optString("text", "")
-                    if (txt.isNotEmpty()) sb.append(txt).append(' ')
-                }
-                sb.toString().trim().ifEmpty { null }
-            }
-        } catch (t: Throwable) {
-            Log.e(TAG, "Koneksi ke Gemini REST API gagal", t)
-            null
-        }
+        return OnlineAiRouter.callGeminiWithFallback(apiKey, prompt, screenshotBase64)
     }
 
     private fun isVisualScreenQuery(c: String): Boolean {

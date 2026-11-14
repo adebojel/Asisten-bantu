@@ -98,6 +98,7 @@ open class ChatActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
+        WindowInsetsHelper.applySystemBarInsets(this, true)
 
         speaker = Speaker.get(this)
         config = KobraConfig(this)
@@ -252,17 +253,19 @@ open class ChatActivity : AppCompatActivity() {
 
     private fun refreshModeBanner() {
         val llm = LocalLlmEngine.getInstance(this)
-        val isSafe = config.isLlmSafeMode()
+        val isSafe = config.isLlmSafeMode
         btnResetSafeMode.visibility = if (isSafe) View.VISIBLE else View.GONE
 
-        val geminiOk = CommandRouter.resolveGeminiApiKey(this).isNotEmpty()
+        val online = NetworkState.isOnline(this)
+        val onlineLabel = OnlineAiRouter.getActiveProviderSummary(this)
         val label = when {
-            isSafe -> "Mode Aman Lokal • Fallback Online/Sistem"
+            isSafe && online -> "Mode Aman Lokal • $onlineLabel Siap"
+            isSafe -> "Mode Aman Lokal • Fallback Sistem Offline"
             llm.isInitialized -> "Gemma 3 1B Offline Aktif • Memori ${LocalMemoryStore.listMemories(this).size}"
-            llm.isModelPresent -> "Gemma 3 1B Siap • Gemini ${if (geminiOk) "Siap" else "Belum Diatur"}"
-            geminiOk -> "Gemini AI Studio & OpenRouter Siap"
-            config.hasAi() -> "OpenRouter AI Online Siap"
-            else -> "Mode Utilitas Lokal & Voice Access"
+            llm.isModelPresent && online -> "Model Lokal Siap • $onlineLabel"
+            llm.isModelPresent -> "Model Lokal Siap (Offline)"
+            online -> "$onlineLabel Siap (${NetworkState.connectionType(this)})"
+            else -> "Mode Utilitas Lokal & Voice Access (Offline)"
         }
         tvModelInfo.text = label
     }
@@ -521,47 +524,26 @@ open class ChatActivity : AppCompatActivity() {
     }
 
     private fun routeToOnlineOrFallback(question: String, systemPrompt: String) {
-        val online = NetworkState.isOnline(this)
-        val geminiKey = CommandRouter.resolveGeminiApiKey(this)
-        if (online && geminiKey.isNotEmpty()) {
-            tvModelInfo.text = "Memproses dengan Gemini AI..."
-            ioExec.execute {
-                val reply = CommandRouter.callGeminiBlocking(this, question, null)
-                runOnUiThread {
-                    if (!reply.isNullOrBlank()) {
-                        replyAndSpeak(reply, "Gemini AI")
-                    } else if (config.hasAi()) {
-                        askOpenRouter(question, systemPrompt)
-                    } else {
-                        replyAndSpeak(buildOfflineFallback(question), "Mode Lokal")
-                    }
+        if (NetworkState.isOnline(this)) {
+            tvModelInfo.text = "Menghubungi ${OnlineAiRouter.getActiveProviderSummary(this)}..."
+            OnlineAiRouter.askAsync(this, question, systemPrompt, object : OnlineAiRouter.Callback {
+                override fun onResult(text: String, providerLabel: String) {
+                    if (isFinishing || isDestroyed) return
+                    replyAndSpeak(text, providerLabel)
                     refreshModeBanner()
                 }
-            }
-            return
-        }
 
-        if (online && config.hasAi()) {
-            askOpenRouter(question, systemPrompt)
+                override fun onError(message: String) {
+                    if (isFinishing || isDestroyed) return
+                    replyAndSpeak(buildOfflineFallback(question), "Mode Lokal")
+                    refreshModeBanner()
+                }
+            })
             return
         }
 
         replyAndSpeak(buildOfflineFallback(question), "Mode Lokal")
         refreshModeBanner()
-    }
-
-    private fun askOpenRouter(question: String, systemPrompt: String) {
-        tvModelInfo.text = "Memproses dengan OpenRouter AI..."
-        aiClient.chat(systemPrompt, question, object : AiClient.Callback {
-            override fun onResult(text: String) {
-                replyAndSpeak(text, "OpenRouter AI")
-                refreshModeBanner()
-            }
-            override fun onError(message: String) {
-                replyAndSpeak(buildOfflineFallback(question), "Mode Lokal")
-                refreshModeBanner()
-            }
-        })
     }
 
     private fun tryLocalUtilityCommand(raw: String): String? {
@@ -588,8 +570,8 @@ open class ChatActivity : AppCompatActivity() {
     private fun buildOfflineFallback(question: String): String {
         val offlineAns = OfflineAi.get(this).answer(question)
         if (!offlineAns.isNullOrBlank()) return offlineAns
-        return "Saat ini koneksi internet atau kunci API online belum aktif, dan model lokal tidak dimuat. " +
-            "Anda tetap dapat menanyakan jam, sinyal, langkah, agenda, kalkulator, atau mengisi kunci Gemini API di Pengaturan."
+        return "Saat ini koneksi internet sedang terputus atau server sedang sibuk, dan model lokal belum dimuat. " +
+            "Anda tetap dapat menanyakan jam, sinyal, langkah, agenda, kalkulator, atau menyambungkan internet untuk AI Online gratis tanpa API key."
     }
 
     private fun addUserMessage(text: String) {

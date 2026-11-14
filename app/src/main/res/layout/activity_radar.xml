@@ -118,7 +118,7 @@
                 android:background="@drawable/bg_glass_button_primary"
                 android:text="MULAI RADAR"
                 android:textAllCaps="false"
-                android:textColor="#050811"
+                android:textColor="#06101C"
                 android:textSize="14sp"
                 android:textStyle="bold" />
 

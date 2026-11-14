@@ -107,7 +107,7 @@
                     android:background="@drawable/bg_glass_button_primary"
                     android:contentDescription="Simpan PIN keamanan baru"
                     android:text="SIMPAN PIN"
-                    android:textColor="#04120D"
+                    android:textColor="#06101C"
                     android:textStyle="bold" />
 
                 <Button
@@ -229,7 +229,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/bg_glass_button_primary"
                     android:text="TAMBAH JADWAL"
-                    android:textColor="#04120D"
+                    android:textColor="#06101C"
                     android:textStyle="bold" />
 
                 <Button

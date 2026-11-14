@@ -27,6 +27,7 @@ public class MedicalCardActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_medical_card);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
 

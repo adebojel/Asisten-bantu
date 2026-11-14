@@ -121,7 +121,7 @@
             android:background="@drawable/bg_glass_button_primary"
             android:contentDescription="Bacakan jadwal sholat lima waktu hari ini"
             android:text="BACAKAN JADWAL SHOLAT"
-            android:textColor="#04120D"
+            android:textColor="#06101C"
             android:textStyle="bold" />
 
         <Button

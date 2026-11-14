@@ -18,6 +18,7 @@ public class SosSetupActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sos);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
         KobraConfig config = new KobraConfig(this);
 
         final android.view.View contentRoot = ((android.view.ViewGroup) findViewById(android.R.id.content)).getChildAt(0);

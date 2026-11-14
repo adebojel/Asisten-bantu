@@ -6,7 +6,7 @@ import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 
-/** Mengecek dan memantau koneksi internet. Dipakai untuk memutuskan offline atau online secara otomatis. */
+/** Mengecek dan memantau koneksi internet secara andal untuk Wi-Fi maupun Data Seluler. */
 public final class NetworkState {
 
     public interface Listener { void onChange(boolean online); }
@@ -14,28 +14,57 @@ public final class NetworkState {
     private NetworkState() {}
 
     public static boolean isOnline(Context c) {
-        ConnectivityManager cm = (ConnectivityManager) c.getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return false;
-        Network n = cm.getActiveNetwork();
-        if (n == null) return false;
-        NetworkCapabilities caps = cm.getNetworkCapabilities(n);
-        return caps != null
-                && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        if (c == null) return false;
+        try {
+            ConnectivityManager cm = (ConnectivityManager) c.getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return false;
+            Network active = cm.getActiveNetwork();
+            if (hasUsableInternet(cm.getNetworkCapabilities(active))) {
+                return true;
+            }
+            for (Network n : cm.getAllNetworks()) {
+                if (hasUsableInternet(cm.getNetworkCapabilities(n))) {
+                    return true;
+                }
+            }
+        } catch (Throwable ignored) {}
+        return false;
+    }
+
+    private static boolean hasUsableInternet(NetworkCapabilities caps) {
+        if (caps == null) return false;
+        if (!caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) return false;
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                || caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+                || caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                || caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+                || caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
     }
 
     public static String connectionType(Context c) {
-        ConnectivityManager cm = (ConnectivityManager) c.getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm == null) return "Terputus";
-        Network n = cm.getActiveNetwork();
-        if (n == null) return "Terputus";
-        NetworkCapabilities caps = cm.getNetworkCapabilities(n);
-        if (caps == null || !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+        if (c == null) return "Terputus";
+        try {
+            ConnectivityManager cm = (ConnectivityManager) c.getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) return "Terputus";
+            Network n = cm.getActiveNetwork();
+            NetworkCapabilities caps = n != null ? cm.getNetworkCapabilities(n) : null;
+            if (!hasUsableInternet(caps)) {
+                for (Network candidate : cm.getAllNetworks()) {
+                    NetworkCapabilities cCaps = cm.getNetworkCapabilities(candidate);
+                    if (hasUsableInternet(cCaps)) {
+                        caps = cCaps;
+                        break;
+                    }
+                }
+            }
+            if (!hasUsableInternet(caps)) return "Terputus";
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return "Wi-Fi";
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) return "Data Seluler";
+            if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) return "Ethernet";
+            return "Tersambung";
+        } catch (Throwable ignored) {
             return "Terputus";
         }
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) return "Wi-Fi";
-        if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) return "Data Seluler";
-        return "Tersambung";
     }
 
     /** Memanggil listener hanya ketika status berubah (bukan saat pertama kali dicek). */
@@ -49,17 +78,18 @@ public final class NetworkState {
         ConnectivityManager.NetworkCallback callback = new ConnectivityManager.NetworkCallback() {
             @Override public void onAvailable(Network network) {
                 NetworkCapabilities caps = cm.getNetworkCapabilities(network);
-                boolean online = caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
-                if (online) report(true, listener, last);
+                if (hasUsableInternet(caps)) report(true, listener, last);
             }
             @Override public void onCapabilitiesChanged(Network network, NetworkCapabilities caps) {
-                report(caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED), listener, last);
+                report(hasUsableInternet(caps), listener, last);
             }
             @Override public void onLost(Network network) {
                 report(isOnline(c), listener, last);
             }
         };
-        cm.registerNetworkCallback(request, callback);
+        try {
+            cm.registerNetworkCallback(request, callback);
+        } catch (Throwable ignored) {}
         return callback;
     }
 
@@ -75,6 +105,6 @@ public final class NetworkState {
         if (last[0] != null && last[0] == online) return;
         boolean first = last[0] == null;
         last[0] = online;
-        if (!first) listener.onChange(online);
+        if (!first && listener != null) listener.onChange(online);
     }
 }

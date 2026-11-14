@@ -100,6 +100,7 @@ public class SettingsActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
 
@@ -405,24 +406,21 @@ public class SettingsActivity extends AppCompatActivity {
 
         test.setOnClickListener(v -> {
             saveFields();
-            tvStatus.setText("Menguji koneksi AI...");
-            String activeName = VoiceProfileManager.getActiveAssistantName(this);
-            String gemini = CommandRouter.resolveGeminiApiKey(this);
-            if (!gemini.isEmpty()) {
-                executor.execute(() -> {
-                    String res = CommandRouter.callGeminiBlocking(this, "Perkenalkan dirimu sebagai " + activeName + " dari Kobra OS dalam satu kalimat singkat.", null);
-                    mainHandler.post(() -> {
-                        if (res != null && !res.isEmpty()) {
-                            tvStatus.setText("Gemini menjawab: " + res);
-                            speaker.speak(res);
-                        } else {
-                            testOpenRouterFallback();
-                        }
-                    });
-                });
-            } else {
-                testOpenRouterFallback();
-            }
+            String providerSummary = OnlineAiRouter.getActiveProviderSummary(this);
+            tvStatus.setText("Menguji koneksi " + providerSummary + "...");
+            OnlineAiRouter.testConnection(this, new OnlineAiRouter.Callback() {
+                @Override public void onResult(String text, String providerLabel) {
+                    if (isFinishing() || isDestroyed()) return;
+                    tvStatus.setText(providerLabel + " menjawab: " + text);
+                    speaker.speak(text);
+                }
+
+                @Override public void onError(String message) {
+                    if (isFinishing() || isDestroyed()) return;
+                    tvStatus.setText("Gagal uji " + providerSummary + ": " + message);
+                    speaker.speak(message);
+                }
+            });
         });
 
         btnImportModel.setOnClickListener(v -> {
@@ -466,17 +464,19 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void testOpenRouterFallback() {
-        new AiClient(config).chat(AiClient.SYSTEM_TUNANETRA,
-                "Perkenalkan dirimu dalam satu kalimat singkat.", new AiClient.Callback() {
-                    @Override public void onResult(String text) {
-                        tvStatus.setText("OpenRouter menjawab: " + text);
-                        speaker.speak(text);
-                    }
-                    @Override public void onError(String message) {
-                        tvStatus.setText("Gagal uji AI: " + message);
-                        speaker.speak(message);
-                    }
-                });
+        OnlineAiRouter.testConnection(this, new OnlineAiRouter.Callback() {
+            @Override public void onResult(String text, String providerLabel) {
+                if (isFinishing() || isDestroyed()) return;
+                tvStatus.setText(providerLabel + " menjawab: " + text);
+                speaker.speak(text);
+            }
+
+            @Override public void onError(String message) {
+                if (isFinishing() || isDestroyed()) return;
+                tvStatus.setText("Gagal uji AI: " + message);
+                speaker.speak(message);
+            }
+        });
     }
 
     private void refreshSystemPermSummary() {
@@ -987,27 +987,24 @@ public class SettingsActivity extends AppCompatActivity {
         pbImportModel.setIndeterminate(true);
         tvImportProgress.setVisibility(View.VISIBLE);
         tvImportProgress.setTextColor(0xFFFFD600);
-        tvImportProgress.setText("Memuat model lokal (batas 512 token, Crash-Guard aktif)...");
+        tvImportProgress.setText("Memuat model lokal (token adaptif RAM + fallback CPU)...");
         speaker.speak("Mencoba memuat model lokal ke memori.");
 
-        executor.execute(() -> {
-            boolean ready = engine.forceInitEngine();
-            mainHandler.post(() -> {
-                if (isFinishing() || isDestroyed()) return;
-                btnImportModel.setEnabled(true);
-                pbImportModel.setVisibility(View.GONE);
-                updateModelStatus();
-                if (ready) {
-                    tvImportProgress.setTextColor(0xFF00E5FF);
-                    tvImportProgress.setText("Model lokal berhasil dimuat dan siap digunakan.");
-                    speaker.speak("Model AI offline berhasil dimuat.");
-                } else {
-                    String err = engine.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : engine.getLastError();
-                    tvImportProgress.setTextColor(0xFFFFD600);
-                    tvImportProgress.setText(err);
-                    speaker.speak("Model tidak dapat dimuat ke RAM. Kobra tetap aman di Mode Aman.");
-                }
-            });
+        engine.initEngineAsync(true, (ready, message) -> {
+            if (isFinishing() || isDestroyed()) return;
+            btnLoadModel.setEnabled(true);
+            btnImportModel.setEnabled(true);
+            pbImportModel.setVisibility(View.GONE);
+            updateModelStatus();
+            if (ready) {
+                tvImportProgress.setTextColor(0xFF00E5FF);
+                tvImportProgress.setText("Model lokal berhasil dimuat dan siap digunakan.");
+                speaker.speak("Model AI offline berhasil dimuat.");
+            } else {
+                tvImportProgress.setTextColor(0xFFFFD600);
+                tvImportProgress.setText(message);
+                speaker.speak("Model tidak dapat dimuat ke RAM. Kobra tetap aman di Mode Aman.");
+            }
         });
     }
 

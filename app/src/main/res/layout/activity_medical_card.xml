@@ -189,7 +189,7 @@
             android:background="@drawable/bg_glass_button_primary"
             android:contentDescription="Simpan kartu identitas medis darurat"
             android:text="SIMPAN KARTU MEDIS"
-            android:textColor="#04120D"
+            android:textColor="#06101C"
             android:textStyle="bold" />
 
         <Button

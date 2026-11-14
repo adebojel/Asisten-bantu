@@ -71,7 +71,7 @@
             android:background="@drawable/bg_glass_button_primary"
             android:contentDescription="Bacakan tanggal Masehi, tanggal Hijriah, dan agenda kalender hari ini"
             android:text="BACAKAN TANGGAL HIJRIAH &amp; AGENDA"
-            android:textColor="#04120D"
+            android:textColor="#06101C"
             android:textStyle="bold" />
 
         <!-- Card 1: Memo Cepat -->
@@ -118,7 +118,7 @@
                     android:background="@drawable/bg_glass_button_primary"
                     android:contentDescription="Simpan memo cepat"
                     android:text="SIMPAN MEMO"
-                    android:textColor="#04120D"
+                    android:textColor="#06101C"
                     android:textStyle="bold" />
 
                 <Button
@@ -200,7 +200,7 @@
                     android:background="@drawable/bg_glass_button_primary"
                     android:contentDescription="Simpan lokasi barang"
                     android:text="INGAT BARANG"
-                    android:textColor="#04120D"
+                    android:textColor="#06101C"
                     android:textStyle="bold" />
 
                 <Button
@@ -283,7 +283,7 @@
                     android:background="@drawable/bg_glass_button_primary"
                     android:contentDescription="Catat pengeluaran"
                     android:text="CATAT"
-                    android:textColor="#04120D"
+                    android:textColor="#06101C"
                     android:textStyle="bold" />
 
                 <Button
@@ -377,7 +377,7 @@
                     android:background="@drawable/bg_glass_button_primary"
                     android:contentDescription="Tandai jadwal obat sudah diminum hari ini"
                     android:text="SUDAH DIMINUM"
-                    android:textColor="#04120D"
+                    android:textColor="#06101C"
                     android:textStyle="bold" />
             </LinearLayout>
 

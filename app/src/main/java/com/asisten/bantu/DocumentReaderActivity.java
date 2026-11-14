@@ -84,6 +84,7 @@ public class DocumentReaderActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_document_reader);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
 
         tvStatus = findViewById(R.id.tvDocStatus);
         tvParagraph = findViewById(R.id.tvDocParagraph);

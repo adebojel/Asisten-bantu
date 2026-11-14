@@ -21,9 +21,9 @@ public final class KobraConfig {
 
     /** Model gratis OpenRouter untuk percakapan teks, dicoba berurutan jika ada yang sibuk. */
     public static final String[] TEXT_MODELS = {
+            "google/gemini-2.0-flash-exp:free",
             "meta-llama/llama-3.3-70b-instruct:free",
-            "deepseek/deepseek-chat-v3-0324:free",
-            "google/gemma-3-27b-it:free"
+            "openrouter/free"
     };
 
     /** Model gratis yang bisa membaca gambar. */

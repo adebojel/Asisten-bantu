@@ -60,6 +60,7 @@ public class NavigationActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_radar);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
         previewView = findViewById(R.id.previewViewNav);
         sonarRadarView = findViewById(R.id.sonarRadarView);
         tvStatus = findViewById(R.id.tvNavStatus);

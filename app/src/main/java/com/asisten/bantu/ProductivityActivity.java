@@ -24,6 +24,7 @@ public class ProductivityActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_productivity);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
 
         manager = new ProductivityManager(this);
         speaker = Speaker.get(this);

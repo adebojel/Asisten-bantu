@@ -65,7 +65,7 @@
         android:background="@drawable/bg_glass_button_primary"
         android:contentDescription="Pilih berkas teks atau dokumen PDF dari penyimpanan HP"
         android:text="PILIH DOKUMEN (.TXT / .PDF)"
-        android:textColor="#04120D"
+        android:textColor="#06101C"
         android:textStyle="bold" />
 
     <ScrollView
@@ -112,7 +112,7 @@
             android:background="@drawable/bg_glass_button_primary"
             android:contentDescription="Putar atau jeda pembacaan dokumen"
             android:text="PUTAR"
-            android:textColor="#04120D"
+            android:textColor="#06101C"
             android:textStyle="bold" />
 
         <Button

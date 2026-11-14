@@ -47,6 +47,7 @@ public class PrayerActivity extends AppCompatActivity implements SensorEventList
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_prayer);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
 
         config = new KobraConfig(this);
         speaker = Speaker.get(this);

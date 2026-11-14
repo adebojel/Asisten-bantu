@@ -118,6 +118,7 @@ public class VisionActivity extends AppCompatActivity {
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vision);
+        WindowInsetsHelper.applySystemBarInsets(this, true);
         previewView = findViewById(R.id.previewViewVision);
         tvResult = findViewById(R.id.tvVisionResult);
         tvStatus = findViewById(R.id.tvVisionStatus);
@@ -695,7 +696,7 @@ public class VisionActivity extends AppCompatActivity {
                         lastCapturedRawText = reply;
                         done(reply);
                     } else if (config.hasAi()) {
-                        askAi(bmp, prompt);
+                        describeWithOpenRouterVision(bmp, prompt);
                     } else {
                         OfflineVision.describe(bmp, this::done);
                     }
@@ -704,10 +705,27 @@ public class VisionActivity extends AppCompatActivity {
             return;
         }
         if (config.hasAi()) {
-            askAi(bmp, prompt);
+            describeWithOpenRouterVision(bmp, prompt);
         } else {
             OfflineVision.describe(bmp, this::done);
         }
+    }
+
+    private void describeWithOpenRouterVision(Bitmap bmp, String prompt) {
+        ai.describeImage(prompt, bmp, new AiClient.Callback() {
+            @Override public void onResult(String text) {
+                if (text != null && !text.trim().isEmpty()) {
+                    lastCapturedRawText = text.trim();
+                    done(lastCapturedRawText);
+                } else {
+                    OfflineVision.describe(bmp, VisionActivity.this::done);
+                }
+            }
+
+            @Override public void onError(String message) {
+                OfflineVision.describe(bmp, VisionActivity.this::done);
+            }
+        });
     }
 
     private void analyzeOutfit(Bitmap bmp) {

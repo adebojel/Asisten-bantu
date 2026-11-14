@@ -113,7 +113,7 @@
             android:paddingEnd="16dp"
             android:text="SCAN MODE AKTIF"
             android:textAllCaps="false"
-            android:textColor="#050811"
+            android:textColor="#06101C"
             android:textSize="14sp"
             android:textStyle="bold" />
 

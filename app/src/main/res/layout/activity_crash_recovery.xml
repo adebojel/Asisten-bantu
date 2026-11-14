@@ -97,6 +97,6 @@
         android:contentDescription="Kembali ke beranda utama Kobra OS"
         android:minHeight="60dp"
         android:text="KEMBALI KE BERANDA"
-        android:textColor="#04120D"
+        android:textColor="#06101C"
         android:textStyle="bold" />
 </LinearLayout>

@@ -1,5 +1,6 @@
 package com.asisten.bantu;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
@@ -8,25 +9,28 @@ import android.util.Log;
 import com.google.mediapipe.tasks.genai.llminference.LlmInference;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Pengelola Mesin LLM Offline (MediaPipe LLM Inference API 0.10.14) untuk Kobra OS.
- * Menggunakan model Gemma 3 1B terkuantisasi dari direktori internal HP,
- * lengkap dengan memori konteks 5-8 giliran percakapan, dukungan gaya bahasa asisten,
- * serta ringkasan otomatis notifikasi menumpuk dan teks OCR panjang.
+ * Memuat model .task secara aman dengan alokasi token adaptif RAM (256/512) serta
+ * fallback otomatis ke backend CPU tanpa memblokir berkas model yang valid.
  */
 public class LocalLlmEngine {
 
     private static final String TAG = "KobraLocalLLM";
     private static final int MAX_HISTORY_TURNS = 8;
     private static final int MAX_PROMPT_CHARS = 2400;
+    private static final long LOW_AVAIL_RAM_THRESHOLD_BYTES = 1600L * 1024L * 1024L;
 
     // Nama berkas model Gemma 3 1B di penyimpanan internal (/data/data/com.asisten.bantu/files/)
     public static final String MODEL_FILENAME = "gemma3-1b-it-int4.task";
     public static final String CRASH_SAFE_MODE_REASON =
-            "Mode Aman: Model lokal terlalu berat untuk RAM perangkat (Gunakan model int4 256/512 token atau hapus model)";
+            "Mode Aman: Memori perangkat sedang terbatas saat memuat model lokal. Tekan Reset atau Muat / Uji untuk mencoba ulang di mode hemat CPU 256 token.";
 
     public interface StreamingCallback {
         void onPartialResult(String partialText, boolean isComplete);
@@ -35,6 +39,10 @@ public class LocalLlmEngine {
 
     public interface SummaryCallback {
         void onSummary(String summary);
+    }
+
+    public interface InitCallback {
+        void onCompleted(boolean success, String message);
     }
 
     private static final class ChatTurn {
@@ -55,6 +63,7 @@ public class LocalLlmEngine {
     private String lastError = "";
     private final Context context;
     private final Handler mainHandler;
+    private final ExecutorService initExec = Executors.newSingleThreadExecutor();
     private Speaker activeSpeaker;
     private StreamingCallback activeCallback;
     private final StringBuilder sentenceBuffer = new StringBuilder();
@@ -96,7 +105,7 @@ public class LocalLlmEngine {
         return isInitialized && llmInference != null && !safeMode;
     }
 
-    /** True jika aplikasi berjalan di Mode Aman karena model belum tersedia atau crash/memori penuh. */
+    /** True jika aplikasi berada di Mode Aman atau berkas model belum tersedia. */
     public synchronized boolean isSafeMode() {
         syncCrashGuardState();
         return safeMode || !isModelPresent();
@@ -107,7 +116,7 @@ public class LocalLlmEngine {
         return lastError;
     }
 
-    /** Memeriksa keberadaan berkas model terkuantisasi di penyimpanan internal. */
+    /** Memeriksa keberadaan berkas model .task valid di penyimpanan internal (tanpa batas ukuran maksimum). */
     public boolean isModelPresent() {
         File modelFile = getModelFile();
         return modelFile.exists() && modelFile.length() > 1024 * 1024;
@@ -136,8 +145,22 @@ public class LocalLlmEngine {
     }
 
     /**
-     * Memuat model bahasa offline ke memori secara on-demand. Dipanggil pada thread latar belakang.
-     * Menggunakan Native Crash-Guard (llm_crash_guard) agar proses tidak mengalami crash-loop SIGSEGV/OOM.
+     * Memuat model bahasa offline ke memori secara asinkron agar UI tidak terblokir.
+     */
+    public void initEngineAsync(boolean forceRetry, InitCallback callback) {
+        initExec.execute(() -> {
+            boolean ok = forceRetry ? forceInitEngine() : initEngine();
+            String msg = ok
+                    ? "Model lokal siap digunakan."
+                    : (getLastError().isEmpty() ? CRASH_SAFE_MODE_REASON : getLastError());
+            if (callback != null) {
+                mainHandler.post(() -> callback.onCompleted(ok, msg));
+            }
+        });
+    }
+
+    /**
+     * Memuat model bahasa offline ke memori secara sinkron (panggil dari background thread).
      */
     public synchronized boolean initEngine() {
         return initEngineInternal(false);
@@ -168,93 +191,47 @@ public class LocalLlmEngine {
             safeMode = true;
             String savedReason = cfg.getLlmSafeReason();
             lastError = savedReason.isEmpty() ? CRASH_SAFE_MODE_REASON : savedReason;
-            Log.w(TAG, "Melewati pemuatan otomatis LLM karena Native Crash-Guard aktif: " + lastError);
+            Log.w(TAG, "Melewati pemuatan otomatis LLM karena Crash-Guard aktif: " + lastError);
             return false;
         }
 
         File modelFile = getModelFile();
         if (!modelFile.exists() || modelFile.length() <= 1024 * 1024) {
-            Log.w(TAG, "Berkas model Gemma 3 1B belum ditemukan di: " + modelFile.getAbsolutePath());
+            Log.w(TAG, "Berkas model .task belum ditemukan di: " + modelFile.getAbsolutePath());
             safeMode = true;
             lastError = "Model belum terpasang";
             return false;
         }
 
+        boolean lowRam = isDeviceLowAvailableRam();
+        int initialMaxTokens = lowRam ? 256 : 512;
+        int initialTopK = lowRam ? 24 : 40;
+
         try {
-            Log.d(TAG, "Mulai menginisialisasi Gemma 3 1B dari: " + modelFile.getAbsolutePath());
+            Log.d(TAG, "Memuat model .task (" + (modelFile.length() / (1024 * 1024))
+                    + " MB, maxTokens=" + initialMaxTokens + ")");
+            LlmInference.LlmInferenceOptions options = buildOptions(modelFile, initialMaxTokens, initialTopK, lowRam);
 
-            LlmInference.LlmInferenceOptions options = LlmInference.LlmInferenceOptions.builder()
-                    .setModelPath(modelFile.getAbsolutePath())
-                    .setMaxTokens(512)
-                    .setTopK(40)
-                    .setTemperature(0.3f)
-                    .setResultListener((partialResult, done) -> {
-                        if (activeCallback != null) {
-                            final StreamingCallback cb = activeCallback;
-                            mainHandler.post(() -> cb.onPartialResult(partialResult, done));
-                        }
-
-                        if (partialResult != null && !partialResult.isEmpty()) {
-                            sentenceBuffer.append(partialResult);
-                            fullResponseBuffer.append(partialResult);
-
-                            String currentText = sentenceBuffer.toString();
-                            if (currentText.contains(".") || currentText.contains(",") || currentText.contains("\n")) {
-                                String textToSpeak = cleanTextForTts(currentText);
-                                sentenceBuffer.setLength(0);
-
-                                if (!textToSpeak.isEmpty() && activeSpeaker != null) {
-                                    final Speaker spk = activeSpeaker;
-                                    mainHandler.post(() -> spk.speakQueued(textToSpeak));
-                                }
-                            }
-                        }
-
-                        if (done) {
-                            String remainingText = cleanTextForTts(sentenceBuffer.toString());
-                            sentenceBuffer.setLength(0);
-                            if (!remainingText.isEmpty() && activeSpeaker != null) {
-                                final Speaker spk = activeSpeaker;
-                                mainHandler.post(() -> spk.speakQueued(remainingText));
-                            }
-                            String fullReply = cleanTextForTts(fullResponseBuffer.toString());
-                            fullResponseBuffer.setLength(0);
-                            if (shouldRecordHistory && !pendingHistoryUserPrompt.isEmpty() && !fullReply.isEmpty()) {
-                                addSessionTurn(pendingHistoryUserPrompt, fullReply);
-                            }
-                            pendingHistoryUserPrompt = "";
-                            shouldRecordHistory = false;
-                            Log.d(TAG, "Generasi respons Gemma 3 1B selesai.");
-                        }
-                    })
-                    .setErrorListener(e -> {
-                        Log.e(TAG, "Galat saat streaming inferensi LLM offline", e);
-                        pendingHistoryUserPrompt = "";
-                        shouldRecordHistory = false;
-                        if (activeCallback != null) {
-                            final StreamingCallback cb = activeCallback;
-                            mainHandler.post(() -> cb.onError(e != null ? e.getMessage() : "Galat inferensi"));
-                        }
-                        if (activeSpeaker != null) {
-                            final Speaker spk = activeSpeaker;
-                            mainHandler.post(() -> spk.speak("Terjadi kendala saat memproses jawaban offline. Beralih ke Mode Aman."));
-                        }
-                    })
-                    .build();
-
-            // Simpan flag crash-guard secara sinkron sebelum JNI native createFromOptions dipanggil
             cfg.setLlmInitPending(true);
-            llmInference = LlmInference.createFromOptions(context, options);
-            cfg.clearLlmSafeMode();
+            try {
+                llmInference = LlmInference.createFromOptions(context, options);
+            } catch (Throwable primaryErr) {
+                Log.w(TAG, "Pemuatan awal gagal, mencoba fallback CPU 256 token...", primaryErr);
+                cleanupPartialInference();
+                System.gc();
+                LlmInference.LlmInferenceOptions cpuFallbackOptions = buildOptions(modelFile, 256, 24, true);
+                llmInference = LlmInference.createFromOptions(context, cpuFallbackOptions);
+            }
 
+            cfg.clearLlmSafeMode();
             isInitialized = true;
             safeMode = false;
             lastError = "";
-            Log.i(TAG, "Mesin LLM Offline (Gemma 3 1B) berhasil diinisialisasi.");
+            Log.i(TAG, "Mesin LLM Offline berhasil diinisialisasi.");
             return true;
 
         } catch (OutOfMemoryError oom) {
-            Log.e(TAG, "Memori penuh (OOM) saat memuat model LLM offline. Masuk ke Mode Aman.", oom);
+            Log.e(TAG, "Memori penuh (OOM) saat memuat model LLM offline.", oom);
             cleanupPartialInference();
             safeMode = true;
             lastError = CRASH_SAFE_MODE_REASON;
@@ -263,14 +240,120 @@ public class LocalLlmEngine {
             cfg.setLlmSafeReason(CRASH_SAFE_MODE_REASON);
             return false;
         } catch (Throwable t) {
-            Log.e(TAG, "Gagal menginisialisasi MediaPipe LLM Inference. Masuk ke Mode Aman.", t);
+            Log.e(TAG, "Gagal menginisialisasi MediaPipe LLM Inference.", t);
             cleanupPartialInference();
             safeMode = true;
-            String errMsg = t.getMessage() != null ? t.getMessage() : CRASH_SAFE_MODE_REASON;
+            String errMsg = t.getMessage() != null && !t.getMessage().trim().isEmpty()
+                    ? t.getMessage().trim()
+                    : CRASH_SAFE_MODE_REASON;
             lastError = errMsg;
             cfg.setLlmInitPending(false);
             cfg.setLlmSafeMode(true);
             cfg.setLlmSafeReason(errMsg);
+            return false;
+        }
+    }
+
+    private LlmInference.LlmInferenceOptions buildOptions(
+            File modelFile,
+            int maxTokens,
+            int topK,
+            boolean forceCpuBackend
+    ) {
+        LlmInference.LlmInferenceOptions.Builder builder = LlmInference.LlmInferenceOptions.builder()
+                .setModelPath(modelFile.getAbsolutePath())
+                .setMaxTokens(maxTokens)
+                .setTopK(topK)
+                .setTemperature(0.3f)
+                .setResultListener((partialResult, done) -> {
+                    if (activeCallback != null) {
+                        final StreamingCallback cb = activeCallback;
+                        mainHandler.post(() -> cb.onPartialResult(partialResult, done));
+                    }
+
+                    if (partialResult != null && !partialResult.isEmpty()) {
+                        sentenceBuffer.append(partialResult);
+                        fullResponseBuffer.append(partialResult);
+
+                        String currentText = sentenceBuffer.toString();
+                        if (currentText.contains(".") || currentText.contains(",") || currentText.contains("\n")) {
+                            String textToSpeak = cleanTextForTts(currentText);
+                            sentenceBuffer.setLength(0);
+
+                            if (!textToSpeak.isEmpty() && activeSpeaker != null) {
+                                final Speaker spk = activeSpeaker;
+                                mainHandler.post(() -> spk.speakQueued(textToSpeak));
+                            }
+                        }
+                    }
+
+                    if (done) {
+                        String remainingText = cleanTextForTts(sentenceBuffer.toString());
+                        sentenceBuffer.setLength(0);
+                        if (!remainingText.isEmpty() && activeSpeaker != null) {
+                            final Speaker spk = activeSpeaker;
+                            mainHandler.post(() -> spk.speakQueued(remainingText));
+                        }
+                        String fullReply = cleanTextForTts(fullResponseBuffer.toString());
+                        fullResponseBuffer.setLength(0);
+                        if (shouldRecordHistory && !pendingHistoryUserPrompt.isEmpty() && !fullReply.isEmpty()) {
+                            addSessionTurn(pendingHistoryUserPrompt, fullReply);
+                        }
+                        pendingHistoryUserPrompt = "";
+                        shouldRecordHistory = false;
+                        Log.d(TAG, "Generasi respons LLM offline selesai.");
+                    }
+                })
+                .setErrorListener(e -> {
+                    Log.e(TAG, "Galat saat streaming inferensi LLM offline", e);
+                    pendingHistoryUserPrompt = "";
+                    shouldRecordHistory = false;
+                    if (activeCallback != null) {
+                        final StreamingCallback cb = activeCallback;
+                        mainHandler.post(() -> cb.onError(e != null ? e.getMessage() : "Galat inferensi"));
+                    }
+                    if (activeSpeaker != null) {
+                        final Speaker spk = activeSpeaker;
+                        mainHandler.post(() -> spk.speak("Terjadi kendala saat memproses jawaban offline."));
+                    }
+                });
+
+        if (forceCpuBackend) {
+            trySetCpuBackend(builder);
+        }
+        return builder.build();
+    }
+
+    private void trySetCpuBackend(LlmInference.LlmInferenceOptions.Builder builder) {
+        try {
+            Class<?> backendClass = Class.forName("com.google.mediapipe.tasks.genai.llminference.LlmInference$Backend");
+            Object[] constants = backendClass.getEnumConstants();
+            if (constants == null) return;
+            Object cpuEnum = null;
+            for (Object c : constants) {
+                if ("CPU".equals(c.toString())) {
+                    cpuEnum = c;
+                    break;
+                }
+            }
+            if (cpuEnum != null) {
+                Method m = builder.getClass().getMethod("setPreferredBackend", backendClass);
+                m.invoke(builder, cpuEnum);
+                Log.i(TAG, "Mengaktifkan LlmInference.Backend.CPU untuk model .task.");
+            }
+        } catch (Throwable ignored) {
+            // Aman bila MediaPipe versi terpasang belum mengekspos Backend enum
+        }
+    }
+
+    private boolean isDeviceLowAvailableRam() {
+        try {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am == null) return false;
+            ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+            am.getMemoryInfo(mi);
+            return mi.lowMemory || mi.availMem < LOW_AVAIL_RAM_THRESHOLD_BYTES;
+        } catch (Throwable ignored) {
             return false;
         }
     }
@@ -304,9 +387,6 @@ public class LocalLlmEngine {
         return deleted;
     }
 
-    /**
-     * Mengirimkan instruksi/pertanyaan pengguna ke model offline dengan memori konteks percakapan.
-     */
     public void generateResponseAsync(String prompt, Speaker speaker) {
         generateResponseAsync(prompt, speaker, null, true);
     }
@@ -369,8 +449,8 @@ public class LocalLlmEngine {
     }
 
     /**
-     * Meringkas notifikasi menumpuk atau teks OCR/dokumen panjang menggunakan Gemma 3 1B offline,
-     * AI online bila tersedia, atau ringkasan ekstraktif lokal (Safe Mode).
+     * Meringkas notifikasi menumpuk atau teks OCR/dokumen panjang menggunakan model lokal offline,
+     * OnlineAiRouter 3-lapis bila tersambung internet, atau ringkasan ekstraktif lokal.
      */
     public void summarizeText(String title, String longText, AiClient onlineFallback, Speaker speaker, SummaryCallback cb) {
         if (longText == null || longText.trim().isEmpty()) {
@@ -388,30 +468,23 @@ public class LocalLlmEngine {
         }
 
         if (isModelPresent() && !isSafeMode()) {
-            new Thread(() -> {
+            initExec.execute(() -> {
                 if (initEngine()) {
                     mainHandler.post(() -> runSummaryOnGemma(finalInstruction, title, finalClipped, speaker, cb));
                 } else {
                     fallbackSummarize(finalInstruction, title, finalClipped, onlineFallback, cb);
                 }
-            }).start();
+            });
             return;
         }
 
         fallbackSummarize(finalInstruction, title, finalClipped, onlineFallback, cb);
     }
 
-    /**
-     * Ringkasan atau jawaban LLM asinkron ramah Kotlin SAM-lambda (2 parameter).
-     */
     public void summarizeTextAsync(String text, SummaryCallback cb) {
         summarizeTextAsync(null, "Ringkasan", text, null, cb);
     }
 
-    /**
-     * Memproses instruksi sistem + teks secara asinkron via Gemma 3 1B offline dengan fallback aman.
-     * Digunakan oleh ChatActivity.kt dan CommandRouter.kt.
-     */
     public void summarizeTextAsync(String systemInstruction, String title, String longText, Speaker speaker, SummaryCallback cb) {
         if (longText == null || longText.trim().isEmpty()) {
             postSummary(cb, "Tidak ada teks untuk diproses.");
@@ -438,13 +511,13 @@ public class LocalLlmEngine {
         }
 
         if (isModelPresent() && !isSafeMode()) {
-            new Thread(() -> {
+            initExec.execute(() -> {
                 if (initEngine()) {
                     mainHandler.post(() -> runSummaryOnGemma(finalInstruction, title, finalClipped, streamSpeaker, cb));
                 } else {
                     fallbackAsyncReply(title, finalClipped, streamSpeaker, cb);
                 }
-            }).start();
+            });
             return;
         }
 
@@ -486,8 +559,18 @@ public class LocalLlmEngine {
     }
 
     private void fallbackSummarize(String instruction, String title, String rawText, AiClient onlineFallback, SummaryCallback cb) {
-        KobraConfig cfg = new KobraConfig(context);
-        if (onlineFallback != null && NetworkState.isOnline(context) && cfg.hasAi()) {
+        if (NetworkState.isOnline(context)) {
+            OnlineAiRouter.askAsync(context, instruction, AiClient.SYSTEM_TUNANETRA, new OnlineAiRouter.Callback() {
+                @Override public void onResult(String text, String providerLabel) {
+                    postSummary(cb, cleanTextForTts(text));
+                }
+                @Override public void onError(String message) {
+                    postSummary(cb, buildOfflineExtractiveSummary(title, rawText));
+                }
+            });
+            return;
+        }
+        if (onlineFallback != null && NetworkState.isOnline(context) && new KobraConfig(context).hasAi()) {
             onlineFallback.chat(AiClient.SYSTEM_TUNANETRA, instruction, new AiClient.Callback() {
                 @Override public void onResult(String text) {
                     postSummary(cb, cleanTextForTts(text));
@@ -572,7 +655,6 @@ public class LocalLlmEngine {
         return sb.toString();
     }
 
-    /** Membersihkan simbol markdown dan karakter khusus agar pengucapan TTS tidak terganggu. */
     private String cleanTextForTts(String text) {
         if (text == null) return "";
         return text.replaceAll("<[^>]+>", " ")

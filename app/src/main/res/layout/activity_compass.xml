@@ -72,7 +72,7 @@
             android:background="@drawable/bg_glass_button_primary"
             android:contentDescription="Bacakan arah mata angin dan derajat kompas saat ini"
             android:text="BACAKAN ARAH KOMPAS"
-            android:textColor="#04120D"
+            android:textColor="#06101C"
             android:textStyle="bold" />
 
         <Button
@@ -147,7 +147,7 @@
                 android:background="@drawable/bg_glass_button_primary"
                 android:contentDescription="Pandu jarak meter dan arah jarum jam menuju lokasi favorit"
                 android:text="PANDU ARAH PULANG (JARAK &amp; JAM)"
-                android:textColor="#04120D"
+                android:textColor="#06101C"
                 android:textStyle="bold" />
 
             <TextView

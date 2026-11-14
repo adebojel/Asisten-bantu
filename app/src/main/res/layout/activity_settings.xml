@@ -97,7 +97,7 @@
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" android:orientation="horizontal">
                     <Button android:id="@+id/btnSettingsPermissions" android:layout_width="0dp" android:layout_height="44dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_glass_button_secondary" android:text="Izin Aplikasi" android:textAllCaps="false" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
-                    <Button android:id="@+id/btnSettingsAccessibility" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:background="@drawable/bg_glass_button_primary" android:text="Aksesibilitas" android:textAllCaps="false" android:textColor="#050811" android:textSize="12sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btnSettingsAccessibility" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="1" android:background="@drawable/bg_glass_button_primary" android:text="Aksesibilitas" android:textAllCaps="false" android:textColor="#06101C" android:textSize="12sp" android:textStyle="bold" />
                 </LinearLayout>
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" android:orientation="horizontal">
@@ -134,28 +134,28 @@
                     android:textSize="13sp"
                     android:textStyle="bold" />
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Gemini API Key (Google AI Studio)" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Gemini API Key (Opsional • Google AI Studio)" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
                 <EditText
                     android:id="@+id/etGeminiApiKey"
                     android:layout_width="match_parent"
                     android:layout_height="46dp"
                     android:layout_marginTop="4dp"
                     android:background="@drawable/bg_glass_input"
-                    android:hint="AIzaSy... (opsional untuk Vision &amp; Agen Layar)"
+                    android:hint="AIzaSy... (opsional, AI Online Gratis aktif tanpa key)"
                     android:inputType="textNoSuggestions"
                     android:padding="10dp"
                     android:textColor="#E2E8F0"
                     android:textColorHint="#64748B"
                     android:textSize="13sp" />
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="OpenRouter API Key (Cadangan Online)" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="OpenRouter API Key (Opsional • Cadangan Online)" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
                 <EditText
                     android:id="@+id/etApiKey"
                     android:layout_width="match_parent"
                     android:layout_height="46dp"
                     android:layout_marginTop="4dp"
                     android:background="@drawable/bg_glass_input"
-                    android:hint="sk-or-v1-..."
+                    android:hint="sk-or-v1-... (opsional)"
                     android:inputType="textNoSuggestions"
                     android:padding="10dp"
                     android:textColor="#E2E8F0"
@@ -230,7 +230,7 @@
                     android:visibility="gone" />
 
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:orientation="horizontal">
-                    <Button android:id="@+id/btnImportModel" android:layout_width="0dp" android:layout_height="44dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_glass_button_primary" android:text="Impor Model .task" android:textAllCaps="false" android:textColor="#050811" android:textSize="12sp" android:textStyle="bold" />
+                    <Button android:id="@+id/btnImportModel" android:layout_width="0dp" android:layout_height="44dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_glass_button_primary" android:text="Impor Model .task" android:textAllCaps="false" android:textColor="#06101C" android:textSize="12sp" android:textStyle="bold" />
                     <Button android:id="@+id/btnLoadModel" android:layout_width="0dp" android:layout_height="44dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_glass_button_secondary" android:text="Muat / Uji" android:textAllCaps="false" android:textColor="#00E5FF" android:textSize="12sp" android:textStyle="bold" />
                     <Button android:id="@+id/btnDeleteModel" android:layout_width="0dp" android:layout_height="44dp" android:layout_weight="0.8" android:background="@drawable/bg_glass_button_danger" android:text="Hapus" android:textAllCaps="false" android:textColor="#FFE4E6" android:textSize="12sp" android:textStyle="bold" />
                 </LinearLayout>
@@ -485,7 +485,7 @@
                         android:background="@drawable/bg_glass_button_primary"
                         android:text="Terapkan &amp; Putar Sampel Suara Kustom"
                         android:textAllCaps="false"
-                        android:textColor="#050811"
+                        android:textColor="#06101C"
                         android:textSize="12sp"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -619,7 +619,7 @@
                 android:background="@drawable/bg_glass_button_primary"
                 android:text="SIMPAN SEMUA PENGATURAN"
                 android:textAllCaps="false"
-                android:textColor="#050811"
+                android:textColor="#06101C"
                 android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>

@@ -114,7 +114,7 @@
             android:background="@drawable/bg_glass_button_primary"
             android:contentDescription="Simpan kontak darurat SOS"
             android:text="SIMPAN KONTAK DARURAT"
-            android:textColor="#04120D"
+            android:textColor="#06101C"
             android:textStyle="bold" />
 
         <Button
