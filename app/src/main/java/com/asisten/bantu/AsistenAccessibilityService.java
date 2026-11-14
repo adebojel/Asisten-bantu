@@ -291,6 +291,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         UnifiedAccessibilityEngine.onServiceDestroyed();
         stopMic();
         destroyRecognizer();
+        if (speaker != null) {
+            speaker.removeListener(speechListener);
+        }
         cancelFallCountdown(false);
         EmergencyBeacon.stopAll(this, torchId);
         SystemUtilityHelper.stopLocalAudio(this);
@@ -300,6 +303,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             tripMonitor.stop(false);
         }
         if (main != null) {
+            main.removeCallbacks(watchdog);
             main.removeCallbacks(medicationCheckerTick);
             main.removeCallbacks(hourlyReminderTick);
             for (ActiveTimer t : activeTimers) {
@@ -390,6 +394,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
     };
 
+    // Satu callback retry dipakai ulang agar retry berulang tidak menumpuk di main looper.
+    private final Runnable micRetry = this::startListening;
+
     private final Runnable watchdog = new Runnable() {
         @Override public void run() {
             if (micOn && !listening && !pocketLocked && (config == null || !config.isPrivacyMode())
@@ -433,6 +440,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void stopMic() {
+        if (main != null) main.removeCallbacks(micRetry);
         if (recognizer != null && listening) {
             try { recognizer.cancel(); } catch (Exception ignored) { }
         }
@@ -440,7 +448,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void scheduleRetry(long ms) {
-        main.postDelayed(this::startListening, ms);
+        if (main == null || !micOn) return;
+        main.removeCallbacks(micRetry);
+        main.postDelayed(micRetry, ms);
     }
 
     private void createRecognizer() {
@@ -502,7 +512,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
             ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (matches != null && !matches.isEmpty()) handleSpoken(matches.get(0));
-            if (!speaker.isSpeaking()) scheduleRetry(300);
+            Speaker activeSpeaker = speaker;
+            if (micOn && activeSpeaker != null && !activeSpeaker.isSpeaking()) {
+                scheduleRetry(300);
+            }
         }
     };
 

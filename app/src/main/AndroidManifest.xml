@@ -71,6 +71,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.KobraOS"
         android:usesCleartextTraffic="true">
+        <!-- Optional native libraries: LiteRT-LM GPU backend falls back to CPU when unavailable. -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
 
         <activity
             android:name=".KobraLauncherActivity"

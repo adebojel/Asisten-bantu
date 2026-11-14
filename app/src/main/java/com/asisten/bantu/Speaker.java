@@ -8,6 +8,7 @@ import android.speech.tts.UtteranceProgressListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Speaker implements TextToSpeech.OnInitListener {
 
@@ -24,6 +25,8 @@ public class Speaker implements TextToSpeech.OnInitListener {
     private boolean ready = false;
     private volatile boolean sedangBicara = false;
     private Runnable onEndCallback = null;
+    private final AtomicLong utteranceSequence = new AtomicLong();
+    private volatile String activeUtteranceId = null;
     private final List<Listener> listeners = new ArrayList<>();
 
     public static synchronized Speaker get(Context ctx) {
@@ -87,19 +90,39 @@ public class Speaker implements TextToSpeech.OnInitListener {
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
-                mainHandler.post(() -> notifySpeechStart());
+                mainHandler.post(() -> {
+                    // Utterance QUEUE_ADD mulai setelah item sebelumnya selesai.
+                    // Jangan biarkan callback start yang terlambat mengambil alih ID ucapan baru.
+                    if (activeUtteranceId == null) activeUtteranceId = utteranceId;
+                    if (utteranceId != null && utteranceId.equals(activeUtteranceId)) {
+                        notifySpeechStart();
+                    }
+                });
             }
 
             @Override
             public void onDone(String utteranceId) {
-                mainHandler.post(() -> notifySpeechEnd());
+                mainHandler.post(() -> finishUtterance(utteranceId));
             }
 
             @Override
             public void onError(String utteranceId) {
-                mainHandler.post(() -> notifySpeechEnd());
+                mainHandler.post(() -> finishUtterance(utteranceId));
+            }
+
+            @Override
+            public void onStop(String utteranceId, boolean interrupted) {
+                mainHandler.post(() -> finishUtterance(utteranceId));
             }
         });
+    }
+
+    private void finishUtterance(String utteranceId) {
+        // Callback TTS lama (misalnya setelah QUEUE_FLUSH) tidak boleh
+        // mematikan status bicara untuk ucapan yang lebih baru.
+        if (utteranceId == null || !utteranceId.equals(activeUtteranceId)) return;
+        activeUtteranceId = null;
+        notifySpeechEnd();
     }
 
     public void applyVoiceSettings() {
@@ -120,14 +143,16 @@ public class Speaker implements TextToSpeech.OnInitListener {
     public void speak(String teks) {
         if (teks == null || teks.trim().isEmpty()) return;
         // Tandai sedang bicara sejak pemanggilan untuk mencegah loop mikrofon
+        if (tts == null) return;
+        String utteranceId = "kobra_" + utteranceSequence.incrementAndGet();
+        activeUtteranceId = utteranceId;
         notifySpeechStart();
-        if (tts != null) {
-            try {
-                tts.stop();
-                tts.speak(teks, TextToSpeech.QUEUE_FLUSH, null, "kobra_" + System.currentTimeMillis());
-            } catch (Exception e) {
-                notifySpeechEnd();
-            }
+        try {
+            tts.stop();
+            int result = tts.speak(teks, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
+            if (result == TextToSpeech.ERROR) finishUtterance(utteranceId);
+        } catch (Exception e) {
+            finishUtterance(utteranceId);
         }
     }
 
@@ -135,12 +160,14 @@ public class Speaker implements TextToSpeech.OnInitListener {
         if (teks == null || teks.trim().isEmpty()) return;
         if (tts != null) {
             try {
-                tts.speak(teks, TextToSpeech.QUEUE_ADD, null, "kobra_q_" + System.currentTimeMillis());
+                String utteranceId = "kobra_q_" + utteranceSequence.incrementAndGet();
+                tts.speak(teks, TextToSpeech.QUEUE_ADD, null, utteranceId);
             } catch (Exception ignored) {}
         }
     }
 
     public void stop() {
+        activeUtteranceId = null;
         if (tts != null) {
             try {
                 tts.stop();
@@ -154,6 +181,7 @@ public class Speaker implements TextToSpeech.OnInitListener {
     }
 
     public void shutdown() {
+        activeUtteranceId = null;
         try {
             if (tts != null) {
                 tts.stop();
@@ -163,6 +191,9 @@ public class Speaker implements TextToSpeech.OnInitListener {
         tts = null;
         ready = false;
         sedangBicara = false;
+        synchronized (Speaker.class) {
+            if (sInstance == this) sInstance = null;
+        }
     }
 
     public void setOnEnd(Runnable r) {

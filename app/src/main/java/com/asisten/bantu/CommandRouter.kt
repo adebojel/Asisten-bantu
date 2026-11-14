@@ -210,8 +210,32 @@ object CommandRouter {
         val macroCache = LocalMacroCache(service)
         val fullInstruction = KobraPersona.buildFullSystemPrompt(service)
 
-        // Prioritas 3: Mode Offline (Gemma 3 1B bila siap & tidak Safe Mode)
+        // Prioritas 3A: Qwen3 0.6B via LiteRT-LM bila model ringan tersedia.
         if (!online) {
+            if (LocalModelRuntimeManager.isModelAvailable(service)) {
+                if (!LocalModelRegistry.canAttemptLiteRtModel(service)) {
+                    speaker.speak("Memori bebas HP belum cukup untuk memuat Qwen tiga dengan aman. Tutup aplikasi lain lalu coba lagi. Perintah sistem dasar tetap tersedia offline.")
+                    return
+                }
+                speaker.speak("Internet terputus. Menyiapkan model lokal ringan.")
+                LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\n\nPengguna: $command") { answer, error ->
+                    if (!answer.isNullOrBlank()) {
+                        speaker.speak(answer)
+                    } else if (localLlmEngine != null && localLlmEngine.isModelPresent && !localLlmEngine.isSafeMode) {
+                        if (localLlmEngine.isInitialized) {
+                            localLlmEngine.summarizeTextAsync(fullInstruction, "Suara", command, speaker, null)
+                        } else {
+                            localLlmEngine.initEngineAsync(false) { ok, _ ->
+                                if (ok) localLlmEngine.summarizeTextAsync(fullInstruction, "Suara", command, speaker, null)
+                                else speaker.speak(error ?: "Model lokal ringan gagal dimuat.")
+                            }
+                        }
+                    } else {
+                        speaker.speak(error ?: "Model lokal ringan gagal menjawab. Gunakan perintah suara dasar yang tetap tersedia offline.")
+                    }
+                }
+                return
+            }
             if (localLlmEngine != null && localLlmEngine.isModelPresent) {
                 if (localLlmEngine.isSafeMode && localLlmEngine.lastError.isNotEmpty()) {
                     speaker.speak(
@@ -281,21 +305,42 @@ object CommandRouter {
             }
 
             override fun onError(message: String) {
-                val engine = service.localLlmEngine
-                if (engine != null && engine.isModelPresent && !engine.isSafeMode) {
+                if (LocalModelRuntimeManager.isModelAvailable(service) &&
+                    LocalModelRegistry.canAttemptLiteRtModel(service)) {
+                    LocalModelRuntimeManager.answerAsync(service, "$sysPrompt\n\nPengguna: $command") { localAnswer, localError ->
+                        if (!localAnswer.isNullOrBlank()) {
+                            speaker.speak(localAnswer)
+                        } else {
+                            fallbackToMediaPipeOrSpeak(service, command, sysPrompt, speaker, localError ?: message)
+                        }
+                    }
+                    return
+                }
+                fallbackToMediaPipeOrSpeak(service, command, sysPrompt, speaker, message)
+            }
+        })
+    }
+
+    private fun fallbackToMediaPipeOrSpeak(
+        service: AsistenAccessibilityService,
+        command: String,
+        sysPrompt: String,
+        speaker: Speaker,
+        errorMessage: String
+    ) {
+        val engine = service.localLlmEngine
+        if (engine != null && engine.isModelPresent && !engine.isSafeMode) {
                     if (engine.isInitialized) {
                         engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
                     } else {
                         engine.initEngineAsync(false) { ok, _ ->
                             if (ok) engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
-                            else speaker.speak(message)
+                            else speaker.speak(errorMessage)
                         }
                     }
-                } else {
-                    speaker.speak(message)
-                }
-            }
-        })
+        } else {
+            speaker.speak(errorMessage)
+        }
     }
 
     private fun executeMacroSequenceAsync(

@@ -1,0 +1,59 @@
+name: Publish Kobra Offline Model
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - kobra-os-v7
+    paths:
+      - '.github/workflows/publish-local-models.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-qwen3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Download Qwen3 0.6B INT4 no-think model
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
+          URL="https://huggingface.co/litert-community/Qwen3-0.6B-int4/resolve/main/${FILE}?download=true"
+          curl -fL --retry 4 --retry-all-errors --retry-delay 5 "${URL}" -o "${FILE}"
+          BYTES="$(stat -c%s "${FILE}")"
+          echo "Downloaded ${BYTES} bytes"
+          test "${BYTES}" -ge 250000000
+          test "${BYTES}" -le 450000000
+          sha256sum "${FILE}" > "${FILE}.sha256"
+          echo "MODEL_FILE=${FILE}" >> "${GITHUB_ENV}"
+
+      - name: Create or update model release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="kobra-offline-models-v1.0"
+          NOTES_FILE="release-notes.md"
+          cat > "${NOTES_FILE}" <<'EOF'
+          # Kobra OS Offline Model Pack
+
+          ## Qwen3 0.6B INT4 — No-Think
+          - Format: .litertlm (LiteRT-LM runtime required)
+          - License: Apache-2.0
+          - Intended for concise offline text chat and simple Q&A.
+          - Not an APK. Install a Kobra OS build with LiteRT-LM support before importing this model.
+          - Device memory use varies by runtime/backend and context length; a 0.6B model is not guaranteed to run on every low-RAM phone.
+
+          Upstream source and license: https://huggingface.co/litert-community/Qwen3-0.6B-int4
+          Verify the accompanying SHA-256 file before use.
+          EOF
+
+          if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${MODEL_FILE}" "${MODEL_FILE}.sha256" --repo "${GITHUB_REPOSITORY}" --clobber
+          else
+            gh release create "${TAG}" "${MODEL_FILE}" "${MODEL_FILE}.sha256" --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" --title "Kobra OS Offline Models v1.0" --notes-file "${NOTES_FILE}"
+          fi

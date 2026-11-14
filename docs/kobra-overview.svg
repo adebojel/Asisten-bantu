@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+<title id="title">Kobra OS hybrid assistant architecture</title>
+<desc id="desc">Diagram showing voice and screen input routed to Android accessibility, offline brain, local models and online AI, then voice feedback.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#101827"/><stop offset="1" stop-color="#172d3d"/></linearGradient>
+  <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0ea5e9"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#020617" flood-opacity=".35"/></filter>
+  <style>
+    .h{font:700 34px system-ui,sans-serif;fill:#f8fafc}.sub{font:400 17px system-ui,sans-serif;fill:#a9c1d1}
+    .t{font:700 20px system-ui,sans-serif;fill:#f8fafc}.d{font:400 14px system-ui,sans-serif;fill:#c4d4df}
+    .small{font:600 13px system-ui,sans-serif;fill:#7dd3fc;letter-spacing:1px}
+    .card{fill:#1e3447;stroke:#35556d;stroke-width:1.5}.line{fill:none;stroke:#67c9e8;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+  </style>
+</defs>
+<rect width="1200" height="660" rx="28" fill="url(#bg)"/>
+<circle cx="1080" cy="95" r="140" fill="#0ea5e9" opacity=".08"/><circle cx="130" cy="580" r="180" fill="#22d3ee" opacity=".06"/>
+<text x="64" y="76" class="small">KOBRA OS · HYBRID ACCESSIBILITY ASSISTANT</text>
+<text x="64" y="124" class="h">Satu asisten. Beberapa jalur kecerdasan.</text>
+<text x="64" y="158" class="sub">Perintah suara · aksesibilitas Android · AI lokal · AI online</text>
+<g filter="url(#shadow)">
+  <rect x="64" y="250" width="230" height="142" rx="20" class="card"/>
+  <rect x="350" y="250" width="230" height="142" rx="20" class="card"/>
+  <rect x="650" y="205" width="235" height="105" rx="18" class="card"/>
+  <rect x="650" y="345" width="235" height="105" rx="18" class="card"/>
+  <rect x="650" y="485" width="235" height="105" rx="18" class="card"/>
+  <rect x="945" y="310" width="190" height="155" rx="20" fill="#123c50" stroke="#22d3ee" stroke-width="2"/>
+</g>
+<text x="179" y="292" text-anchor="middle" class="small">INPUT</text>
+<text x="179" y="329" text-anchor="middle" class="t">Suara &amp; layar</text>
+<text x="179" y="358" text-anchor="middle" class="d">Mikrofon · OCR · kamera</text>
+<text x="465" y="292" text-anchor="middle" class="small">ORKESTRASI</text>
+<text x="465" y="329" text-anchor="middle" class="t">Kobra Router</text>
+<text x="465" y="358" text-anchor="middle" class="d">Pilih jalur &amp; fallback</text>
+<text x="767" y="244" text-anchor="middle" class="small">ANDROID</text>
+<text x="767" y="274" text-anchor="middle" class="t">Accessibility</text>
+<text x="767" y="295" text-anchor="middle" class="d">Kontrol perangkat</text>
+<text x="767" y="384" text-anchor="middle" class="small">OFFLINE</text>
+<text x="767" y="414" text-anchor="middle" class="t">Otak lokal</text>
+<text x="767" y="435" text-anchor="middle" class="d">LiteRT-LM · MediaPipe</text>
+<text x="767" y="524" text-anchor="middle" class="small">ONLINE</text>
+<text x="767" y="554" text-anchor="middle" class="t">AI Provider</text>
+<text x="767" y="575" text-anchor="middle" class="d">Jika jaringan tersedia</text>
+<text x="1040" y="365" text-anchor="middle" class="small">OUTPUT</text>
+<text x="1040" y="400" text-anchor="middle" class="t">Respons Kobra</text>
+<text x="1040" y="430" text-anchor="middle" class="d">Suara · tindakan</text>
+<path d="M294 321H350" class="line"/><path d="M580 321H615V257H650" class="line"/><path d="M615 321V397H650" class="line"/><path d="M615 397V537H650" class="line"/>
+<path d="M885 257H915V387H945" class="line"/><path d="M885 397H945" class="line"/><path d="M885 537H915V387" class="line"/>
+<path d="M337 313l13 8-13 8M637 249l13 8-13 8M637 389l13 8-13 8M637 529l13 8-13 8M937 379l8 8-8 8" fill="none" stroke="#67c9e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="64" y="630" class="d">Ilustrasi arsitektur target — bukan screenshot aplikasi atau bukti semua fitur telah diuji.</text>
+</svg>

@@ -1,0 +1,60 @@
+name: Kobra OS APK Release
+
+on:
+  push:
+    tags:
+      - "kobra-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versi prerelease, contoh 7.0.0-beta.1"
+        required: true
+        default: "7.0.0-beta.1"
+
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 9.3.1
+
+      - name: Build debug APK
+        run: |
+          chmod +x gradlew
+          ./gradlew testDebugUnitTest assembleDebug --stacktrace
+
+      - name: Generate SHA-256 checksum
+        run: |
+          cd app/build/outputs/apk/debug
+          sha256sum app-debug.apk > app-debug.apk.sha256
+
+      - name: Publish prerelease with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('kobra-v{0}', inputs.version) }}
+          target_commitish: ${{ github.sha }}
+          name: "Kobra OS ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('v{0}', inputs.version) }} (Testing)"
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            **Pre-release / build pengujian.**
+
+            APK ini dibuat otomatis dari tag sumber. Build berhasil tidak menggantikan pengujian pada perangkat Android nyata. Periksa izin, aksesibilitas, alur AI online/offline, dan pemuatan model sebelum penggunaan rutin.
+          files: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/app-debug.apk.sha256

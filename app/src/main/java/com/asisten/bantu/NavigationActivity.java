@@ -248,19 +248,23 @@ public class NavigationActivity extends AppCompatActivity {
         }
 
         if (nearest == null) {
-            tvObstacle.setText("Jalur di depan terlihat bersih");
+            // No ML Kit detection is not proof that the walking path is clear.
+            tvObstacle.setText("Belum ada objek terdeteksi — jalur belum dipastikan aman");
             return;
         }
         String label = nearest.getLabels().isEmpty()
                 ? "halangan"
                 : nearest.getLabels().get(0).getText().toLowerCase(Locale.ROOT);
-        boolean close = nearestRatio >= NEAR_RATIO;
-        tvObstacle.setText(close ? "BAHAYA DEKAT: " + label : "Terdeteksi: " + label + " (jarak aman)");
+        // Bounding-box size is only an image-space cue, not a calibrated distance sensor.
+        boolean largeInFrame = nearestRatio >= NEAR_RATIO;
+        tvObstacle.setText(largeInFrame
+                ? "PERHATIAN: " + label + " tampak besar di gambar"
+                : "Terdeteksi: " + label + " — jarak sebenarnya tidak diketahui");
 
         long now = System.currentTimeMillis();
-        if (close && now - lastSpeakAt > SPEAK_COOLDOWN_MS) {
+        if (largeInFrame && now - lastSpeakAt > SPEAK_COOLDOWN_MS) {
             lastSpeakAt = now;
-            speaker.speak("Awas, ada " + label + " dekat di depan. Pelan-pelan atau berhenti.");
+            speaker.speak("Perhatian, " + label + " tampak besar di gambar di depan. Jarak sebenarnya tidak dapat dipastikan kamera. Perlambat langkah dan periksa dengan tongkat atau pendamping.");
             vibrate();
         }
     }
@@ -277,7 +281,7 @@ public class NavigationActivity extends AppCompatActivity {
     public void startNavigation() {
         navigating = true;
         tvStatus.setText("Sonar Radar 3D AKTIF");
-        speaker.speak("Mode tongkat aktif. Radar memantau halangan di depan.");
+        speaker.speak("Bantuan kamera aktif. Deteksi ini dapat melewatkan objek dan tidak mengukur jarak dengan pasti. Tetap gunakan tongkat atau anjing pemandu dan jangan menyeberang hanya berdasarkan radar.");
     }
 
     public void stopNavigation() {

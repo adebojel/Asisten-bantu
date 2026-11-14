@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="760" viewBox="0 0 1440 760" role="img" aria-labelledby="title desc">
+<title id="title">Kobra OS — ilustrasi konsep antarmuka asisten AI</title>
+<desc id="desc">Ilustrasi konseptual tiga dimensi sebuah ponsel dengan antarmuka asisten suara Kobra, gelombang suara, dan panel AI hybrid. Bukan tangkapan layar aplikasi.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset=".55" stop-color="#102b43"/><stop offset="1" stop-color="#071827"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#06b6d4" stop-opacity=".35"/><stop offset="1" stop-color="#06b6d4" stop-opacity="0"/></radialGradient>
+ <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d5f5ff"/><stop offset=".22" stop-color="#537c99"/><stop offset=".5" stop-color="#142b40"/><stop offset=".8" stop-color="#8bd8ef"/><stop offset="1" stop-color="#23475e"/></linearGradient>
+ <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#102b40"/><stop offset="1" stop-color="#071521"/></linearGradient>
+ <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#67e8f9"/><stop offset="1" stop-color="#0284c7"/></linearGradient>
+ <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="24"/></filter>
+ <filter id="drop" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000814" flood-opacity=".7"/></filter>
+</defs>
+<rect width="1440" height="760" rx="34" fill="url(#bg)"/>
+<circle cx="1000" cy="370" r="370" fill="url(#glow)"/><circle cx="250" cy="120" r="220" fill="url(#glow)" opacity=".5"/>
+<path d="M0 610Q300 490 570 630T1100 600T1440 570V760H0Z" fill="#071421" opacity=".65"/>
+<g opacity=".24" stroke="#4cc9e8" fill="none"><path d="M70 180H440M70 196H310M1040 130H1360M1110 146H1360"/><circle cx="180" cy="530" r="150"/><circle cx="180" cy="530" r="118"/></g>
+<g transform="translate(660 64) rotate(7 190 310)" filter="url(#drop)">
+ <rect x="0" y="0" width="390" height="650" rx="58" fill="url(#metal)" stroke="#b6ecfa" stroke-opacity=".55" stroke-width="2"/>
+ <rect x="10" y="10" width="370" height="630" rx="50" fill="#06111c"/>
+ <rect x="22" y="22" width="346" height="606" rx="42" fill="url(#screen)"/>
+ <rect x="135" y="28" width="120" height="20" rx="10" fill="#020a12"/>
+ <text x="50" y="82" font-family="system-ui,sans-serif" font-size="17" font-weight="700" fill="#e6faff">KOBRA <tspan fill="#67e8f9">OS</tspan></text>
+ <circle cx="330" cy="75" r="6" fill="#34d399"/>
+ <text x="52" y="136" font-family="system-ui,sans-serif" font-size="12" letter-spacing="2" fill="#72cce2">ASISTEN SUARA HYBRID</text>
+ <text x="52" y="180" font-family="system-ui,sans-serif" font-size="29" font-weight="700" fill="#f0fbff">Halo, saya Kobra.</text>
+ <text x="52" y="210" font-family="system-ui,sans-serif" font-size="15" fill="#9dbbca">Siap membantu dengan suara.</text>
+ <rect x="45" y="244" width="300" height="105" rx="20" fill="#14354b" stroke="#28617a"/>
+ <circle cx="82" cy="296" r="20" fill="#0e7490"/><path d="M76 287v18m-7-12v6m26-6v6m-7-12v18" stroke="#d8fbff" stroke-width="3" stroke-linecap="round"/>
+ <text x="116" y="285" font-family="system-ui,sans-serif" font-size="13" fill="#6ed8ef">PERINTAH SUARA</text>
+ <text x="116" y="310" font-family="system-ui,sans-serif" font-size="16" font-weight="600" fill="#f1fbff">Dengarkan saya...</text>
+ <rect x="45" y="370" width="300" height="76" rx="18" fill="#10283a" stroke="#24485e"/>
+ <circle cx="77" cy="408" r="13" fill="#0e7490"/><path d="M71 408h12M77 402v12" stroke="#d8fbff" stroke-width="2"/>
+ <text x="105" y="400" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#e8faff">AI Offline</text>
+ <text x="105" y="423" font-family="system-ui,sans-serif" font-size="12" fill="#8caebe">Model lokal tersedia</text>
+ <rect x="45" y="462" width="300" height="76" rx="18" fill="#10283a" stroke="#24485e"/>
+ <circle cx="77" cy="500" r="13" fill="#075985"/><path d="M71 500h12m-6-6v12" stroke="#d8fbff" stroke-width="2"/>
+ <text x="105" y="492" font-family="system-ui,sans-serif" font-size="14" font-weight="600" fill="#e8faff">AI Online</text>
+ <text x="105" y="515" font-family="system-ui,sans-serif" font-size="12" fill="#8caebe">Provider terhubung</text>
+ <circle cx="195" cy="578" r="26" fill="#08283b" stroke="#35c7e5" stroke-width="2"/>
+ <path d="M185 578q10-22 20 0q-10 22-20 0" fill="none" stroke="#8df0ff" stroke-width="3"/>
+</g>
+<g transform="translate(110 245)">
+ <text x="0" y="0" font-family="system-ui,sans-serif" font-size="14" font-weight="700" letter-spacing="4" fill="#67e8f9">YOUR SECOND EYE</text>
+ <text x="0" y="65" font-family="system-ui,sans-serif" font-size="58" font-weight="800" fill="#f3fbff">KOBRA OS</text>
+ <text x="2" y="108" font-family="system-ui,sans-serif" font-size="23" fill="#b4d4e4">Voice-first AI assistant</text>
+ <text x="2" y="146" font-family="system-ui,sans-serif" font-size="18" fill="#8caebe">Aksesibilitas • AI Hybrid • Android</text>
+ <g transform="translate(0 208)" fill="none" stroke="url(#cyan)" stroke-width="4" stroke-linecap="round">
+  <path d="M0 24h16l12-30 18 62 18-82 20 104 18-54 12 0 14-22 14 22h24"/>
+ </g>
+ <text x="0" y="320" font-family="system-ui,sans-serif" font-size="14" fill="#75cde3">ILUSTRASI KONSEP — BUKAN SCREENSHOT APLIKASI</text>
+</g>
+<g transform="translate(1110 520)" filter="url(#drop)">
+ <rect width="220" height="112" rx="20" fill="#12354b" stroke="#2a718d"/>
+ <text x="24" y="38" font-family="system-ui,sans-serif" font-size="12" letter-spacing="2" fill="#67e8f9">HYBRID ENGINE</text>
+ <text x="24" y="70" font-family="system-ui,sans-serif" font-size="19" font-weight="700" fill="#f2fbff">ONLINE + OFFLINE</text>
+ <text x="24" y="94" font-family="system-ui,sans-serif" font-size="12" fill="#9fc3d4">Satu pengalaman terpadu</text>
+</g>
+</svg>

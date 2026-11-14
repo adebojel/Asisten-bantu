@@ -96,12 +96,16 @@ dependencies {
     // Google ML Kit (Offline Vision, Barcode, Translation & Text Recognition)
     implementation("com.google.mlkit:text-recognition:16.0.0")
     implementation("com.google.mlkit:object-detection:16.0.0")
+    implementation("com.google.mlkit:image-labeling:17.0.9")
     implementation("com.google.mlkit:face-detection:16.1.6")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("com.google.mlkit:translate:17.0.3")
 
     // MediaPipe LLM Inference API (Pengolahan Bahasa Offline On-Device Gemma 3 1B)
     implementation("com.google.mediapipe:tasks-genai:0.10.14")
+
+    // LiteRT-LM 0.16.1: compatible with the project Kotlin 2.2.x compiler; runs external .litertlm models.
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.1")
 
     // Pengujian
     testImplementation("junit:junit:4.13.2")

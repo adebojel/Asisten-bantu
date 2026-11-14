@@ -8,9 +8,6 @@ import com.google.mlkit.vision.face.FaceDetection;
 import com.google.mlkit.vision.face.FaceDetector;
 import com.google.mlkit.vision.face.FaceDetectorOptions;
 import com.google.mlkit.vision.objects.DetectedObject;
-import com.google.mlkit.vision.objects.ObjectDetection;
-import com.google.mlkit.vision.objects.ObjectDetector;
-import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,7 +35,7 @@ public final class OfflineVision {
     }
 
     private static FaceDetector faceDetector;
-    private static ObjectDetector objectDetector;
+    private static SafeObjectDetector safeObjectDetector;
 
     private OfflineVision() {}
 
@@ -162,32 +159,26 @@ public final class OfflineVision {
                 .addOnFailureListener(e -> cb.onResult("Gagal menghitung wajah."));
     }
 
-    /** Mengenali kategori benda besar di gambar (offline). */
+    /** Mengenali kategori benda besar di gambar (offline), dengan fallback Image Labeling. */
     public static void describe(Bitmap bmp, Result cb) {
         if (bmp == null) { cb.onResult("Foto tidak bisa dibaca."); return; }
-        if (objectDetector == null) {
-            objectDetector = ObjectDetection.getClient(new ObjectDetectorOptions.Builder()
-                    .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
-                    .enableMultipleObjects()
-                    .enableClassification()
-                    .build());
-        }
-        objectDetector.process(InputImage.fromBitmap(bmp, 0))
-                .addOnSuccessListener(objs -> {
-                    Set<String> names = new LinkedHashSet<>();
-                    for (DetectedObject o : objs) {
-                        if (!o.getLabels().isEmpty()) names.add(translate(o.getLabels().get(0).getText()));
-                    }
-                    if (names.isEmpty()) {
-                        cb.onResult("Saya belum mengenali benda di depan kamera. Coba arahkan lebih dekat.");
-                    } else {
-                        cb.onResult("Di depan kamera saya melihat: " + String.join(", ", names) + ".");
-                    }
-                })
-                .addOnFailureListener(e -> cb.onResult("Gagal mengenali benda di depan kamera."));
+        if (safeObjectDetector == null) safeObjectDetector = new SafeObjectDetector(false);
+        safeObjectDetector.process(bmp, (items, usedFallback) -> {
+            Set<String> names = new LinkedHashSet<>();
+            for (SafeObjectDetector.DetectedItem item : items) {
+                if (item.label != null && !item.label.trim().isEmpty()) names.add(item.label);
+            }
+            if (names.isEmpty()) {
+                cb.onResult("Saya belum mengenali benda di depan kamera. Warna dominan terlihat "
+                        + detailedColorName(bmp) + ". Coba arahkan kamera lebih dekat dan pastikan cahaya cukup.");
+            } else {
+                String prefix = usedFallback ? "Pengenalan cadangan aktif. " : "";
+                cb.onResult(prefix + "Di depan kamera saya melihat: " + String.join(", ", names) + ".");
+            }
+        });
     }
 
-    /** Menentukan benda terdekat beserta arah posisi (kiri/tengah/kanan) untuk panduan bunyi bip kamera. */
+    /** Memilih objek dengan area gambar terbesar; ukuran kotak bukan pengukuran jarak fisik. */
     public static ObjectGuidance findNearestObject(List<DetectedObject> objs, int imgWidth, int imgHeight) {
         if (objs == null || objs.isEmpty() || imgWidth <= 0 || imgHeight <= 0) return null;
         DetectedObject best = null;
@@ -207,8 +198,10 @@ public final class OfflineVision {
         String label = best.getLabels().isEmpty()
                 ? "sebuah benda"
                 : translateForSearch(best.getLabels().get(0).getText());
-        String dist = bestRatio >= 0.25 ? "sangat dekat" : (bestRatio >= 0.10 ? "jarak sedang" : "agak jauh");
-        String spoken = label + " terdeteksi di " + dir + ", " + dist + ".";
+        String apparentSize = bestRatio >= 0.25 ? "tampak besar di gambar"
+                : (bestRatio >= 0.10 ? "tampak sedang di gambar" : "tampak kecil di gambar");
+        String spoken = label + " terdeteksi di " + dir + ", " + apparentSize
+                + ". Jarak sebenarnya tidak dapat dipastikan dari kamera.";
         return new ObjectGuidance(label, dir, Math.min(1.0, bestRatio * 2.5), spoken);
     }
 

@@ -1,101 +1,148 @@
-# Kobra OS 7.1 - Asisten Suara dan Mata Kedua untuk Tunanetra
+<div align="center">
 
-Aplikasi Android (Java, minSdk 28) yang mengendalikan HP lewat suara: membuka aplikasi dan chat, membaca layar,
-membaca notifikasi dan SMS, menelepon, mengirim pesan, SOS dengan lokasi, mengenali KTP/warna/wajah, dan
-menjawab pertanyaan dasar secara offline. Bagian ringan berjalan offline, bagian yang butuh internet memakai AI online,
-dan pemilihannya otomatis.
+<img src="docs/kobra-hero-3d.svg" width="100%" alt="Artwork konsep 3D Kobra OS, bukan tangkapan layar aplikasi">
 
-> **Status jujur:** kode ini sudah lulus pengecekan sintaks, pengujian logika murni (70 kasus), dan pengecekan
-> silang resource/manifest, tetapi **belum pernah dikompilasi dengan Android SDK dan belum diuji di HP**.
-> Lihat `UJI_DI_HP.md` untuk urutan uji, dan bagian "Keterbatasan" di bawah.
+# KOBRA OS
+### Asisten Suara & Mata Kedua untuk Android
 
-## Cara memakai
-1. Ucapkan **"Kobra"** lalu perintah, misalnya "Kobra buka WhatsApp". Setelah Kobra menjawab, 15 detik berikutnya
-   Anda boleh bicara tanpa mengucap "Kobra" lagi.
-2. Tombol mengambang di layar: ketuk untuk bicara; tahan lama untuk mematikan/menyalakan mikrofon.
-   Warna: hijau siaga, kuning mendengarkan, biru Kobra bicara, abu-abu mati, merah izin kurang.
-3. Perintah yang butuh konfirmasi (SOS, telepon, kirim pesan) dijawab dengan "iya" atau "batal".
+**Akses ponsel dengan suara. Baca informasi di sekitar. Tetap gunakan fungsi inti saat offline.**
 
-## Daftar perintah suara (awali dengan "Kobra")
-| Kelompok | Contoh |
+[**Unduh APK**](https://github.com/adebojel/Asisten-bantu/releases) · [Build APK](https://github.com/adebojel/Asisten-bantu/actions) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/kobra-os-v7) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
+
+![Android](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
+![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.2.x-7F52FF?logo=kotlin&logoColor=white)
+![Development](https://img.shields.io/badge/Status-Active%20Development-00B8D9)
+
+</div>
+
+---
+
+## Tentang Kobra OS
+
+Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu pengguna, terutama tunanetra dan pengguna dengan keterbatasan penglihatan, mengoperasikan ponsel melalui suara dan mendapatkan informasi dari kamera maupun layar.
+
+Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
+
+> **Status pengujian:** build sebelumnya berhasil di GitHub Actions. Integrasi deteksi objek dengan fallback Image Labeling baru saja masuk ke branch pengembangan dan sedang menunggu build Android terbaru. Belum ada verifikasi menyeluruh pada perangkat fisik. Build berhasil tidak berarti aplikasi bebas crash atau seluruh fitur telah bekerja.
+
+## Tampilan aplikasi
+
+Artwork 3D di bagian atas adalah ilustrasi identitas produk. Gambar berikut adalah screenshot asli yang dikirim untuk acuan desain; file gambar belum di-host di repository, sehingga belum ditampilkan sebagai gambar tertanam di halaman ini.
+
+| Beranda Kobra OS | Pilihan fitur Mata Kedua |
 |---|---|
-| Membuka aplikasi | buka WhatsApp / buka WA / buka kamera / buka YouTube / buka Gojek. Nama mirip atau singkatan (wa, ig, fb, yt, peta, foto) dikenali; jika ada beberapa kandidat Kobra menyebut nomor, jawab "satu", "dua", dst. |
-| Mencari aplikasi | cari aplikasi bank / berapa aplikasi / sebutkan aplikasi |
-| Chat langsung | buka chat Ibu / chat ke Ibu / WhatsApp ke Ibu / Telegram ke Ibu / buka chat Ibu di Telegram |
-| Pesan | kirim pesan ke Ibu (WhatsApp, dikonfirmasi) / kirim SMS ke Ibu / baca SMS / baca notifikasi |
-| Notifikasi otomatis | matikan baca notifikasi / nyalakan baca notifikasi |
-| Telepon | panggil Ibu / angkat telepon / tolak telepon |
-| Baca layar dan tombol | baca layar / sebutkan tombol, lalu "tekan nomor 3" / tekan Simpan / ketik halo |
-| Gerak layar | scroll bawah, scroll atas, geser kiri, geser kanan, ketuk layar, tahan layar |
-| Sistem | kembali, beranda, aplikasi terbaru, notifikasi, pengaturan cepat, kunci layar, screenshot, menu daya |
-| Perangkat | senter nyala/mati, volume naik/turun, mode getar, mode normal, baterai, jam berapa, tanggal |
-| Alarm dan timer | timer lima menit, alarm jam enam tiga puluh |
-| Pengaturan | buka pengaturan, buka pengaturan Bluetooth / lokasi / layar / suara / baterai / aksesibilitas |
-| Web | buka situs detik titik com, cari resep nasi goreng, putar lagu X di YouTube, arahkan ke Stasiun Gambir |
-| Mata kedua | baca KTP, baca uang, warna apa, ada orang berapa, apa di depan, lalu "scan" |
-| Keselamatan | mode tongkat (lalu "mulai"/"berhenti"), tolong (SOS), TalkBack |
-| Otak offline | hitung dua puluh lima kali empat, tersedak, luka berdarah, nomor darurat, teman ngobrol |
-| Kontrol Kobra | bantuan, ulangi, diam, matikan mikrofon, nyalakan mikrofon |
+| Header status, indikator baterai/RAM/jaringan, orb suara, dan kartu modul | Pilihan pembaca uang, OCR, barcode, objek, terjemahan, dan KTP |
 
-## Offline dan online otomatis
-| Fitur | Tanpa internet | Dengan internet |
+**Arah desain UI yang sedang dikerjakan**
+- Tampilan gelap modern dengan aksen cyan dan indikator status yang jelas.
+- Header ringkas; status baterai, RAM, jaringan, dan aksesibilitas tidak saling bertumpuk.
+- Kartu fitur lebih padat dan konsisten agar ruang layar utama lebih luas.
+- Dialog dan menu lebih ringkas, mudah dibaca, serta tetap nyaman disentuh.
+- Kontras teks dan label tombol harus tetap tinggi. Minimalis tidak boleh mengurangi aksesibilitas.
+
+## Kemampuan utama
+
+| Modul | Fungsi |
+|---|---|
+| Kontrol suara | Membuka aplikasi, navigasi layar, dan menjalankan perintah yang diizinkan Android |
+| Aksesibilitas | Membaca teks layar dan berinteraksi dengan elemen antarmuka melalui Accessibility Service |
+| Mata Kedua | OCR, warna pakaian, wajah, barcode/QR, dan pengenalan objek |
+| Mode Tongkat | Panduan arah objek berbasis kamera, suara, dan getaran; bukan pengganti tongkat putih |
+| Komunikasi | Alur panggilan, SMS, notifikasi, dan aplikasi pesan dengan izin serta konfirmasi |
+| Otak offline | Perintah dasar, kalkulator, dan basis pengetahuan lokal |
+| AI online | Router provider ketika internet dan konfigurasi tersedia |
+| AI lokal | Runtime MediaPipe dan LiteRT-LM untuk model yang kompatibel |
+
+Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, provider, dan model yang terpasang.
+
+## AI hybrid: online dan offline
+
+Kobra mempertahankan fungsi lokal untuk perintah dasar. Permintaan yang lebih kompleks dapat menggunakan AI online jika tersedia. Model lokal berjalan di perangkat dan memerlukan RAM, ruang penyimpanan, serta runtime yang sesuai.
+
+| Jalur | Format | Runtime |
 |---|---|---|
-| Perintah suara, baca layar, tombol, gestur, aplikasi, chat langsung, telepon, SMS, senter, volume, alarm | Jalan | Jalan |
-| Baca KTP/KK | Jalan (ML Kit) | Jalan |
-| Warna, hitung wajah | Jalan | Jalan |
-| Lihat sekitar | Kategori benda umum | Deskripsi AI |
-| Kalkulator dan pengetahuan dasar (pertolongan pertama, hiburan) | Jalan (OfflineBrain) | Jalan (didahulukan) |
-| Baca uang | Tidak tersedia | AI gambar |
-| Pertanyaan bebas, teman ngobrol | Hanya hal dasar | n8n lalu AI OpenRouter |
-| Buka situs, cari di Google | Diberi tahu butuh internet | Jalan |
+| Gemma on-device | `.task` | MediaPipe LLM Inference |
+| Qwen LiteRT-LM | `.litertlm` | LiteRT-LM |
 
-Urutan jawaban untuk perintah yang tidak dikenali: otak offline, lalu (jika online) webhook n8n, lalu AI OpenRouter.
-Kobra mengumumkan lewat suara saat koneksi tersambung atau terputus.
+Paket model terpisah dari APK:
 
-## Pemasangan di HP
-1. Buka aplikasi Kobra OS. Ikuti tombol 1 sampai 8 dari atas ke bawah:
-   izin, aksesibilitas, akses notifikasi, pengaturan AI, kontak SOS, bebaskan dari hemat baterai,
-   jalankan di latar belakang, jadikan layar utama (opsional).
-2. API key OpenRouter (gratis di openrouter.ai) diisi di **Pengaturan AI**. Opsional; tanpa key, fitur offline tetap jalan.
-3. Webhook n8n (opsional) diisi di tempat yang sama. n8n menerima JSON `{"perintah": "...", "sumber": "kobra-os"}`
-   dan sebaiknya membalas JSON `{"balasan": "teks yang dibacakan"}`.
+[**Buka Kobra Offline Models v1.0**](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0)
 
-## Build
-- **GitHub Actions**: push ke cabang `main`; workflow `.github/workflows/build-apk.yml` menjalankan uji logika lalu
-  `gradle assembleDebug` dan mengunggah APK sebagai artifact.
-- **Android Studio**: buka folder ini, tunggu sync Gradle, lalu Run. Berkas `gradlew` tidak disertakan
-  (tidak bisa dibuat tanpa jaringan); Android Studio memakai Gradle miliknya atau menawarkan membuatnya.
+Model tidak otomatis cocok untuk setiap ponsel. Kobra menggunakan pemeriksaan memori dan jalur fallback; jika model gagal dimuat, fungsi dasar tetap harus dapat digunakan.
 
-## Struktur
+## Unduh dan instalasi
+
+- **APK rilis:** [GitHub Releases](https://github.com/adebojel/Asisten-bantu/releases)
+- **APK debug:** [GitHub Actions](https://github.com/adebojel/Asisten-bantu/actions) → pilih run dengan status Success → unduh artifact `Kobra-OS-APK`.
+- **Model offline:** [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0).
+
+Saat ini belum ada rilis APK stabil yang dinyatakan siap untuk penggunaan rutin. APK debug ditujukan untuk pengujian. Workflow prerelease APK sudah tersedia di [Kobra OS APK Release](.github/workflows/release-apk.yml); rilis baru dianggap tersedia setelah workflow dijalankan dan aset APK muncul di halaman Releases.
+
+## Status pengembangan
+
+- [x] Fondasi perintah offline dan router AI online.
+- [x] Pemisahan jalur runtime model `.task` dan `.litertlm`.
+- [x] Paket model offline tersedia terpisah.
+- [x] Pemeriksaan RAM sebelum pemuatan model lokal.
+- [x] Fallback pengenalan objek ke Image Labeling ditambahkan pada branch pengembangan.
+- [ ] Build Android terbaru setelah integrasi fallback.
+- [ ] Uji instalasi dan fungsi di HP Android nyata.
+- [ ] Uji mikrofon pada layar terkunci dan penggunaan latar belakang.
+- [ ] Uji alur tunanetra end-to-end dengan TalkBack.
+- [ ] Penyempurnaan visual seluruh layar dan dialog.
+- [ ] Screenshot autentik dari build terbaru.
+
+Panduan pengujian: [UJI_DI_HP.md](UJI_DI_HP.md).
+
+## Arsitektur singkat
+
+<img src="docs/kobra-overview.svg" width="100%" alt="Diagram arsitektur Kobra OS">
+
+```mermaid
+flowchart TD
+    A["Suara / input pengguna"] --> B["Kobra Command Router"]
+    B --> C["Android & Accessibility"]
+    B --> D["Offline Brain"]
+    B --> E["AI Online Router"]
+    B --> F["AI lokal"]
+    F --> G["MediaPipe .task"]
+    F --> H["LiteRT-LM .litertlm"]
+    C --> I["Respons suara"]
+    D --> I
+    E --> I
+    G --> I
+    H --> I
 ```
-app/src/main/java/com/asisten/bantu/   25 kelas Java (lihat PROMPT_LANJUTAN.md untuk peta lengkap)
-app/src/main/assets/kobra_kb.txt       basis pengetahuan offline (mudah diedit, format: kunci => jawaban)
-app/src/main/res/                      layout, tema, ikon, konfigurasi aksesibilitas
-tools/                                 pengujian logika murni (tanpa Android)
-UJI_DI_HP.md                           urutan uji di HP dan cara melaporkan error
-PROMPT_LANJUTAN.md                     prompt untuk melanjutkan proyek lewat AI lain
+
+## Build dari source
+
+Branch pengembangan aktif: `kobra-os-v7`.
+
+```bash
+git clone --branch kobra-os-v7 https://github.com/adebojel/Asisten-bantu.git
+cd Asisten-bantu
+./gradlew testDebugUnitTest assembleDebug
 ```
 
-## Menguji logika murni (tanpa Android)
-```
-J=app/src/main/java/com/asisten/bantu
-javac -encoding UTF-8 -d /tmp/ob $J/OfflineBrain.java $J/AppMatcher.java $J/PhoneFormat.java tools/*.java
-java -cp /tmp/ob com.asisten.bantu.OfflineBrainCheck
-java -cp /tmp/ob com.asisten.bantu.AppMatcherCheck
-```
+APK debug, jika build berhasil, berada di `app/build/outputs/apk/debug/app-debug.apk`.
 
-## Keterbatasan (jujur)
-- **Belum dikompilasi dan belum diuji di HP.** Error build atau perilaku yang beda antar merek HP masih mungkin.
-- **WiFi dan data seluler tidak dikendalikan** (keputusan pemilik proyek; Android 10 ke atas juga melarang aplikasi biasa).
-- **TalkBack tidak bisa diaktifkan oleh aplikasi lain.** Kobra hanya membuka pengaturannya.
-- **Mikrofon di latar belakang:** Android 11 ke atas membatasi akses mikrofon saat aplikasi tidak tampil. Kobra mencoba
-  layanan foreground bertipe mikrofon; hasilnya berbeda per HP/versi Android. Cadangan: tombol mengambang.
-- **Membuka aplikasi dari latar belakang** bisa diblokir sistem pada sebagian versi Android.
-- **Chat langsung** memakai nomor di kontak. Grup atau nama yang tidak ada di kontak memakai cara cadangan (mengklik nama di daftar chat WhatsApp), yang bisa rusak jika tampilan WhatsApp berubah.
-- **Angkat dan tolak telepon** memakai izin ANSWER_PHONE_CALLS; sistem tidak memberi konfirmasi pasti.
-- **Baca SMS dan QUERY_ALL_PACKAGES** tidak lolos kebijakan Google Play. Aplikasi ini untuk pemasangan manual (sideload).
-- **Notifikasi dibacakan keras-keras**, termasuk isi pesan pribadi. Matikan dengan "Kobra matikan baca notifikasi" atau pakai earphone.
-- **Otak offline bukan model bahasa besar.** Ia mencocokkan frasa dan menghitung ekspresi. Model bahasa di HP (misalnya Gemma lewat MediaPipe) belum disertakan karena butuh unduhan ratusan MB.
-- **Model AI gratis OpenRouter bisa berganti atau penuh.** Daftar bawaan ada di `KobraConfig.java`; model bisa diganti di Pengaturan AI.
-- **Pengenalan objek offline kasar** (kategori umum). Baca uang butuh internet.
-- Aplikasi ini **alat bantu, bukan pengganti tongkat putih** atau pendamping. Uji SOS bersama kontak darurat sebelum diandalkan.
+## Privasi dan batasan Android
+
+- API key provider AI harus disimpan sebagai rahasia dan tidak boleh di-commit.
+- Provider gratis dapat memiliki kuota, batas kecepatan, atau berubah sewaktu-waktu.
+- Aplikasi biasa tidak dapat bebas mengaktifkan atau menonaktifkan Wi-Fi/data seluler.
+- TalkBack tetap dikendalikan oleh pengguna melalui pengaturan Android.
+- Pembacaan notifikasi dan SMS dapat membacakan informasi pribadi; aktifkan hanya jika diperlukan.
+- Panggilan, pesan, dan SOS harus melalui konfirmasi pengguna.
+- Kobra OS adalah alat bantu eksperimental, bukan pengganti tongkat putih, pendamping, atau layanan darurat.
+
+## Kontribusi dan laporan bug
+
+Gunakan [Issues](https://github.com/adebojel/Asisten-bantu/issues) untuk melaporkan masalah. Sertakan model HP, versi Android, langkah reproduksi, perilaku yang diharapkan, dan hasil aktual. Samarkan nomor telepon, lokasi, pesan, serta data pribadi pada screenshot atau log.
+
+<div align="center">
+
+**KOBRA OS — satu asisten, suara sebagai kendali.**
+
+</div>

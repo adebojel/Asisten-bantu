@@ -469,7 +469,7 @@ public class SettingsActivity extends AppCompatActivity {
         });
 
         btnImportModel.setOnClickListener(v -> {
-            speaker.speak("Membuka pengelola berkas. Pilih berkas model berakhiran titik task.");
+            speaker.speak("Membuka pengelola berkas. Pilih model berformat task atau litertlm.");
             try {
                 modelPickerLauncher.launch(new String[]{"*/*"});
             } catch (Exception e) {
@@ -1176,30 +1176,39 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void updateModelStatus() {
         LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
-        File modelFile = engine.getModelFile();
-        boolean exists = modelFile.exists() && modelFile.length() > 1024 * 1024;
-        btnDeleteModel.setEnabled(modelFile.exists());
-        btnDeleteModel.setAlpha(modelFile.exists() ? 1.0f : 0.45f);
-        btnLoadModel.setEnabled(exists);
-        btnLoadModel.setAlpha(exists ? 1.0f : 0.45f);
+        File taskFile = engine.getModelFile();
+        LocalModelRegistry.ModelEntry liteEntry = LocalModelRegistry.findByFileName(
+                "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm");
+        File liteFile = LocalModelRegistry.fileFor(this, liteEntry);
+        boolean taskExists = taskFile.exists() && taskFile.length() > 1024 * 1024;
+        boolean liteExists = LocalModelRegistry.isValidFile(liteFile, liteEntry);
 
-        if (exists) {
-            long mb = modelFile.length() / (1024 * 1024);
-            if (engine.isInitialized()) {
-                tvModelStatus.setText("Status model: Aktif & Siap (" + mb + " MB, " + LocalLlmEngine.MODEL_FILENAME + ")");
-                tvModelStatus.setTextColor(0xFF00E5FF);
-            } else if (engine.isSafeMode()) {
-                String err = engine.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : engine.getLastError();
-                tvModelStatus.setText("Status model: " + err + " (" + mb + " MB)");
-                tvModelStatus.setTextColor(0xFFFFD600);
-            } else {
-                tvModelStatus.setText("Status model: Terpasang (" + mb + " MB, lazy-load hemat RAM)");
-                tvModelStatus.setTextColor(0xFF00E5FF);
-            }
+        btnDeleteModel.setEnabled(taskExists);
+        btnDeleteModel.setAlpha(taskExists ? 1.0f : 0.45f);
+        // Load/Test checks LiteRT-LM first, then legacy MediaPipe .task.
+        boolean anyModelExists = taskExists || liteExists;
+        btnLoadModel.setEnabled(anyModelExists);
+        btnLoadModel.setAlpha(anyModelExists ? 1.0f : 0.45f);
+
+        StringBuilder status = new StringBuilder("Model lokal: ");
+        if (taskExists) {
+            status.append("Gemma 1B .task tersedia (")
+                    .append(taskFile.length() / (1024 * 1024)).append(" MB)");
+            if (engine.isInitialized()) status.append(" — aktif");
+            else if (engine.isSafeMode()) status.append(" — perlu pemeriksaan runtime");
         } else {
-            tvModelStatus.setText("Status model: Belum terpasang / Mode Aman (Pilih berkas .task dari HP)");
-            tvModelStatus.setTextColor(0xFFFFD600);
+            status.append("Gemma .task belum terpasang");
         }
+        status.append(" | ");
+        if (liteExists) {
+            status.append("Qwen3 0.6B .litertlm tersedia (")
+                    .append(liteFile.length() / (1024 * 1024)).append(" MB; runtime LiteRT-LM)");
+        } else {
+            status.append("Qwen3 .litertlm belum diimpor");
+        }
+        status.append("\nRekomendasi perangkat: ").append(LocalModelRegistry.recommendation(this));
+        tvModelStatus.setText(status.toString());
+        tvModelStatus.setTextColor((taskExists || liteExists) ? 0xFF00E5FF : 0xFFFFD600);
     }
 
     private void confirmDeleteLocalModel() {
@@ -1227,9 +1236,53 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void loadOrTestLocalModel() {
+        LocalModelRegistry.ModelEntry liteEntry = LocalModelRegistry.findByFileName(
+                "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm");
+        File liteFile = LocalModelRegistry.fileFor(this, liteEntry);
+
+        if (LocalModelRegistry.isValidFile(liteFile, liteEntry)) {
+            if (!LocalModelRegistry.canAttemptLiteRtModel(this)) {
+                tvImportProgress.setVisibility(View.VISIBLE);
+                tvImportProgress.setTextColor(0xFFFFD600);
+                tvImportProgress.setText("Memori bebas belum cukup. Tutup aplikasi lain dan coba lagi; model tidak dimuat agar HP tetap stabil.");
+                speaker.speak("Memori bebas belum cukup untuk menguji Qwen tiga. Tutup aplikasi lain lalu coba lagi.");
+                return;
+            }
+            btnLoadModel.setEnabled(false);
+            btnImportModel.setEnabled(false);
+            pbImportModel.setVisibility(View.VISIBLE);
+            pbImportModel.setIndeterminate(true);
+            tvImportProgress.setVisibility(View.VISIBLE);
+            tvImportProgress.setTextColor(0xFFFFD600);
+            tvImportProgress.setText("Memuat dan menguji Qwen3 0.6B LiteRT-LM...");
+            speaker.speak("Menguji model lokal ringan Qwen tiga.");
+            LocalModelRuntimeManager.answerAsync(this,
+                    "Jawab dalam bahasa Indonesia dengan satu kalimat: Apakah model lokal Kobra siap digunakan?",
+                    (answer, error) -> {
+                        mainHandler.post(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            btnLoadModel.setEnabled(true);
+                            btnImportModel.setEnabled(true);
+                            pbImportModel.setVisibility(View.GONE);
+                            updateModelStatus();
+                            if (answer != null && !answer.trim().isEmpty()) {
+                                tvImportProgress.setTextColor(0xFF00E5FF);
+                                tvImportProgress.setText("Qwen3 berhasil dimuat dan menjawab: " + answer);
+                                speaker.speak("Qwen tiga berhasil diuji. " + answer);
+                            } else {
+                                tvImportProgress.setTextColor(0xFFFF5252);
+                                tvImportProgress.setText("Qwen3 belum dapat digunakan: " + error);
+                                speaker.speak("Uji Qwen tiga gagal. " + error);
+                            }
+                        });
+                        return kotlin.Unit.INSTANCE;
+                    });
+            return;
+        }
+
         LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
         if (!engine.isModelPresent()) {
-            speaker.speak("Berkas model lokal belum terpasang.");
+            speaker.speak("Belum ada model lokal yang dapat diuji. Impor model task atau litertlm terlebih dahulu.");
             updateModelStatus();
             return;
         }
@@ -1239,8 +1292,8 @@ public class SettingsActivity extends AppCompatActivity {
         pbImportModel.setIndeterminate(true);
         tvImportProgress.setVisibility(View.VISIBLE);
         tvImportProgress.setTextColor(0xFFFFD600);
-        tvImportProgress.setText("Memuat model lokal (token adaptif RAM + fallback CPU)...");
-        speaker.speak("Mencoba memuat model lokal ke memori.");
+        tvImportProgress.setText("Memuat model Gemma .task (token adaptif RAM + fallback CPU)...");
+        speaker.speak("Mencoba memuat model Gemma lokal ke memori.");
 
         engine.initEngineAsync(true, (ready, message) -> {
             if (isFinishing() || isDestroyed()) return;
@@ -1250,12 +1303,12 @@ public class SettingsActivity extends AppCompatActivity {
             updateModelStatus();
             if (ready) {
                 tvImportProgress.setTextColor(0xFF00E5FF);
-                tvImportProgress.setText("Model lokal berhasil dimuat dan siap digunakan.");
-                speaker.speak("Model AI offline berhasil dimuat.");
+                tvImportProgress.setText("Gemma berhasil dimuat dan siap digunakan.");
+                speaker.speak("Model AI offline Gemma berhasil dimuat.");
             } else {
                 tvImportProgress.setTextColor(0xFFFFD600);
                 tvImportProgress.setText(message);
-                speaker.speak("Model tidak dapat dimuat ke RAM. Kobra tetap aman di Mode Aman.");
+                speaker.speak("Gemma tidak dapat dimuat ke RAM. Kobra tetap aman dengan perintah lokal.");
             }
         });
     }
@@ -1329,78 +1382,124 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void processSelectedModelFile(Uri uri) {
-        String fileName = queryFileName(uri);
-        if (!fileName.toLowerCase(Locale.ROOT).endsWith(".task")) {
-            speaker.speak("Berkas yang dipilih bukan berkas model titik task.");
+        String sourceName = queryFileName(uri);
+        LocalModelRegistry.ModelEntry entry = LocalModelRegistry.findByExtension(sourceName);
+        if (entry == null) {
             tvImportProgress.setVisibility(View.VISIBLE);
             tvImportProgress.setTextColor(0xFFFF5252);
-            tvImportProgress.setText("Gagal: Berkas bukan bertipe .task.");
+            tvImportProgress.setText("Format tidak didukung. Pilih model .task atau .litertlm.");
+            speaker.speak("Format model tidak didukung. Pilih berkas task atau litertlm.");
             return;
         }
 
-        final long finalFileSize = queryFileSize(uri);
+        final long sourceSize = queryFileSize(uri);
+        if (sourceSize > 0 && sourceSize < entry.minimumFileBytes) {
+            tvImportProgress.setVisibility(View.VISIBLE);
+            tvImportProgress.setTextColor(0xFFFF5252);
+            tvImportProgress.setText("Berkas model terlalu kecil atau tidak lengkap.");
+            speaker.speak("Berkas model terlalu kecil atau tidak lengkap.");
+            return;
+        }
+
         btnImportModel.setEnabled(false);
         pbImportModel.setVisibility(View.VISIBLE);
         pbImportModel.setProgress(0);
         tvImportProgress.setVisibility(View.VISIBLE);
         tvImportProgress.setTextColor(0xFFFFD600);
-        tvImportProgress.setText("Menyalin: " + fileName);
+        tvImportProgress.setText("Memeriksa ruang dan menyalin model " + entry.displayName);
 
         executor.execute(() -> {
-            File filesDir = getFilesDir();
-            File destFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME);
-            File tempFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME + ".tmp");
-            if (tempFile.exists()) tempFile.delete();
+            File destFile = LocalModelRegistry.fileFor(SettingsActivity.this, entry);
+            File parent = destFile.getParentFile();
+            if (parent != null && !parent.exists()) parent.mkdirs();
+            File tempFile = new File(destFile.getParentFile(), destFile.getName() + ".tmp");
+            File backupFile = new File(destFile.getParentFile(), destFile.getName() + ".bak");
+            boolean replaced = false;
 
-            try (InputStream is = getContentResolver().openInputStream(uri);
-                 FileOutputStream fos = new FileOutputStream(tempFile)) {
-                if (is == null) throw new IOException("Tidak dapat membaca berkas.");
-                byte[] buffer = new byte[65536];
-                int read;
-                long totalRead = 0;
-                long lastUpdateTime = 0;
-                while ((read = is.read(buffer)) != -1) {
-                    fos.write(buffer, 0, read);
-                    totalRead += read;
-                    long now = System.currentTimeMillis();
-                    if (now - lastUpdateTime > 350) {
-                        lastUpdateTime = now;
-                        final int percent = finalFileSize > 0 ? (int) ((totalRead * 100) / finalFileSize) : -1;
-                        final long mb = totalRead / (1024 * 1024);
-                        mainHandler.post(() -> {
-                            if (percent >= 0) {
-                                pbImportModel.setIndeterminate(false);
-                                pbImportModel.setProgress(percent);
-                                tvImportProgress.setText("Menyalin: " + percent + "% (" + mb + " MB)");
-                            } else {
-                                pbImportModel.setIndeterminate(true);
-                                tvImportProgress.setText("Menyalin: " + mb + " MB...");
-                            }
-                        });
-                    }
+            try {
+                long requiredBytes = sourceSize > 0 ? sourceSize : entry.minimumFileBytes;
+                long freeBytes = destFile.getParentFile().getUsableSpace();
+                if (freeBytes < requiredBytes + (32L * 1024L * 1024L)) {
+                    throw new IOException("Ruang internal tidak cukup. Kosongkan minimal "
+                            + ((requiredBytes / (1024 * 1024)) + 32) + " MB lalu coba lagi.");
                 }
-                fos.flush();
-                if (destFile.exists()) destFile.delete();
+                if (tempFile.exists() && !tempFile.delete()) {
+                    throw new IOException("Tidak dapat membersihkan berkas sementara sebelumnya.");
+                }
+
+                long totalRead = 0;
+                try (InputStream is = getContentResolver().openInputStream(uri);
+                     FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    if (is == null) throw new IOException("Tidak dapat membaca berkas sumber.");
+                    byte[] buffer = new byte[65536];
+                    int read;
+                    long lastUpdateTime = 0;
+                    while ((read = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, read);
+                        totalRead += read;
+                        long now = System.currentTimeMillis();
+                        if (now - lastUpdateTime > 350) {
+                            lastUpdateTime = now;
+                            final int percent = sourceSize > 0 ? (int) Math.min(100, (totalRead * 100) / sourceSize) : -1;
+                            final long mb = totalRead / (1024 * 1024);
+                            mainHandler.post(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                if (percent >= 0) {
+                                    pbImportModel.setIndeterminate(false);
+                                    pbImportModel.setProgress(percent);
+                                    tvImportProgress.setText("Menyalin: " + percent + "% (" + mb + " MB)");
+                                } else {
+                                    pbImportModel.setIndeterminate(true);
+                                    tvImportProgress.setText("Menyalin: " + mb + " MB...");
+                                }
+                            });
+                        }
+                    }
+                    fos.getFD().sync();
+                }
+
+                if (totalRead < entry.minimumFileBytes || (sourceSize > 0 && totalRead != sourceSize)) {
+                    throw new IOException("Ukuran salinan tidak cocok. Model lama tetap dipertahankan.");
+                }
+                if (backupFile.exists() && !backupFile.delete()) {
+                    throw new IOException("Tidak dapat membersihkan cadangan model lama.");
+                }
+                if (destFile.exists()) {
+                    if (!destFile.renameTo(backupFile)) {
+                        throw new IOException("Tidak dapat mengamankan model lama.");
+                    }
+                    replaced = true;
+                }
                 if (!tempFile.renameTo(destFile)) {
                     copyFile(tempFile, destFile);
+                    if (destFile.length() != totalRead) throw new IOException("Verifikasi salinan gagal.");
                     tempFile.delete();
                 }
+                if (!LocalModelRegistry.isValidFile(destFile, entry) || destFile.length() != totalRead) {
+                    throw new IOException("Verifikasi model akhir gagal.");
+                }
+                if (backupFile.exists()) backupFile.delete();
 
                 mainHandler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
                     btnImportModel.setEnabled(true);
                     pbImportModel.setVisibility(View.GONE);
-                    LocalLlmEngine engine = LocalLlmEngine.getInstance(SettingsActivity.this);
-                    engine.close();
-                    config.clearLlmSafeMode();
+                    if (entry.runtime == LocalModelRegistry.RuntimeKind.MEDIAPIPE_TASK) {
+                        LocalLlmEngine.getInstance(SettingsActivity.this).close();
+                        config.clearLlmSafeMode();
+                    }
                     updateModelStatus();
-                    long mb = destFile.length() / (1024 * 1024);
                     tvImportProgress.setTextColor(0xFF00E5FF);
-                    tvImportProgress.setText("Model tersimpan (" + mb + " MB).");
-                    speaker.speak("Penyalinan model offline selesai.");
+                    tvImportProgress.setText(entry.displayName + " berhasil diimpor (" +
+                            (destFile.length() / (1024 * 1024)) + " MB).");
+                    speaker.speak("Model " + entry.displayName + " berhasil disimpan. Runtime akan memeriksa kompatibilitas saat dimuat.");
                 });
             } catch (Exception e) {
                 if (tempFile.exists()) tempFile.delete();
+                if (replaced && backupFile.exists()) {
+                    if (destFile.exists()) destFile.delete();
+                    backupFile.renameTo(destFile);
+                }
                 final String err = e.getMessage() != null ? e.getMessage() : "Kesalahan sistem";
                 mainHandler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
@@ -1408,6 +1507,7 @@ public class SettingsActivity extends AppCompatActivity {
                     pbImportModel.setVisibility(View.GONE);
                     tvImportProgress.setTextColor(0xFFFF5252);
                     tvImportProgress.setText("Gagal mengimpor model: " + err);
+                    speaker.speak("Gagal mengimpor model. Model sebelumnya tetap dipertahankan jika tersedia.");
                 });
             }
         });
