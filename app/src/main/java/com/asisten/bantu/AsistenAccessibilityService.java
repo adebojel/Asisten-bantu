@@ -179,6 +179,29 @@ public class AsistenAccessibilityService extends AccessibilityService {
         return isRunning && instance != null;
     }
 
+    /**
+     * Makes the global accessibility microphone the single input source while the
+     * visible chat is in unified conversation mode. This avoids two recognizers
+     * competing for the same microphone.
+     */
+    public static void setUnifiedChatMode(boolean enabled) {
+        AsistenAccessibilityService service = instance;
+        if (service == null || service.main == null) return;
+        service.main.post(() -> {
+            if (enabled) {
+                service.micOn = true;
+                service.conversationUntil = Long.MAX_VALUE;
+                service.stopMic();
+                service.scheduleRetry(250L);
+                service.say("Mode percakapan terpadu aktif. Chat, perintah HP, dan suara Kobra terhubung.");
+            } else {
+                service.conversationUntil = 0L;
+                service.stopMic();
+                service.scheduleRetry(500L);
+            }
+        });
+    }
+
     public LocalLlmEngine getLocalLlmEngine() {
         return localLlmEngine != null ? localLlmEngine : LocalLlmEngine.getInstance(this);
     }
@@ -603,6 +626,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void handleSpoken(String raw) {
         String text = raw.toLowerCase(Locale.ROOT).trim();
         if (text.isEmpty()) return;
+
+        // In unified chat mode, every recognized utterance is sent to the same
+        // visible conversation pipeline. Explicit safety/system confirmations
+        // remain handled by the command service when they are pending.
+        if (pending == null && ChatActivity.dispatchGlobalVoice(raw)) {
+            conversationUntil = System.currentTimeMillis() + CONVERSATION_WINDOW_MS;
+            return;
+        }
 
         if (pending != null) {
             Pending p = pending;
