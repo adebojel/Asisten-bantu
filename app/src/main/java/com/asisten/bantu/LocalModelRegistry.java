@@ -109,6 +109,21 @@ public final class LocalModelRegistry {
         return DeviceTier.STANDARD;
     }
 
+    /**
+     * Conservative preflight for Qwen 0.6B. This is only a safety gate, not a
+     * guarantee of successful inference; vendor memory pressure can still vary.
+     */
+    public static boolean canAttemptLiteRtModel(Context context) {
+        ActivityManager manager =
+                (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        if (manager == null) return false;
+        ActivityManager.MemoryInfo info = new ActivityManager.MemoryInfo();
+        manager.getMemoryInfo(info);
+        long availableMb = info.availMem / (1024L * 1024L);
+        long totalMb = info.totalMem / (1024L * 1024L);
+        return totalMb >= 3000L && availableMb >= 1100L;
+    }
+
     public static String recommendation(Context context) {
         switch (getDeviceTier(context)) {
             case LOW_RAM:
