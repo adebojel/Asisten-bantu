@@ -103,15 +103,16 @@ public class Speaker implements TextToSpeech.OnInitListener {
     }
 
     public void applyVoiceSettings() {
-        KobraConfig cfg = new KobraConfig(context);
-        updateVoiceSettings(cfg.getSpeechRate(), cfg.getSpeechPitch());
+        if (tts != null && ready) {
+            VoiceProfileManager.applyToTextToSpeech(context, tts);
+        }
     }
 
     public void updateVoiceSettings(float speechRate, float pitch) {
         if (tts != null && ready) {
             try {
                 tts.setSpeechRate(Math.max(0.5f, Math.min(2.0f, speechRate)));
-                tts.setPitch(Math.max(0.5f, Math.min(2.0f, pitch)));
+                tts.setPitch(Math.max(0.5f, Math.min(1.8f, pitch)));
             } catch (Exception ignored) {}
         }
     }

@@ -48,9 +48,13 @@ enum class KobraPersona(
             val cfg = KobraConfig(context)
             val persona = fromId(personaId ?: cfg.activePersonaId)
             val style = cfg.assistantStyleSystemPrompt
+            val activeName = VoiceProfileManager.getActiveAssistantName(context)
             val memory = LocalMemoryStore.buildPromptContext(context)
+            val localizedInstruction = persona.systemInstruction.replace("Kobra", activeName)
             return buildString {
-                append(persona.systemInstruction).append('\n')
+                append(localizedInstruction).append('\n')
+                append("Nama panggilan aktifmu adalah ").append(activeName)
+                    .append(". Selalu perkenalkan dirimu sebagai ").append(activeName).append(" jika ditanya.\n")
                 append("Gaya bicara tambahan: ").append(style)
                 if (memory.isNotEmpty()) {
                     append("\n\n").append(memory)

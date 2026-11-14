@@ -268,11 +268,11 @@ object CommandRouter {
         val geminiKey = resolveGeminiApiKey(service)
         if (geminiKey.isNotEmpty()) {
             if (shouldUseScreenAgent(command)) {
-                runMultiStepAgentAsync(service, command, geminiKey, macroCache) { msg ->
+                runMultiStepAgentAsync(service, command, geminiKey, macroCache) { msg: String ->
                     speaker.speak(msg)
                 }
             } else {
-                askGeminiTextAsync(service, command, geminiKey) { reply ->
+                askGeminiTextAsync(service, command, geminiKey) { reply: String ->
                     speaker.speak(reply)
                 }
             }

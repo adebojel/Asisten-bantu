@@ -50,6 +50,7 @@ open class ChatActivity : AppCompatActivity() {
     private lateinit var rvMessages: RecyclerView
     private lateinit var adapter: ChatBubbleAdapter
     private lateinit var etInput: EditText
+    private lateinit var tvHeaderTitle: TextView
     private lateinit var tvModelInfo: TextView
     private lateinit var tvAttachment: TextView
     private lateinit var voiceOrb: VoiceOrbView
@@ -71,7 +72,7 @@ open class ChatActivity : AppCompatActivity() {
     private var attachedImageB64: String? = null
     private var attachedBitmap: Bitmap? = null
 
-    private val imagePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    private val imagePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri != null) loadAttachmentFromUri(uri)
     }
 
@@ -104,6 +105,7 @@ open class ChatActivity : AppCompatActivity() {
 
         rvMessages = findViewById(R.id.rvChatMessages)
         etInput = findViewById(R.id.etChatInput)
+        tvHeaderTitle = findViewById(R.id.tvChatHeaderTitle)
         tvModelInfo = findViewById(R.id.tvChatModelInfo)
         tvAttachment = findViewById(R.id.tvChatAttachment)
         voiceOrb = findViewById(R.id.voiceOrbChat)
@@ -114,7 +116,7 @@ open class ChatActivity : AppCompatActivity() {
         btnPersonaTutor = findViewById(R.id.btnPersonaTutor)
         btnPersonaKerja = findViewById(R.id.btnPersonaKerja)
 
-        adapter = ChatBubbleAdapter { msgText ->
+        adapter = ChatBubbleAdapter { msgText: String ->
             HapticFeedback.vibrateAction(this)
             speaker.speak(msgText)
         }
@@ -167,11 +169,13 @@ open class ChatActivity : AppCompatActivity() {
             tvAttachment.visibility = View.GONE
         }
 
+        syncAssistantIdentity()
         refreshPersonaChips()
         refreshModeBanner()
+        val activeName = VoiceProfileManager.getActiveAssistantName(this)
         val activePersona = KobraPersona.fromId(config.activePersonaId)
-        val greeting = "Halo, saya ${activePersona.title}. Silakan ketik, lampirkan gambar, atau ketuk tombol mikrofon kapan saja untuk memotong suara saya."
-        addAiMessage(greeting, activePersona.title)
+        val greeting = "Halo, saya $activeName (${activePersona.title}). Silakan ketik, lampirkan gambar, atau ketuk tombol mikrofon kapan saja untuk memotong suara saya."
+        addAiMessage(greeting, "$activeName • ${activePersona.title}")
         speaker.speak(greeting)
     }
 
@@ -189,7 +193,14 @@ open class ChatActivity : AppCompatActivity() {
         super.onResume()
         current = this
         speaker.addListener(speechListener)
+        syncAssistantIdentity()
         refreshModeBanner()
+    }
+
+    private fun syncAssistantIdentity() {
+        val activeName = VoiceProfileManager.getActiveAssistantName(this)
+        tvHeaderTitle.text = "ASISTEN AI ${activeName.uppercase(Locale.ROOT)}"
+        btnPersonaUtama.text = "$activeName Utama"
     }
 
     override fun onPause() {
@@ -428,10 +439,11 @@ open class ChatActivity : AppCompatActivity() {
         val systemPrompt = KobraPersona.buildFullSystemPrompt(this)
         if (llm.isModelPresent && !config.isLlmSafeMode && !llm.isSafeMode) {
             tvModelInfo.text = "Memproses dengan Gemma 3 1B Offline..."
-            llm.summarizeTextAsync(systemPrompt, "Chat", displayPrompt, speaker) { reply ->
-                if (reply.isNotBlank() && !reply.contains("Gagal memproses") && !reply.contains("Mode Aman")) {
-                    addAiMessage(reply, "Gemma 3 1B Offline")
-                    speaker.speak(reply)
+            llm.summarizeTextAsync(systemPrompt, "Chat", displayPrompt, speaker) { reply: String? ->
+                val cleanReply = reply?.trim().orEmpty()
+                if (cleanReply.isNotEmpty() && !cleanReply.contains("Gagal memproses") && !cleanReply.contains("Mode Aman")) {
+                    addAiMessage(cleanReply, "Gemma 3 1B Offline")
+                    speaker.speak(cleanReply)
                     refreshModeBanner()
                 } else {
                     routeToOnlineOrFallback(displayPrompt, systemPrompt)
@@ -570,14 +582,12 @@ open class ChatActivity : AppCompatActivity() {
         if (c.contains("apa yang kamu ingat") || c.contains("daftar memori")) {
             return LocalMemoryStore.formatSpeechSummary(this)
         }
-        val brain = OfflineBrain.reply(c)
-        if (brain != null) return brain
-        return OfflineAi.answer(c)
+        return OfflineAi.get(this).answer(c)
     }
 
     private fun buildOfflineFallback(question: String): String {
-        val offlineAns = OfflineAi.answer(question)
-        if (offlineAns != null) return offlineAns
+        val offlineAns = OfflineAi.get(this).answer(question)
+        if (!offlineAns.isNullOrBlank()) return offlineAns
         return "Saat ini koneksi internet atau kunci API online belum aktif, dan model lokal tidak dimuat. " +
             "Anda tetap dapat menanyakan jam, sinyal, langkah, agenda, kalkulator, atau mengisi kunci Gemini API di Pengaturan."
     }

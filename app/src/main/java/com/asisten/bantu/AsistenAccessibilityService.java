@@ -89,6 +89,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             "tidak", "batal", "jangan", "nggak", "gak", "enggak", "salah"));
 
     private static volatile AsistenAccessibilityService instance;
+    public static volatile boolean isRunning = false;
 
     private KobraConfig config;
     private Speaker speaker;
@@ -174,6 +175,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     public static AsistenAccessibilityService getInstance() { return instance; }
 
+    public static boolean isRunning() {
+        return isRunning && instance != null;
+    }
+
     public LocalLlmEngine getLocalLlmEngine() {
         return localLlmEngine != null ? localLlmEngine : LocalLlmEngine.getInstance(this);
     }
@@ -205,6 +210,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        isRunning = true;
         main = new Handler(Looper.getMainLooper());
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
@@ -215,7 +221,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         // Lazy-load Mesin LLM Offline: cek crash-guard tanpa memuat model berat saat startup
         localLlmEngine = LocalLlmEngine.getInstance(this);
         if (localLlmEngine.isModelPresent() && localLlmEngine.isSafeMode() && main != null) {
-            main.postDelayed(() -> speaker.speakQueued("Model AI offline berada di Mode Aman karena terlalu berat untuk RAM. Kobra tetap aktif dengan perintah sistem lokal."), 3000L);
+            main.postDelayed(() -> speaker.speakQueued("Model AI offline berada di Mode Aman karena terlalu berat untuk RAM. Asisten tetap aktif dengan perintah sistem lokal."), 3000L);
         }
 
         networkCallback = NetworkState.watch(this, online -> main.post(() -> {
@@ -236,12 +242,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         setupFloatingOrb();
 
+        String activeName = VoiceProfileManager.getActiveAssistantName(this);
         if (config.isPrivacyMode()) {
             micOn = false;
             updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
-            speaker.speak("Kobra OS aktif dalam Mode Privasi Penuh. Mikrofon dan kamera dimatikan. Ketuk gelembung Kobra untuk mengaktifkan kembali.");
+            speaker.speak(activeName + " aktif dalam Mode Privasi Penuh. Mikrofon dan kamera dimatikan. Ketuk gelembung untuk mengaktifkan kembali.");
         } else {
-            speaker.speak("Kobra OS aktif. Sebut kata Kobra lalu perintah. Bilang Kobra bantuan untuk daftar perintah.");
+            speaker.speak(activeName + " aktif. Sebut kata " + activeName + " lalu perintah. Bilang " + activeName + " bantuan untuk daftar perintah.");
             main.postDelayed(this::startListening, 2000);
         }
         main.postDelayed(this::checkLowStorageOnStart, 8000);
@@ -272,12 +279,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     @Override public boolean onUnbind(Intent intent) {
+        isRunning = false;
         if (instance == this) instance = null;
         UnifiedAccessibilityEngine.onServiceDestroyed();
         return super.onUnbind(intent);
     }
 
     @Override public void onDestroy() {
+        isRunning = false;
         instance = null;
         UnifiedAccessibilityEngine.onServiceDestroyed();
         stopMic();
@@ -605,13 +614,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         route(cmd);
     }
 
-    private static String stripWake(String s) {
-        String[] wakes = {"kobra os", "kobra", "cobra", "kobro", "kobr"};
-        for (String w : wakes) {
-            int i = s.indexOf(w);
-            if (i >= 0) return s.substring(i + w.length()).trim();
-        }
-        return null;
+    private String stripWake(String s) {
+        return VoiceProfileManager.stripWakeWord(this, s);
     }
 
     private void handlePending(Pending p, String text) {

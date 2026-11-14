@@ -57,12 +57,14 @@ import java.util.concurrent.Executors;
  */
 public class SettingsActivity extends AppCompatActivity {
 
-    private EditText etGeminiKey, etKey, etModel, etN8n, etNotes;
+    private EditText etGeminiKey, etKey, etModel, etN8n, etNotes, etCustomAssistantName;
     private TextView tvStatus, tvSystemPermSummary, tvModelStatus, tvImportProgress;
     private TextView tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus, tvMemoryCountInfo, tvFloatingOrbAlpha;
+    private TextView tvActiveVoiceSummary;
     private Button btnImportModel, btnDeleteModel, btnLoadModel, btnTestTts;
     private Button btnBackupData, btnRestoreData, btnCheckUpdate, btnViewCrashLog;
-    private LinearLayout layoutMemoryList;
+    private Button btnPresetKobra, btnPresetArka, btnPresetBima, btnPresetNala, btnPresetCakra, btnPresetTara, btnPresetKustom, btnApplyCustomVoice;
+    private LinearLayout layoutMemoryList, layoutCustomVoiceConfig;
     private ProgressBar pbImportModel;
     private SeekBar sbSpeechRate, sbSpeechPitch, sbFloatingOrbAlpha;
     private SwitchCompat swFloatingOrb, swFloatingOrbAutoHide;
@@ -130,7 +132,19 @@ public class SettingsActivity extends AppCompatActivity {
         tvBackupStatus = findViewById(R.id.tvBackupStatus);
         tvUpdateStatus = findViewById(R.id.tvUpdateStatus);
         tvMemoryCountInfo = findViewById(R.id.tvMemoryCountInfo);
+        tvActiveVoiceSummary = findViewById(R.id.tvActiveVoiceSummary);
         layoutMemoryList = findViewById(R.id.layoutMemoryList);
+        layoutCustomVoiceConfig = findViewById(R.id.layoutCustomVoiceConfig);
+        etCustomAssistantName = findViewById(R.id.etCustomAssistantName);
+
+        btnPresetKobra = findViewById(R.id.btnPresetKobra);
+        btnPresetArka = findViewById(R.id.btnPresetArka);
+        btnPresetBima = findViewById(R.id.btnPresetBima);
+        btnPresetNala = findViewById(R.id.btnPresetNala);
+        btnPresetCakra = findViewById(R.id.btnPresetCakra);
+        btnPresetTara = findViewById(R.id.btnPresetTara);
+        btnPresetKustom = findViewById(R.id.btnPresetKustom);
+        btnApplyCustomVoice = findViewById(R.id.btnApplyCustomVoice);
 
         btnImportModel = findViewById(R.id.btnImportModel);
         btnDeleteModel = findViewById(R.id.btnDeleteModel);
@@ -240,7 +254,17 @@ public class SettingsActivity extends AppCompatActivity {
                     .show();
         });
 
-        // Card 4: Voice & Sensors listeners
+        // Card 4: 7 Preset Nama Nusantara & Karakter Suara Ala Gemini
+        if (btnPresetKobra != null) btnPresetKobra.setOnClickListener(v -> selectVoicePreset(VoiceProfileManager.PRESET_KOBRA));
+        if (btnPresetArka != null) btnPresetArka.setOnClickListener(v -> selectVoicePreset(VoiceProfileManager.PRESET_ARKA));
+        if (btnPresetBima != null) btnPresetBima.setOnClickListener(v -> selectVoicePreset(VoiceProfileManager.PRESET_BIMA));
+        if (btnPresetNala != null) btnPresetNala.setOnClickListener(v -> selectVoicePreset(VoiceProfileManager.PRESET_NALA));
+        if (btnPresetCakra != null) btnPresetCakra.setOnClickListener(v -> selectVoicePreset(VoiceProfileManager.PRESET_CAKRA));
+        if (btnPresetTara != null) btnPresetTara.setOnClickListener(v -> selectVoicePreset(VoiceProfileManager.PRESET_TARA));
+        if (btnPresetKustom != null) btnPresetKustom.setOnClickListener(v -> selectVoicePreset(VoiceProfileManager.PRESET_KUSTOM));
+        if (btnApplyCustomVoice != null) btnApplyCustomVoice.setOnClickListener(v -> applyCustomVoiceProfile());
+
+        // Card 5: Voice & Sensors listeners
         swFloatingOrb.setOnCheckedChangeListener((b, isChecked) -> {
             if (loadingFields) return;
             config.setFloatingOrbEnabled(isChecked);
@@ -297,11 +321,13 @@ public class SettingsActivity extends AppCompatActivity {
 
         sbSpeechRate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float rate = progressToTtsValue(progress);
+                float rate = progressToRateValue(progress);
                 tvSpeechRate.setText(String.format(Locale.US, "Kecepatan Suara (Rate): %.1fx", rate));
-                if (fromUser) {
+                if (fromUser && !loadingFields) {
+                    promoteToCustomIfNeeded();
                     config.setSpeechRate(rate);
-                    speaker.applyVoiceSettings();
+                    VoiceProfileManager.syncAllTts(SettingsActivity.this);
+                    refreshVoicePresetUi();
                 }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
@@ -310,11 +336,13 @@ public class SettingsActivity extends AppCompatActivity {
 
         sbSpeechPitch.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                float pitch = progressToTtsValue(progress);
+                float pitch = progressToPitchValue(progress);
                 tvSpeechPitch.setText(String.format(Locale.US, "Nada Suara (Pitch): %.1fx", pitch));
-                if (fromUser) {
+                if (fromUser && !loadingFields) {
+                    promoteToCustomIfNeeded();
                     config.setSpeechPitch(pitch);
-                    speaker.applyVoiceSettings();
+                    VoiceProfileManager.syncAllTts(SettingsActivity.this);
+                    refreshVoicePresetUi();
                 }
             }
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
@@ -329,7 +357,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         btnTestTts.setOnClickListener(v -> {
             saveFields();
-            speaker.speak("Ini contoh suara asisten Kobra OS dengan kecepatan dan nada yang Anda pilih.");
+            speaker.speak(VoiceProfileManager.formatSampleGreeting(this));
         });
 
         // Card 5: Guardian SOS & Daily Briefing
@@ -378,10 +406,11 @@ public class SettingsActivity extends AppCompatActivity {
         test.setOnClickListener(v -> {
             saveFields();
             tvStatus.setText("Menguji koneksi AI...");
+            String activeName = VoiceProfileManager.getActiveAssistantName(this);
             String gemini = CommandRouter.resolveGeminiApiKey(this);
             if (!gemini.isEmpty()) {
                 executor.execute(() -> {
-                    String res = CommandRouter.callGeminiBlocking(this, "Perkenalkan dirimu sebagai Kobra OS dalam satu kalimat singkat.", null);
+                    String res = CommandRouter.callGeminiBlocking(this, "Perkenalkan dirimu sebagai " + activeName + " dari Kobra OS dalam satu kalimat singkat.", null);
                     mainHandler.post(() -> {
                         if (res != null && !res.isEmpty()) {
                             tvStatus.setText("Gemini menjawab: " + res);
@@ -736,12 +765,18 @@ public class SettingsActivity extends AppCompatActivity {
         else if (gMin >= 60) rbGuard60.setChecked(true);
         else rbGuardOff.setChecked(true);
 
-        float rate = config.getSpeechRate();
-        float pitch = config.getSpeechPitch();
-        sbSpeechRate.setProgress(ttsValueToProgress(rate));
-        sbSpeechPitch.setProgress(ttsValueToProgress(pitch));
+        float rate = VoiceProfileManager.clampRate(config.getSpeechRate());
+        float pitch = VoiceProfileManager.clampPitch(config.getSpeechPitch());
+        sbSpeechRate.setProgress(rateValueToProgress(rate));
+        sbSpeechPitch.setProgress(pitchValueToProgress(pitch));
         tvSpeechRate.setText(String.format(Locale.US, "Kecepatan Suara (Rate): %.1fx", rate));
         tvSpeechPitch.setText(String.format(Locale.US, "Nada Suara (Pitch): %.1fx", pitch));
+
+        if (etCustomAssistantName != null) {
+            String customName = config.getCustomAssistantName();
+            etCustomAssistantName.setText(customName.isEmpty() ? VoiceProfileManager.getActiveAssistantName(this) : customName);
+        }
+        refreshVoicePresetUi();
 
         String style = config.getAssistantStyle();
         if (KobraConfig.STYLE_RINGKAS.equals(style)) rbStyleRingkas.setChecked(true);
@@ -752,6 +787,98 @@ public class SettingsActivity extends AppCompatActivity {
         swHighContrast.setChecked(hc);
         applyHighContrastVisual(hc);
         loadingFields = false;
+    }
+
+    private void selectVoicePreset(String presetId) {
+        HapticFeedback.vibrateAction(this);
+        VoiceProfileManager.VoicePreset preset = VoiceProfileManager.applyPreset(this, presetId);
+        loadingFields = true;
+        float rate = VoiceProfileManager.clampRate(config.getSpeechRate());
+        float pitch = VoiceProfileManager.clampPitch(config.getSpeechPitch());
+        sbSpeechRate.setProgress(rateValueToProgress(rate));
+        sbSpeechPitch.setProgress(pitchValueToProgress(pitch));
+        tvSpeechRate.setText(String.format(Locale.US, "Kecepatan Suara (Rate): %.1fx", rate));
+        tvSpeechPitch.setText(String.format(Locale.US, "Nada Suara (Pitch): %.1fx", pitch));
+        if (etCustomAssistantName != null) {
+            if (preset.isCustom()) {
+                String currentCustom = config.getCustomAssistantName();
+                etCustomAssistantName.setText(currentCustom.isEmpty() ? preset.getDefaultWakeWord() : currentCustom);
+            } else {
+                etCustomAssistantName.setText(preset.getDefaultWakeWord());
+            }
+        }
+        loadingFields = false;
+        refreshVoicePresetUi();
+        String greeting = VoiceProfileManager.formatSampleGreeting(this);
+        if (tvStatus != null) {
+            tvStatus.setText("Karakter suara aktif: " + VoiceProfileManager.getActiveAssistantName(this) + " (" + preset.getDescription() + ")");
+        }
+        speaker.speak(greeting);
+    }
+
+    private void applyCustomVoiceProfile() {
+        HapticFeedback.vibrateAction(this);
+        String rawName = etCustomAssistantName != null ? etCustomAssistantName.getText().toString() : "";
+        float pitch = progressToPitchValue(sbSpeechPitch.getProgress());
+        float rate = progressToRateValue(sbSpeechRate.getProgress());
+        VoiceProfileManager.saveCustomProfile(this, rawName, pitch, rate);
+        if (etCustomAssistantName != null) {
+            etCustomAssistantName.setText(VoiceProfileManager.getActiveAssistantName(this));
+        }
+        refreshVoicePresetUi();
+        String greeting = VoiceProfileManager.formatSampleGreeting(this);
+        if (tvStatus != null) {
+            tvStatus.setText("Profil suara kustom diterapkan: " + VoiceProfileManager.getActiveAssistantName(this));
+        }
+        speaker.speak(greeting);
+    }
+
+    private void promoteToCustomIfNeeded() {
+        VoiceProfileManager.VoicePreset current = VoiceProfileManager.getActivePreset(this);
+        if (!current.isCustom()) {
+            String preservedName = VoiceProfileManager.getActiveAssistantName(this);
+            config.setCustomAssistantName(preservedName);
+            config.setVoiceProfileId(VoiceProfileManager.PRESET_KUSTOM);
+            if (etCustomAssistantName != null) {
+                etCustomAssistantName.setText(preservedName);
+            }
+        }
+    }
+
+    private void refreshVoicePresetUi() {
+        VoiceProfileManager.VoicePreset preset = VoiceProfileManager.getActivePreset(this);
+        String activeName = VoiceProfileManager.getActiveAssistantName(this);
+        float pitch = VoiceProfileManager.clampPitch(preset.isCustom() ? config.getSpeechPitch() : preset.getPitch());
+        float rate = VoiceProfileManager.clampRate(preset.isCustom() ? config.getSpeechRate() : preset.getRate());
+
+        if (tvActiveVoiceSummary != null) {
+            tvActiveVoiceSummary.setText(String.format(
+                    Locale.US,
+                    "Aktif: %s (%s • Pitch %.1fx • Rate %.1fx)",
+                    activeName, preset.getDescription(), pitch, rate
+            ));
+        }
+        if (layoutCustomVoiceConfig != null) {
+            layoutCustomVoiceConfig.setVisibility(preset.isCustom() ? View.VISIBLE : View.GONE);
+        }
+
+        stylePresetButton(btnPresetKobra, VoiceProfileManager.PRESET_KOBRA.equals(preset.getId()), false);
+        stylePresetButton(btnPresetArka, VoiceProfileManager.PRESET_ARKA.equals(preset.getId()), false);
+        stylePresetButton(btnPresetBima, VoiceProfileManager.PRESET_BIMA.equals(preset.getId()), false);
+        stylePresetButton(btnPresetNala, VoiceProfileManager.PRESET_NALA.equals(preset.getId()), false);
+        stylePresetButton(btnPresetCakra, VoiceProfileManager.PRESET_CAKRA.equals(preset.getId()), false);
+        stylePresetButton(btnPresetTara, VoiceProfileManager.PRESET_TARA.equals(preset.getId()), false);
+        stylePresetButton(btnPresetKustom, VoiceProfileManager.PRESET_KUSTOM.equals(preset.getId()), true);
+    }
+
+    private void stylePresetButton(Button btn, boolean selected, boolean isCustomBtn) {
+        if (btn == null) return;
+        btn.setBackgroundResource(selected ? R.drawable.bg_persona_chip_active : R.drawable.bg_persona_chip_idle);
+        if (selected) {
+            btn.setTextColor(0xFF00E5FF);
+        } else {
+            btn.setTextColor(isCustomBtn ? 0xFFFFD600 : 0xFFE2E8F0);
+        }
     }
 
     private int guardianMinutesFromId(int id) {
@@ -774,16 +901,25 @@ public class SettingsActivity extends AppCompatActivity {
         etModel.setTextColor(textColor);
         etN8n.setTextColor(textColor);
         etNotes.setTextColor(textColor);
+        if (etCustomAssistantName != null) etCustomAssistantName.setTextColor(textColor);
         tvSpeechRate.setTextColor(textColor);
         tvSpeechPitch.setTextColor(textColor);
     }
 
-    private static float progressToTtsValue(int progress) {
+    private static float progressToRateValue(int progress) {
         return Math.max(0.5f, Math.min(2.0f, 0.5f + (progress * 0.1f)));
     }
 
-    private static int ttsValueToProgress(float value) {
+    private static int rateValueToProgress(float value) {
         return Math.max(0, Math.min(15, Math.round((value - 0.5f) * 10f)));
+    }
+
+    private static float progressToPitchValue(int progress) {
+        return Math.max(0.5f, Math.min(1.8f, 0.5f + (progress * 0.1f)));
+    }
+
+    private static int pitchValueToProgress(float value) {
+        return Math.max(0, Math.min(13, Math.round((value - 0.5f) * 10f)));
     }
 
     private void updateModelStatus() {
@@ -1090,11 +1226,17 @@ public class SettingsActivity extends AppCompatActivity {
         config.setPocketLockEnabled(swPocketLock.isChecked());
         config.setDailyBriefingEnabled(swDailyBriefing.isChecked());
 
-        config.setSpeechRate(progressToTtsValue(sbSpeechRate.getProgress()));
-        config.setSpeechPitch(progressToTtsValue(sbSpeechPitch.getProgress()));
+        config.setSpeechRate(progressToRateValue(sbSpeechRate.getProgress()));
+        config.setSpeechPitch(progressToPitchValue(sbSpeechPitch.getProgress()));
+        if (VoiceProfileManager.getActivePreset(this).isCustom() && etCustomAssistantName != null) {
+            String customName = VoiceProfileManager.sanitizeWakeWord(etCustomAssistantName.getText().toString());
+            if (!customName.isEmpty()) {
+                config.setCustomAssistantName(customName);
+            }
+        }
         config.setHighContrast(swHighContrast.isChecked());
         config.setAssistantStyle(styleFromCheckedId(rgAssistantStyle.getCheckedRadioButtonId()));
-        speaker.applyVoiceSettings();
+        VoiceProfileManager.syncAllTts(this);
         AsistenAccessibilityService.refreshFloatingOrbSettings();
     }
 }

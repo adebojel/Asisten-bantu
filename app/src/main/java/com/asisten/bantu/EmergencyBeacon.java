@@ -69,6 +69,30 @@ public final class EmergencyBeacon {
     }
 
     /**
+     * Memicu seluruh sinyal darurat sekaligus: sirine bahaya, kedip senter SOS,
+     * siaran Bluetooth/Wi-Fi darurat, dan pemicu SOS kontak darurat bila layanan aktif.
+     */
+    public static void triggerAll(Context context, String torchId) {
+        if (context == null) return;
+        Context app = context.getApplicationContext();
+        startDangerSiren(app, torchId);
+        AsistenAccessibilityService svc = AsistenAccessibilityService.getInstance();
+        if (svc != null) {
+            new Handler(Looper.getMainLooper()).post(svc::triggerSos);
+        }
+    }
+
+    /** Dipanggil saat terdeteksi jatuh keras (Fall Detection). */
+    public static void triggerFall(Context context) {
+        triggerFall(context, null);
+    }
+
+    public static void triggerFall(Context context, String torchId) {
+        if (context == null) return;
+        triggerAll(context.getApplicationContext(), torchId);
+    }
+
+    /**
      * Mode Find My Phone: membunyikan nada panggil keras melalui channel alarm
      * meskipun HP dalam mode senyap, disertai kedip senter singkat dan getaran.
      */

@@ -197,15 +197,17 @@ object UnifiedAccessibilityEngine {
         }
     }
 
+    @JvmStatic
+    fun refreshExternalTtsSettings(ctx: Context) {
+        mainHandler.post {
+            applyExternalTtsSettings(ctx.applicationContext)
+        }
+    }
+
     private fun applyExternalTtsSettings(ctx: Context) {
         val tts = externalTts ?: return
         if (!ttsReady) return
-        try {
-            val cfg = KobraConfig(ctx)
-            tts.setSpeechRate(cfg.speechRate)
-            tts.setPitch(cfg.speechPitch)
-        } catch (_: Throwable) {
-        }
+        VoiceProfileManager.applyToTextToSpeech(ctx, tts)
     }
 
     @JvmStatic

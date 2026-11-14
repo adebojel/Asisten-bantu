@@ -27,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ScrollView mainScroll;
     private VoiceOrbView voiceOrbMain;
-    private TextView tvStatus, tvQuickMeta, tvPedometerCardSub, tvBadgeSiaga;
+    private TextView tvMainHeaderTitle, tvStatus, tvQuickMeta, tvPedometerCardSub, tvBadgeSiaga;
     private TextView tvTelemetryBattery, tvTelemetryRam, tvTelemetryNet;
     private Button btnShowFloatingOrb, btnResetAiSafeMode;
     private Button tabMain, tabUtils, tabVoice;
@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
         mainScroll = findViewById(R.id.mainScroll);
         voiceOrbMain = findViewById(R.id.voiceOrbMain);
+        tvMainHeaderTitle = findViewById(R.id.tvMainHeaderTitle);
         tvStatus = findViewById(R.id.tvStatus);
         tvQuickMeta = findViewById(R.id.tvQuickMeta);
         tvPedometerCardSub = findViewById(R.id.tvPedometerCardSub);
@@ -385,7 +386,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void speakAppGuide() {
-        String guide = "Panduan Suara Kobra OS HUD. Di layar utama terdapat Orb Suara tiga dimensi di bagian atas, "
+        String activeName = VoiceProfileManager.getActiveAssistantName(this);
+        String guide = "Panduan Suara " + activeName + " OS HUD. Di layar utama terdapat Orb Suara tiga dimensi di bagian atas, "
                 + "tombol Pengaturan Terpadu di pojok kanan atas, dan empat modul utama: Mata Kedua, Mode Tongkat, Asisten AI, serta Layar Utama. "
                 + "Gunakan perintah Voice Access seperti tampilkan nomor, klik nomor, tampilkan grid, atau baca layar kapan saja. "
                 + "Usap dua jari ke bawah untuk membaca notifikasi, usap dua jari ke atas untuk menghentikan suara, atau ketuk dua kali untuk mulai bicara.";
@@ -460,10 +462,14 @@ public class MainActivity extends AppCompatActivity {
             btnResetAiSafeMode.setVisibility(crashSafe ? View.VISIBLE : View.GONE);
         }
 
+        String activeName = VoiceProfileManager.getActiveAssistantName(this);
+        if (tvMainHeaderTitle != null) {
+            tvMainHeaderTitle.setText(activeName.toUpperCase(Locale.ROOT) + " OS");
+        }
         String sosText = c.hasSosContact() ? "SOS Siap" : "SOS Default 112";
         String persona = KobraPersona.fromId(c.getActivePersonaId()).getTitle();
         if (tvQuickMeta != null) {
-            tvQuickMeta.setText(sosText + " • Persona: " + persona + " • Memori: " + LocalMemoryStore.listMemories(this).size());
+            tvQuickMeta.setText("Suara: " + activeName + " • " + sosText + " • Persona: " + persona + " • Memori: " + LocalMemoryStore.listMemories(this).size());
         }
         if (tvPedometerCardSub != null) {
             tvPedometerCardSub.setText(c.getTodaySteps() + " langkah (" + c.getTodayDistanceMeters() + " m)");

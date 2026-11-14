@@ -7,6 +7,7 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.Cursor;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
@@ -17,6 +18,7 @@ import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
@@ -557,6 +559,49 @@ public final class SystemUtilityHelper {
             sb.append("Saat ini internet terputus.");
         }
         return sb.toString().trim();
+    }
+
+    // =========================================================================
+    // #76. Battery Status Summary (Guardian & Daily Briefing)
+    // =========================================================================
+
+    public static String batteryStatus(Context context) {
+        if (context == null) return "Status baterai tidak tersedia";
+        Context app = context.getApplicationContext();
+        int percent = -1;
+        boolean charging = false;
+        try {
+            BatteryManager bm = (BatteryManager) app.getSystemService(Context.BATTERY_SERVICE);
+            if (bm != null) {
+                int cap = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+                if (cap >= 0 && cap <= 100) {
+                    percent = cap;
+                }
+                charging = bm.isCharging();
+            }
+        } catch (Throwable ignored) {}
+
+        if (percent < 0) {
+            try {
+                Intent batIntent = app.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+                if (batIntent != null) {
+                    int level = batIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                    int scale = batIntent.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+                    int status = batIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                    if (level >= 0 && scale > 0) {
+                        percent = (level * 100) / scale;
+                    }
+                    charging = charging
+                            || status == BatteryManager.BATTERY_STATUS_CHARGING
+                            || status == BatteryManager.BATTERY_STATUS_FULL;
+                }
+            } catch (Throwable ignored) {}
+        }
+
+        if (percent < 0) {
+            return "Status baterai belum terbaca";
+        }
+        return "Baterai " + percent + " persen" + (charging ? " sedang mengisi daya" : "");
     }
 
     private static String describeRssi(int rssi) {

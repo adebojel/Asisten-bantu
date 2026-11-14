@@ -271,7 +271,227 @@
                     android:orientation="vertical" />
             </LinearLayout>
 
-            <!-- CARD 4: KONTROL SUARA, NOMOR LAYAR & SENSOR -->
+            <!-- CARD 4: IDENTITAS ASISTEN & KARAKTER SUARA (7 PRESET NUSANTARA ALA GEMINI) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:background="@drawable/bg_glass_card_cyan"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:contentDescription="Karakter Suara Asisten"
+                        android:src="@drawable/ic_3d_speaker_wave" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:letterSpacing="0.05"
+                        android:text="4. IDENTITAS ASISTEN &amp; KARAKTER SUARA"
+                        android:textColor="#00E5FF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvActiveVoiceSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="Aktif: Kobra (Tegas &amp; Netral • Pitch 1.0x • Rate 1.0x)"
+                    android:textColor="#E2E8F0"
+                    android:textSize="12sp" />
+
+                <!-- Row 1: Kobra & Arka -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnPresetKobra"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_persona_chip_active"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:text="Kobra\nTegas &amp; Netral"
+                        android:textAllCaps="false"
+                        android:textColor="#00E5FF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnPresetArka"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_persona_chip_idle"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:text="Arka\nBersahabat &amp; Jelas"
+                        android:textAllCaps="false"
+                        android:textColor="#E2E8F0"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Row 2: Bima & Nala -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnPresetBima"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_persona_chip_idle"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:text="Bima\nPria Berwibawa"
+                        android:textAllCaps="false"
+                        android:textColor="#E2E8F0"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnPresetNala"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_persona_chip_idle"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:text="Nala\nWanita Lembut"
+                        android:textAllCaps="false"
+                        android:textColor="#E2E8F0"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Row 3: Cakra & Tara -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/btnPresetCakra"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_persona_chip_idle"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:text="Cakra\nCepat &amp; Sigap"
+                        android:textAllCaps="false"
+                        android:textColor="#E2E8F0"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnPresetTara"
+                        android:layout_width="0dp"
+                        android:layout_height="52dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_persona_chip_idle"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:text="Tara\nCeria &amp; Energik"
+                        android:textAllCaps="false"
+                        android:textColor="#E2E8F0"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Row 4: Kustom Sendiri -->
+                <Button
+                    android:id="@+id/btnPresetKustom"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:background="@drawable/bg_persona_chip_idle"
+                    android:text="Kustom Sendiri • Nama Panggilan, Pitch &amp; Kecepatan Bebas"
+                    android:textAllCaps="false"
+                    android:textColor="#FFD600"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:id="@+id/layoutCustomVoiceConfig"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_telemetry_pill"
+                    android:orientation="vertical"
+                    android:padding="12dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Nama Panggilan Asisten Kustom (Wake Word)"
+                        android:textColor="#00E5FF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/etCustomAssistantName"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_glass_input"
+                        android:hint="Contoh: Surya, Citra, Bayu"
+                        android:inputType="textPersonName|textCapWords"
+                        android:maxLength="24"
+                        android:padding="10dp"
+                        android:textColor="#E2E8F0"
+                        android:textColorHint="#64748B"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Atur Pitch (0.5x–1.8x) &amp; Kecepatan (0.5x–2.0x) di panel Kontrol Suara di bawah, lalu terapkan."
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnApplyCustomVoice"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_glass_button_primary"
+                        android:text="Terapkan &amp; Putar Sampel Suara Kustom"
+                        android:textAllCaps="false"
+                        android:textColor="#050811"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- CARD 5: KONTROL SUARA, NOMOR LAYAR & SENSOR -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -284,7 +504,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:letterSpacing="0.05"
-                    android:text="4. KONTROL SUARA, NOMOR LAYAR &amp; SENSOR"
+                    android:text="5. KONTROL SUARA, NOMOR LAYAR &amp; SENSOR"
                     android:textColor="#00E5FF"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -301,11 +521,11 @@
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swBargeIn" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Barge-In (Potong Suara AI Saat Bicara)" android:textColor="#E2E8F0" android:textSize="13sp" />
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swHighContrast" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Mode Kontras Tinggi" android:textColor="#E2E8F0" android:textSize="13sp" />
 
-                <TextView android:id="@+id/tvSpeechRate" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Kecepatan Suara (Rate): 0.9x" android:textColor="#E2E8F0" android:textSize="12sp" />
+                <TextView android:id="@+id/tvSpeechRate" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Kecepatan Suara (Rate): 1.0x" android:textColor="#E2E8F0" android:textSize="12sp" />
                 <SeekBar android:id="@+id/sbSpeechRate" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="15" />
 
                 <TextView android:id="@+id/tvSpeechPitch" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Nada Suara (Pitch): 1.0x" android:textColor="#E2E8F0" android:textSize="12sp" />
-                <SeekBar android:id="@+id/sbSpeechPitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="15" />
+                <SeekBar android:id="@+id/sbSpeechPitch" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="13" />
 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Gaya Bahasa Asisten" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
                 <RadioGroup android:id="@+id/rgAssistantStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
@@ -317,7 +537,7 @@
                 <Button android:id="@+id/btnTestTts" android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="8dp" android:background="@drawable/bg_glass_button_secondary" android:text="Tes Contoh Suara TTS" android:textAllCaps="false" android:textColor="#00E5FF" android:textSize="13sp" android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- CARD 5: KEAMANAN, DAILY BRIEFING & GUARDIAN SOS -->
+            <!-- CARD 6: KEAMANAN, DAILY BRIEFING & GUARDIAN SOS -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -330,7 +550,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:letterSpacing="0.05"
-                    android:text="5. KEAMANAN, DAILY BRIEFING &amp; GUARDIAN SOS"
+                    android:text="6. KEAMANAN, DAILY BRIEFING &amp; GUARDIAN SOS"
                     android:textColor="#FFD600"
                     android:textSize="13sp"
                     android:textStyle="bold" />

@@ -61,11 +61,28 @@ public final class KobraConfig {
     public boolean isReadNotifications() { return prefs.getBoolean("read_notifications", true); }
     public void setReadNotifications(boolean v) { prefs.edit().putBoolean("read_notifications", v).apply(); }
 
-    public float getSpeechRate() { return clampTts(prefs.getFloat("speech_rate", 0.9f)); }
+    public float getSpeechRate() { return clampTts(prefs.getFloat("speech_rate", 1.0f)); }
     public void setSpeechRate(float rate) { prefs.edit().putFloat("speech_rate", clampTts(rate)).apply(); }
 
-    public float getSpeechPitch() { return clampTts(prefs.getFloat("speech_pitch", 1.0f)); }
-    public void setSpeechPitch(float pitch) { prefs.edit().putFloat("speech_pitch", clampTts(pitch)).apply(); }
+    public float getSpeechPitch() { return clampPitch(prefs.getFloat("speech_pitch", 1.0f)); }
+    public void setSpeechPitch(float pitch) { prefs.edit().putFloat("speech_pitch", clampPitch(pitch)).apply(); }
+
+    public String getVoiceProfileId() { return prefs.getString("voice_profile_id", VoiceProfileManager.PRESET_KOBRA).trim(); }
+    public void setVoiceProfileId(String profileId) {
+        String clean = (profileId == null || profileId.trim().isEmpty())
+                ? VoiceProfileManager.PRESET_KOBRA
+                : profileId.trim().toLowerCase(Locale.ROOT);
+        prefs.edit().putString("voice_profile_id", clean).apply();
+    }
+
+    public String getCustomAssistantName() { return prefs.getString("custom_assistant_name", "").trim(); }
+    public void setCustomAssistantName(String name) {
+        prefs.edit().putString("custom_assistant_name", name == null ? "" : name.trim()).apply();
+    }
+
+    public String getActiveAssistantName() {
+        return VoiceProfileManager.getActiveAssistantName(appContext);
+    }
 
     public boolean isHighContrast() { return prefs.getBoolean("high_contrast", false); }
     public void setHighContrast(boolean enabled) { prefs.edit().putBoolean("high_contrast", enabled).apply(); }
@@ -507,6 +524,10 @@ public final class KobraConfig {
 
     private static float clampTts(float v) {
         return Math.max(0.5f, Math.min(2.0f, v));
+    }
+
+    private static float clampPitch(float v) {
+        return Math.max(0.5f, Math.min(1.8f, v));
     }
 
     /**

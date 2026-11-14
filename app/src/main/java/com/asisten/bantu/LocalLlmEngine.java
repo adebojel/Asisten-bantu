@@ -374,7 +374,7 @@ public class LocalLlmEngine {
      */
     public void summarizeText(String title, String longText, AiClient onlineFallback, Speaker speaker, SummaryCallback cb) {
         if (longText == null || longText.trim().isEmpty()) {
-            mainHandler.post(() -> cb.onSummary("Tidak ada teks atau notifikasi untuk diringkas."));
+            postSummary(cb, "Tidak ada teks atau notifikasi untuk diringkas.");
             return;
         }
         String trimmed = longText.trim();
@@ -401,18 +401,86 @@ public class LocalLlmEngine {
         fallbackSummarize(finalInstruction, title, finalClipped, onlineFallback, cb);
     }
 
+    /**
+     * Ringkasan atau jawaban LLM asinkron ramah Kotlin SAM-lambda (2 parameter).
+     */
+    public void summarizeTextAsync(String text, SummaryCallback cb) {
+        summarizeTextAsync(null, "Ringkasan", text, null, cb);
+    }
+
+    /**
+     * Memproses instruksi sistem + teks secara asinkron via Gemma 3 1B offline dengan fallback aman.
+     * Digunakan oleh ChatActivity.kt dan CommandRouter.kt.
+     */
+    public void summarizeTextAsync(String systemInstruction, String title, String longText, Speaker speaker, SummaryCallback cb) {
+        if (longText == null || longText.trim().isEmpty()) {
+            postSummary(cb, "Tidak ada teks untuk diproses.");
+            return;
+        }
+        String trimmed = longText.trim();
+        final String finalClipped = trimmed.length() > 1500 ? trimmed.substring(0, 1500) : trimmed;
+        final boolean isConversational = "Chat".equalsIgnoreCase(title) || "Suara".equalsIgnoreCase(title);
+        final String finalInstruction;
+        if (systemInstruction != null && !systemInstruction.trim().isEmpty()) {
+            if (isConversational) {
+                finalInstruction = systemInstruction.trim() + "\n\nPermintaan pengguna: " + finalClipped;
+            } else {
+                finalInstruction = systemInstruction.trim() + "\n\nRingkas " + title + " berikut:\n\n" + finalClipped;
+            }
+        } else {
+            finalInstruction = "Ringkas " + title + " berikut menjadi 2 hingga 3 kalimat Bahasa Indonesia yang jelas tanpa markdown:\n\n" + finalClipped;
+        }
+
+        final Speaker streamSpeaker = (cb == null) ? speaker : null;
+        if (isInitialized()) {
+            runSummaryOnGemma(finalInstruction, title, finalClipped, streamSpeaker, cb);
+            return;
+        }
+
+        if (isModelPresent() && !isSafeMode()) {
+            new Thread(() -> {
+                if (initEngine()) {
+                    mainHandler.post(() -> runSummaryOnGemma(finalInstruction, title, finalClipped, streamSpeaker, cb));
+                } else {
+                    fallbackAsyncReply(title, finalClipped, streamSpeaker, cb);
+                }
+            }).start();
+            return;
+        }
+
+        fallbackAsyncReply(title, finalClipped, streamSpeaker, cb);
+    }
+
+    private void fallbackAsyncReply(String title, String rawText, Speaker streamSpeaker, SummaryCallback cb) {
+        if (cb != null) {
+            postSummary(cb, isSafeMode() ? "Mode Aman aktif." : "Gagal memproses di model lokal.");
+            return;
+        }
+        String fallback = buildOfflineExtractiveSummary(title, rawText);
+        if (streamSpeaker != null) {
+            mainHandler.post(() -> streamSpeaker.speak(fallback));
+        }
+    }
+
+    private void postSummary(SummaryCallback cb, String text) {
+        if (cb == null) return;
+        mainHandler.post(() -> cb.onSummary(text));
+    }
+
     private void runSummaryOnGemma(String instruction, String title, String rawText, Speaker speaker, SummaryCallback cb) {
         StringBuilder out = new StringBuilder();
         generateResponseAsync(instruction, speaker, new StreamingCallback() {
             @Override public void onPartialResult(String partialText, boolean isComplete) {
                 if (partialText != null) out.append(partialText);
-                if (isComplete) {
+                if (isComplete && cb != null) {
                     String clean = cleanTextForTts(out.toString());
                     cb.onSummary(clean.isEmpty() ? buildOfflineExtractiveSummary(title, rawText) : clean);
                 }
             }
             @Override public void onError(String error) {
-                cb.onSummary(buildOfflineExtractiveSummary(title, rawText));
+                if (cb != null) {
+                    cb.onSummary(buildOfflineExtractiveSummary(title, rawText));
+                }
             }
         }, false);
     }
@@ -422,15 +490,15 @@ public class LocalLlmEngine {
         if (onlineFallback != null && NetworkState.isOnline(context) && cfg.hasAi()) {
             onlineFallback.chat(AiClient.SYSTEM_TUNANETRA, instruction, new AiClient.Callback() {
                 @Override public void onResult(String text) {
-                    mainHandler.post(() -> cb.onSummary(cleanTextForTts(text)));
+                    postSummary(cb, cleanTextForTts(text));
                 }
                 @Override public void onError(String message) {
-                    mainHandler.post(() -> cb.onSummary(buildOfflineExtractiveSummary(title, rawText)));
+                    postSummary(cb, buildOfflineExtractiveSummary(title, rawText));
                 }
             });
             return;
         }
-        mainHandler.post(() -> cb.onSummary(buildOfflineExtractiveSummary(title, rawText)));
+        postSummary(cb, buildOfflineExtractiveSummary(title, rawText));
     }
 
     public static String buildOfflineExtractiveSummary(String title, String rawText) {
@@ -464,7 +532,8 @@ public class LocalLlmEngine {
 
     private synchronized String buildContextualPrompt(String userPrompt, boolean useHistory) {
         KobraConfig cfg = new KobraConfig(context);
-        String systemPrompt = "Kamu adalah Kobra, asisten suara untuk penyandang tunanetra. "
+        String activeName = VoiceProfileManager.getActiveAssistantName(context);
+        String systemPrompt = "Kamu adalah " + activeName + ", asisten suara untuk penyandang tunanetra. "
                 + cfg.getAssistantStyleSystemPrompt();
 
         List<ChatTurn> included = new ArrayList<>();

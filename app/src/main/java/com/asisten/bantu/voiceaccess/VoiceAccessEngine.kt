@@ -85,10 +85,12 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         if (c.isEmpty()) return false
 
         // 1) Manajemen Tidur / Bangun
+        val activeName = VoiceProfileManager.getActiveAssistantName(service)
+        val activeWake = activeName.lowercase(Locale.ROOT)
         if (isSleepMode) {
-            if (c.contains("bangun") || c.contains("nyala") || c.contains("mulai dengar") || c.contains("kobra")) {
+            if (c.contains("bangun") || c.contains("nyala") || c.contains("mulai dengar") || c.contains("kobra") || (activeWake.isNotEmpty() && c.contains(activeWake))) {
                 isSleepMode = false
-                sayCallback.accept("Kobra aktif kembali dan siap menerima perintah.")
+                sayCallback.accept("$activeName aktif kembali dan siap menerima perintah.")
             }
             return true
         }
@@ -96,7 +98,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         if (c == "tidur" || c == "mode tidur" || c == "mode diam" || c == "jangan dengar") {
             isSleepMode = true
             hideAllOverlays()
-            sayCallback.accept("Mode tidur aktif. Sebutkan bangun kobra jika ingin menyalakan suara lagi.")
+            sayCallback.accept("Mode tidur aktif. Sebutkan bangun $activeWake jika ingin menyalakan suara lagi.")
             return true
         }
 
