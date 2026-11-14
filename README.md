@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="112" alt="Ikon Kobra OS">
+<img src="docs/kobra-hero-3d.svg" width="100%" alt="Ilustrasi konsep 3D Kobra OS — bukan screenshot aplikasi">
+
+<img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="92" alt="Ikon Kobra OS">
 
 # KOBRA OS
 ### Asisten Suara • Mata Kedua • AI Hybrid untuk Android
@@ -30,9 +32,9 @@ Proyek ini sedang dikembangkan menuju arsitektur **AI hybrid**:
 - **Fallback:** jika layanan online gagal, aplikasi mencoba jalur lokal yang didukung perangkat.
 
 > [!IMPORTANT]
-> **Status pengembangan yang jujur (15 November 2026):** branch `kobra-os-v7` masih aktif dikembangkan. Fitur impor model `.task` dan `.litertlm`, fondasi runtime LiteRT-LM, serta jalur uji Qwen sedang diintegrasikan. Build pada beberapa commit integrasi terakhir masih menemukan error kompilasi dan sedang diperbaiki. **Belum ada APK dari commit terbaru yang dinyatakan siap uji, dan belum ada hasil uji perangkat nyata yang dapat diklaim.**
+> **Status pengembangan (15 November 2026):** build Android pada commit `baa8cab` berhasil di GitHub Actions. Artifact APK debug tersedia untuk pengujian awal. **Build sukses bukan berarti aplikasi sudah bebas crash atau sudah lulus uji perangkat nyata**; pengujian instalasi, izin, aksesibilitas, perpindahan AI online/offline, serta pemuatan model masih perlu dilakukan pada HP fisik.
 >
-> Tombol download APK di atas membuka GitHub Actions. Unduh hanya artifact dari workflow terbaru yang berstatus **Success**. Jangan menggunakan artifact dari run yang gagal atau commit yang lebih lama.
+> [**Buka hasil build sukses #111**](https://github.com/adebojel/Asisten-bantu/actions/runs/43635040270) lalu unduh artifact `Kobra-OS-APK` pada bagian Artifacts. Ukuran artifact sekitar 124 MB. Gunakan build ini hanya untuk pengujian, bukan sebagai rilis stabil.
 
 ## ✨ Fitur dan kemampuan proyek
 
@@ -57,7 +59,7 @@ Kemampuan tiap fitur bergantung pada izin, versi Android, perangkat, provider, s
 <sub>Ikon aplikasi Kobra OS</sub>
 </div>
 
-**Screenshot layar aplikasi yang autentik belum tersedia di repository saat README ini diperbarui.** Saya tidak menampilkan mockup atau gambar buatan seolah-olah itu hasil aplikasi yang sudah berjalan. Setelah APK terbaru lolos build dan dipasang di perangkat, bagian ini akan diisi dengan tangkapan layar asli, misalnya:
+**Screenshot layar aplikasi yang autentik belum tersedia di repository saat README ini diperbarui.** Ilustrasi 3D pada bagian atas adalah artwork konsep untuk identitas visual README, bukan tampilan aplikasi yang benar-benar berjalan. Saya tidak menampilkan mockup sebagai bukti hasil aplikasi. Setelah APK terbaru lolos build dan dipasang di perangkat, bagian ini akan diisi dengan tangkapan layar asli, misalnya:
 
 1. Beranda dan status aksesibilitas.
 2. Panel pengaturan AI dan provider online.
@@ -99,14 +101,14 @@ Release model berisi:
 
 ### APK Android
 
-[**Buka halaman GitHub Actions**](https://github.com/adebojel/Asisten-bantu/actions)
+[**Unduh APK dari build sukses #111**](https://github.com/adebojel/Asisten-bantu/actions/runs/43635040270) · [Lihat semua workflow](https://github.com/adebojel/Asisten-bantu/actions)
 
 Cara mengambil APK:
-1. Buka link Actions.
-2. Pilih workflow **Build Kobra OS APK** pada branch `kobra-os-v7`.
-3. Pastikan hasil run berstatus **Success**.
-4. Buka run tersebut, gulir ke bagian **Artifacts**, lalu unduh `Kobra-OS-APK`.
-5. Ekstrak ZIP artifact untuk mendapatkan APK.
+1. Buka [hasil build sukses #111](https://github.com/adebojel/Asisten-bantu/actions/runs/43635040270).
+2. Pastikan commit yang ditampilkan adalah `baa8cab` dan status run **Success**.
+3. Gulir ke bagian **Artifacts**, lalu unduh `Kobra-OS-APK`.
+4. Ekstrak ZIP artifact untuk mendapatkan APK debug.
+5. Jika link artifact kedaluwarsa atau tidak tersedia, buka workflow terbaru dan pilih artifact dari run yang sukses.
 
 Jika artifact tidak tersedia, build belum berhasil atau artifact sudah kedaluwarsa. Jangan menganggap link Actions sebagai APK yang selalu siap diunduh.
 
