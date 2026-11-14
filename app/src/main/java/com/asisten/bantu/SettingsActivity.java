@@ -1334,57 +1334,99 @@ public class SettingsActivity extends AppCompatActivity {
             speaker.speak("Berkas yang dipilih bukan berkas model titik task.");
             tvImportProgress.setVisibility(View.VISIBLE);
             tvImportProgress.setTextColor(0xFFFF5252);
-            tvImportProgress.setText("Gagal: Berkas bukan bertipe .task.");
+            tvImportProgress.setText("Gagal: pilih model MediaPipe .task. Model LiteRT-LM .litertlm belum didukung mesin ini.");
             return;
         }
 
         final long finalFileSize = queryFileSize(uri);
+        if (finalFileSize > 0 && finalFileSize < 1024 * 1024) {
+            tvImportProgress.setVisibility(View.VISIBLE);
+            tvImportProgress.setTextColor(0xFFFF5252);
+            tvImportProgress.setText("Gagal: ukuran berkas terlalu kecil untuk model .task.");
+            speaker.speak("Berkas model terlalu kecil atau tidak lengkap.");
+            return;
+        }
+
         btnImportModel.setEnabled(false);
         pbImportModel.setVisibility(View.VISIBLE);
         pbImportModel.setProgress(0);
         tvImportProgress.setVisibility(View.VISIBLE);
         tvImportProgress.setTextColor(0xFFFFD600);
-        tvImportProgress.setText("Menyalin: " + fileName);
+        tvImportProgress.setText("Memeriksa ruang dan menyalin: " + fileName);
 
         executor.execute(() -> {
             File filesDir = getFilesDir();
             File destFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME);
             File tempFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME + ".tmp");
-            if (tempFile.exists()) tempFile.delete();
+            File backupFile = new File(filesDir, LocalLlmEngine.MODEL_FILENAME + ".bak");
+            boolean replaced = false;
 
-            try (InputStream is = getContentResolver().openInputStream(uri);
-                 FileOutputStream fos = new FileOutputStream(tempFile)) {
-                if (is == null) throw new IOException("Tidak dapat membaca berkas.");
-                byte[] buffer = new byte[65536];
-                int read;
-                long totalRead = 0;
-                long lastUpdateTime = 0;
-                while ((read = is.read(buffer)) != -1) {
-                    fos.write(buffer, 0, read);
-                    totalRead += read;
-                    long now = System.currentTimeMillis();
-                    if (now - lastUpdateTime > 350) {
-                        lastUpdateTime = now;
-                        final int percent = finalFileSize > 0 ? (int) ((totalRead * 100) / finalFileSize) : -1;
-                        final long mb = totalRead / (1024 * 1024);
-                        mainHandler.post(() -> {
-                            if (percent >= 0) {
-                                pbImportModel.setIndeterminate(false);
-                                pbImportModel.setProgress(percent);
-                                tvImportProgress.setText("Menyalin: " + percent + "% (" + mb + " MB)");
-                            } else {
-                                pbImportModel.setIndeterminate(true);
-                                tvImportProgress.setText("Menyalin: " + mb + " MB...");
-                            }
-                        });
-                    }
+            try {
+                long requiredBytes = finalFileSize > 0 ? finalFileSize : 1024L * 1024L;
+                long freeBytes = filesDir.getUsableSpace();
+                if (freeBytes < requiredBytes + (16L * 1024L * 1024L)) {
+                    throw new IOException("Ruang internal tidak cukup. Kosongkan minimal "
+                            + ((requiredBytes / (1024 * 1024)) + 16) + " MB lalu coba lagi.");
                 }
-                fos.flush();
-                if (destFile.exists()) destFile.delete();
+                if (tempFile.exists() && !tempFile.delete()) {
+                    throw new IOException("Tidak dapat membersihkan berkas sementara sebelumnya.");
+                }
+
+                long totalRead = 0;
+                try (InputStream is = getContentResolver().openInputStream(uri);
+                     FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    if (is == null) throw new IOException("Tidak dapat membaca berkas sumber.");
+                    byte[] buffer = new byte[65536];
+                    int read;
+                    long lastUpdateTime = 0;
+                    while ((read = is.read(buffer)) != -1) {
+                        fos.write(buffer, 0, read);
+                        totalRead += read;
+                        long now = System.currentTimeMillis();
+                        if (now - lastUpdateTime > 350) {
+                            lastUpdateTime = now;
+                            final int percent = finalFileSize > 0 ? (int) Math.min(100, (totalRead * 100) / finalFileSize) : -1;
+                            final long mb = totalRead / (1024 * 1024);
+                            mainHandler.post(() -> {
+                                if (isFinishing() || isDestroyed()) return;
+                                if (percent >= 0) {
+                                    pbImportModel.setIndeterminate(false);
+                                    pbImportModel.setProgress(percent);
+                                    tvImportProgress.setText("Menyalin: " + percent + "% (" + mb + " MB)");
+                                } else {
+                                    pbImportModel.setIndeterminate(true);
+                                    tvImportProgress.setText("Menyalin: " + mb + " MB...");
+                                }
+                            });
+                        }
+                    }
+                    fos.getFD().sync();
+                }
+
+                if (totalRead <= 1024 * 1024 || (finalFileSize > 0 && totalRead != finalFileSize)) {
+                    throw new IOException("Ukuran hasil salinan tidak cocok. Model asli tetap dipertahankan.");
+                }
+
+                if (backupFile.exists() && !backupFile.delete()) {
+                    throw new IOException("Tidak dapat membersihkan cadangan model lama.");
+                }
+                if (destFile.exists()) {
+                    if (!destFile.renameTo(backupFile)) {
+                        throw new IOException("Tidak dapat mengamankan model lama sebelum penggantian.");
+                    }
+                    replaced = true;
+                }
                 if (!tempFile.renameTo(destFile)) {
                     copyFile(tempFile, destFile);
-                    tempFile.delete();
+                    if (destFile.length() != totalRead) {
+                        throw new IOException("Verifikasi model hasil salinan gagal.");
+                    }
+                    if (!tempFile.delete()) Log.w("KobraModelImport", "Berkas sementara belum terhapus.");
                 }
+                if (destFile.length() != totalRead) {
+                    throw new IOException("Verifikasi ukuran model akhir gagal.");
+                }
+                if (backupFile.exists()) backupFile.delete();
 
                 mainHandler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
@@ -1396,11 +1438,15 @@ public class SettingsActivity extends AppCompatActivity {
                     updateModelStatus();
                     long mb = destFile.length() / (1024 * 1024);
                     tvImportProgress.setTextColor(0xFF00E5FF);
-                    tvImportProgress.setText("Model tersimpan (" + mb + " MB).");
-                    speaker.speak("Penyalinan model offline selesai.");
+                    tvImportProgress.setText("Model " + fileName + " berhasil diimpor (" + mb + " MB).");
+                    speaker.speak("Model offline berhasil disimpan. Tekan Muat atau Uji untuk memeriksa kompatibilitas perangkat.");
                 });
             } catch (Exception e) {
                 if (tempFile.exists()) tempFile.delete();
+                if (replaced && backupFile.exists()) {
+                    if (destFile.exists()) destFile.delete();
+                    backupFile.renameTo(destFile);
+                }
                 final String err = e.getMessage() != null ? e.getMessage() : "Kesalahan sistem";
                 mainHandler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
@@ -1408,6 +1454,7 @@ public class SettingsActivity extends AppCompatActivity {
                     pbImportModel.setVisibility(View.GONE);
                     tvImportProgress.setTextColor(0xFFFF5252);
                     tvImportProgress.setText("Gagal mengimpor model: " + err);
+                    speaker.speak("Gagal mengimpor model. Model sebelumnya tetap dipertahankan jika tersedia.");
                 });
             }
         });
