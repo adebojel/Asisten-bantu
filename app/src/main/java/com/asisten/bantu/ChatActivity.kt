@@ -430,6 +430,8 @@ open class ChatActivity : AppCompatActivity() {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID")
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+                // Preferensi offline: engine perangkat dapat memproses suara tanpa jaringan jika mendukungnya.
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             }
             sr.startListening(intent)
         } catch (_: Throwable) {
