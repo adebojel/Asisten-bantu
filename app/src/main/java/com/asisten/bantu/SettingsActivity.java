@@ -1258,24 +1258,25 @@ public class SettingsActivity extends AppCompatActivity {
             speaker.speak("Menguji model lokal ringan Qwen tiga.");
             LocalModelRuntimeManager.answerAsync(this,
                     "Jawab dalam bahasa Indonesia dengan satu kalimat: Apakah model lokal Kobra siap digunakan?",
-                    (answer, error) -> mainHandler.post(() -> {
-                        if (isFinishing() || isDestroyed()) return;
-                        btnLoadModel.setEnabled(true);
-                        btnImportModel.setEnabled(true);
-                        pbImportModel.setVisibility(View.GONE);
-                        updateModelStatus();
-                        if (answer != null && !answer.trim().isEmpty()) {
-                            tvImportProgress.setTextColor(0xFF00E5FF);
-                            tvImportProgress.setText("Qwen3 berhasil dimuat dan menjawab: " + answer);
-                            speaker.speak("Qwen tiga berhasil diuji. " + answer);
-                        } else {
-                            tvImportProgress.setTextColor(0xFFFF5252);
-                            tvImportProgress.setText("Qwen3 belum dapat digunakan: " + error);
-                            speaker.speak("Uji Qwen tiga gagal. " + error);
-                        }
+                    (answer, error) -> {
+                        mainHandler.post(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            btnLoadModel.setEnabled(true);
+                            btnImportModel.setEnabled(true);
+                            pbImportModel.setVisibility(View.GONE);
+                            updateModelStatus();
+                            if (answer != null && !answer.trim().isEmpty()) {
+                                tvImportProgress.setTextColor(0xFF00E5FF);
+                                tvImportProgress.setText("Qwen3 berhasil dimuat dan menjawab: " + answer);
+                                speaker.speak("Qwen tiga berhasil diuji. " + answer);
+                            } else {
+                                tvImportProgress.setTextColor(0xFFFF5252);
+                                tvImportProgress.setText("Qwen3 belum dapat digunakan: " + error);
+                                speaker.speak("Uji Qwen tiga gagal. " + error);
+                            }
+                        });
+                        return kotlin.Unit.INSTANCE;
                     });
-                    return kotlin.Unit.INSTANCE;
-            });
             return;
         }
 
