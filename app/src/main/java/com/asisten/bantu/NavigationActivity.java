@@ -22,10 +22,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.objects.DetectedObject;
-import com.google.mlkit.vision.objects.ObjectDetection;
-import com.google.mlkit.vision.objects.ObjectDetector;
-import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -48,7 +44,7 @@ public class NavigationActivity extends AppCompatActivity {
     private SonarRadarView sonarRadarView;
     private TextView tvStatus, tvObstacle, tvGuardianStatusNav;
     private Button btnStart, btnStop, btnEmergencySos, btnGuardianAck, btnGuardianCheckNow;
-    private ObjectDetector detector;
+    private SafeObjectDetector detector;
     private Speaker speaker;
     private Vibrator vibrator;
     private final KobraScreenHelper screenHelper = new KobraScreenHelper();
@@ -108,12 +104,7 @@ public class NavigationActivity extends AppCompatActivity {
             return;
         }
 
-        ObjectDetectorOptions options = new ObjectDetectorOptions.Builder()
-                .setDetectorMode(ObjectDetectorOptions.STREAM_MODE)
-                .enableMultipleObjects()
-                .enableClassification()
-                .build();
-        detector = ObjectDetection.getClient(options);
+        detector = new SafeObjectDetector(true);
 
         btnStart.setOnClickListener(v -> startNavigation());
         btnStop.setOnClickListener(v -> stopNavigation());
@@ -213,59 +204,30 @@ public class NavigationActivity extends AppCompatActivity {
         int imgW = (rot == 90 || rot == 270) ? proxy.getHeight() : proxy.getWidth();
         int imgH = (rot == 90 || rot == 270) ? proxy.getWidth() : proxy.getHeight();
         InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
-        detector.process(img)
-                .addOnSuccessListener(objs -> onObjects(objs, imgW, imgH))
-                .addOnCompleteListener(t -> {
-                    processing = false;
-                    proxy.close();
-                });
+        detector.process(img, (items, usedFallback) -> {
+            onLabels(items);
+            processing = false;
+            proxy.close();
+        });
     }
 
-    private void onObjects(List<DetectedObject> objects, int imgW, int imgH) {
+    private void onLabels(List<SafeObjectDetector.DetectedItem> items) {
         if (!navigating) return;
-        List<SonarRadarView.ObstacleBlip> blips = new ArrayList<>();
-        DetectedObject nearest = null;
-        double nearestRatio = 0;
-
-        float safeW = Math.max(1f, imgW);
-        float safeH = Math.max(1f, imgH);
-        for (DetectedObject o : objects) {
-            double w = o.getBoundingBox().width();
-            double h = o.getBoundingBox().height();
-            double ratio = Math.max(w / safeW, h / safeH);
-            String lbl = o.getLabels().isEmpty() ? "objek" : o.getLabels().get(0).getText().toLowerCase(Locale.ROOT);
-            float nx = ((o.getBoundingBox().centerX() / safeW) - 0.5f) * 1.6f;
-            float ny = ((o.getBoundingBox().centerY() / safeH) - 0.5f) * 1.6f;
-            blips.add(new SonarRadarView.ObstacleBlip(nx, ny, ratio >= NEAR_RATIO, lbl));
-
-            if (ratio > nearestRatio) {
-                nearestRatio = ratio;
-                nearest = o;
-            }
-        }
-        if (sonarRadarView != null) {
-            sonarRadarView.updateObstacles(blips);
-        }
-
-        if (nearest == null) {
-            // No ML Kit detection is not proof that the walking path is clear.
-            tvObstacle.setText("Belum ada objek terdeteksi — jalur belum dipastikan aman");
+        if (sonarRadarView != null) sonarRadarView.updateObstacles(new ArrayList<>());
+        if (items == null || items.isEmpty()) {
+            tvObstacle.setText("Objek belum dikenali — arah dan jarak tidak tersedia; jalur belum dipastikan aman");
             return;
         }
-        String label = nearest.getLabels().isEmpty()
-                ? "halangan"
-                : nearest.getLabels().get(0).getText().toLowerCase(Locale.ROOT);
-        // Bounding-box size is only an image-space cue, not a calibrated distance sensor.
-        boolean largeInFrame = nearestRatio >= NEAR_RATIO;
-        tvObstacle.setText(largeInFrame
-                ? "PERHATIAN: " + label + " tampak besar di gambar"
-                : "Terdeteksi: " + label + " — jarak sebenarnya tidak diketahui");
-
+        StringBuilder names = new StringBuilder();
+        for (int i = 0; i < Math.min(3, items.size()); i++) {
+            if (i > 0) names.append(", ");
+            names.append(items.get(i).label);
+        }
+        tvObstacle.setText("Terdeteksi kemungkinan: " + names + ". Posisi dan jarak tidak tersedia.");
         long now = System.currentTimeMillis();
-        if (largeInFrame && now - lastSpeakAt > SPEAK_COOLDOWN_MS) {
+        if (now - lastSpeakAt > SPEAK_COOLDOWN_MS) {
             lastSpeakAt = now;
-            speaker.speak("Perhatian, " + label + " tampak besar di gambar di depan. Jarak sebenarnya tidak dapat dipastikan kamera. Perlambat langkah dan periksa dengan tongkat atau pendamping.");
-            vibrate();
+            speaker.speak("Saya mengenali kemungkinan " + names + ". Mode cadangan tidak dapat menentukan posisi atau jarak. Tetap gunakan tongkat atau pendamping.");
         }
     }
 
