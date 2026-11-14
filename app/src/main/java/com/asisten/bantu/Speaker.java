@@ -91,8 +91,12 @@ public class Speaker implements TextToSpeech.OnInitListener {
             @Override
             public void onStart(String utteranceId) {
                 mainHandler.post(() -> {
-                    activeUtteranceId = utteranceId;
-                    notifySpeechStart();
+                    // Utterance QUEUE_ADD mulai setelah item sebelumnya selesai.
+                    // Jangan biarkan callback start yang terlambat mengambil alih ID ucapan baru.
+                    if (activeUtteranceId == null) activeUtteranceId = utteranceId;
+                    if (utteranceId != null && utteranceId.equals(activeUtteranceId)) {
+                        notifySpeechStart();
+                    }
                 });
             }
 
