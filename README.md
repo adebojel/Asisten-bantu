@@ -118,7 +118,7 @@ Jika artifact tidak tersedia, build belum berhasil atau artifact sudah kedaluwar
 - [Offline Model Pack v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) — paket model, bukan APK.
 - [APK debug terbaru di GitHub Actions](https://github.com/adebojel/Asisten-bantu/actions/runs/43635308384) — unduh artifact `Kobra-OS-APK`.
 
-Workflow [Kobra OS APK Release](.github/workflows/release-apk.yml) telah disiapkan. Ketika tag dengan pola `kobra-v*` diterbitkan, workflow akan menjalankan tes unit dan build APK, menghitung SHA-256, lalu membuat **GitHub prerelease** dengan APK dan checksum sebagai aset unduhan. Rilis pertama belum diterbitkan; halaman Releases akan menampilkan APK setelah workflow tag tersebut dijalankan dengan sukses.
+Workflow [Kobra OS APK Release](.github/workflows/release-apk.yml) telah disiapkan untuk dua cara: tag `kobra-v*` atau jalankan manual dari tab Actions (pilih workflow **Kobra OS APK Release**, masukkan versi, lalu Run workflow). Workflow menjalankan tes unit dan build APK, menghitung SHA-256, lalu membuat **GitHub prerelease** dengan APK dan checksum sebagai aset unduhan. Rilis pertama belum diterbitkan; jalankan workflow dari branch `main` setelah perubahan di-merge agar aset rilis berasal dari kode utama.
 
 ## 🚀 Instalasi dan persiapan uji
 
