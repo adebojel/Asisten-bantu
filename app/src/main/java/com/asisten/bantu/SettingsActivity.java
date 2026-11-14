@@ -1185,9 +1185,10 @@ public class SettingsActivity extends AppCompatActivity {
 
         btnDeleteModel.setEnabled(taskExists);
         btnDeleteModel.setAlpha(taskExists ? 1.0f : 0.45f);
-        // The existing Load/Test action still targets MediaPipe .task only.
-        btnLoadModel.setEnabled(taskExists);
-        btnLoadModel.setAlpha(taskExists ? 1.0f : 0.45f);
+        // Load/Test checks LiteRT-LM first, then legacy MediaPipe .task.
+        boolean anyModelExists = taskExists || liteExists;
+        btnLoadModel.setEnabled(anyModelExists);
+        btnLoadModel.setAlpha(anyModelExists ? 1.0f : 0.45f);
 
         StringBuilder status = new StringBuilder("Model lokal: ");
         if (taskExists) {
@@ -1235,9 +1236,43 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void loadOrTestLocalModel() {
+        LocalModelRegistry.ModelEntry liteEntry = LocalModelRegistry.findByFileName(
+                "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm");
+        File liteFile = LocalModelRegistry.fileFor(this, liteEntry);
+
+        if (LocalModelRegistry.isValidFile(liteFile, liteEntry)) {
+            btnLoadModel.setEnabled(false);
+            btnImportModel.setEnabled(false);
+            pbImportModel.setVisibility(View.VISIBLE);
+            pbImportModel.setIndeterminate(true);
+            tvImportProgress.setVisibility(View.VISIBLE);
+            tvImportProgress.setTextColor(0xFFFFD600);
+            tvImportProgress.setText("Memuat dan menguji Qwen3 0.6B LiteRT-LM...");
+            speaker.speak("Menguji model lokal ringan Qwen tiga.");
+            LocalModelRuntimeManager.answerAsync(this,
+                    "Jawab dalam bahasa Indonesia dengan satu kalimat: Apakah model lokal Kobra siap digunakan?",
+                    (answer, error) -> mainHandler.post(() -> {
+                        if (isFinishing() || isDestroyed()) return;
+                        btnLoadModel.setEnabled(true);
+                        btnImportModel.setEnabled(true);
+                        pbImportModel.setVisibility(View.GONE);
+                        updateModelStatus();
+                        if (answer != null && !answer.trim().isEmpty()) {
+                            tvImportProgress.setTextColor(0xFF00E5FF);
+                            tvImportProgress.setText("Qwen3 berhasil dimuat dan menjawab: " + answer);
+                            speaker.speak("Qwen tiga berhasil diuji. " + answer);
+                        } else {
+                            tvImportProgress.setTextColor(0xFFFF5252);
+                            tvImportProgress.setText("Qwen3 belum dapat digunakan: " + error);
+                            speaker.speak("Uji Qwen tiga gagal. " + error);
+                        }
+                    }));
+            return;
+        }
+
         LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
         if (!engine.isModelPresent()) {
-            speaker.speak("Berkas model lokal belum terpasang.");
+            speaker.speak("Belum ada model lokal yang dapat diuji. Impor model task atau litertlm terlebih dahulu.");
             updateModelStatus();
             return;
         }
@@ -1247,8 +1282,8 @@ public class SettingsActivity extends AppCompatActivity {
         pbImportModel.setIndeterminate(true);
         tvImportProgress.setVisibility(View.VISIBLE);
         tvImportProgress.setTextColor(0xFFFFD600);
-        tvImportProgress.setText("Memuat model lokal (token adaptif RAM + fallback CPU)...");
-        speaker.speak("Mencoba memuat model lokal ke memori.");
+        tvImportProgress.setText("Memuat model Gemma .task (token adaptif RAM + fallback CPU)...");
+        speaker.speak("Mencoba memuat model Gemma lokal ke memori.");
 
         engine.initEngineAsync(true, (ready, message) -> {
             if (isFinishing() || isDestroyed()) return;
@@ -1258,12 +1293,12 @@ public class SettingsActivity extends AppCompatActivity {
             updateModelStatus();
             if (ready) {
                 tvImportProgress.setTextColor(0xFF00E5FF);
-                tvImportProgress.setText("Model lokal berhasil dimuat dan siap digunakan.");
-                speaker.speak("Model AI offline berhasil dimuat.");
+                tvImportProgress.setText("Gemma berhasil dimuat dan siap digunakan.");
+                speaker.speak("Model AI offline Gemma berhasil dimuat.");
             } else {
                 tvImportProgress.setTextColor(0xFFFFD600);
                 tvImportProgress.setText(message);
-                speaker.speak("Model tidak dapat dimuat ke RAM. Kobra tetap aman di Mode Aman.");
+                speaker.speak("Gemma tidak dapat dimuat ke RAM. Kobra tetap aman dengan perintah lokal.");
             }
         });
     }
