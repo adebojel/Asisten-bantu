@@ -8,9 +8,6 @@ import com.google.mlkit.vision.face.FaceDetection;
 import com.google.mlkit.vision.face.FaceDetector;
 import com.google.mlkit.vision.face.FaceDetectorOptions;
 import com.google.mlkit.vision.objects.DetectedObject;
-import com.google.mlkit.vision.objects.ObjectDetection;
-import com.google.mlkit.vision.objects.ObjectDetector;
-import com.google.mlkit.vision.objects.defaults.ObjectDetectorOptions;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,7 +35,7 @@ public final class OfflineVision {
     }
 
     private static FaceDetector faceDetector;
-    private static ObjectDetector objectDetector;
+    private static SafeObjectDetector safeObjectDetector;
 
     private OfflineVision() {}
 
@@ -162,29 +159,23 @@ public final class OfflineVision {
                 .addOnFailureListener(e -> cb.onResult("Gagal menghitung wajah."));
     }
 
-    /** Mengenali kategori benda besar di gambar (offline). */
+    /** Mengenali kategori benda besar di gambar (offline), dengan fallback Image Labeling. */
     public static void describe(Bitmap bmp, Result cb) {
         if (bmp == null) { cb.onResult("Foto tidak bisa dibaca."); return; }
-        if (objectDetector == null) {
-            objectDetector = ObjectDetection.getClient(new ObjectDetectorOptions.Builder()
-                    .setDetectorMode(ObjectDetectorOptions.SINGLE_IMAGE_MODE)
-                    .enableMultipleObjects()
-                    .enableClassification()
-                    .build());
-        }
-        objectDetector.process(InputImage.fromBitmap(bmp, 0))
-                .addOnSuccessListener(objs -> {
-                    Set<String> names = new LinkedHashSet<>();
-                    for (DetectedObject o : objs) {
-                        if (!o.getLabels().isEmpty()) names.add(translate(o.getLabels().get(0).getText()));
-                    }
-                    if (names.isEmpty()) {
-                        cb.onResult("Saya belum mengenali benda di depan kamera. Coba arahkan lebih dekat.");
-                    } else {
-                        cb.onResult("Di depan kamera saya melihat: " + String.join(", ", names) + ".");
-                    }
-                })
-                .addOnFailureListener(e -> cb.onResult("Gagal mengenali benda di depan kamera."));
+        if (safeObjectDetector == null) safeObjectDetector = new SafeObjectDetector(false);
+        safeObjectDetector.process(bmp, (items, usedFallback) -> {
+            Set<String> names = new LinkedHashSet<>();
+            for (SafeObjectDetector.DetectedItem item : items) {
+                if (item.label != null && !item.label.trim().isEmpty()) names.add(item.label);
+            }
+            if (names.isEmpty()) {
+                cb.onResult("Saya belum mengenali benda di depan kamera. Warna dominan terlihat "
+                        + detailedColorName(bmp) + ". Coba arahkan kamera lebih dekat dan pastikan cahaya cukup.");
+            } else {
+                String prefix = usedFallback ? "Pengenalan cadangan aktif. " : "";
+                cb.onResult(prefix + "Di depan kamera saya melihat: " + String.join(", ", names) + ".");
+            }
+        });
     }
 
     /** Memilih objek dengan area gambar terbesar; ukuran kotak bukan pengukuran jarak fisik. */
