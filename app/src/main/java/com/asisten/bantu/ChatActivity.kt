@@ -69,6 +69,7 @@ open class ChatActivity : AppCompatActivity() {
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
+    private var handsFreeConversation = false
     private var attachedImageB64: String? = null
     private var attachedBitmap: Bitmap? = null
 
@@ -85,6 +86,15 @@ open class ChatActivity : AppCompatActivity() {
         override fun onSpeechEnd() {
             runOnUiThread {
                 if (!isListening) voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
+                // Turn-taking hands-free mode: listen again after the assistant finishes speaking.
+                // This is not full-duplex streaming; it uses Android SpeechRecognizer per turn.
+                if (handsFreeConversation && !isFinishing && current === this@ChatActivity) {
+                    voiceOrb.postDelayed({
+                        if (handsFreeConversation && !isFinishing && !isListening && current === this@ChatActivity) {
+                            startSpeechRecognition()
+                        }
+                    }, 450L)
+                }
             }
         }
     }
@@ -142,6 +152,19 @@ open class ChatActivity : AppCompatActivity() {
         }
         findViewById<ImageButton>(R.id.btnChatMic).setOnClickListener(bargeInListener)
         voiceOrb.setOnClickListener(bargeInListener)
+        val btnHandsFree = findViewById<Button>(R.id.btnHandsFreeConversation)
+        btnHandsFree.setOnClickListener {
+            handsFreeConversation = !handsFreeConversation
+            btnHandsFree.text = if (handsFreeConversation) "Percakapan hands-free: AKTIF" else "Percakapan hands-free"
+            if (handsFreeConversation) {
+                speaker.stop()
+                tvModelInfo.text = "Mode percakapan aktif • bicara bergantian"
+                startSpeechRecognition()
+            } else {
+                stopSpeechRecognition()
+                refreshModeBanner()
+            }
+        }
 
         etInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) {
@@ -210,6 +233,7 @@ open class ChatActivity : AppCompatActivity() {
 
     override fun onPause() {
         if (current === this) current = null
+        handsFreeConversation = false
         speaker.removeListener(speechListener)
         stopSpeechRecognition()
         super.onPause()
