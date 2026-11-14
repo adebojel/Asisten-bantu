@@ -24,11 +24,11 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian:** build sebelumnya berhasil di GitHub Actions. Integrasi deteksi objek dengan fallback Image Labeling baru saja masuk ke branch pengembangan dan sedang menunggu build Android terbaru. Belum ada verifikasi menyeluruh pada perangkat fisik. Build berhasil tidak berarti aplikasi bebas crash atau seluruh fitur telah bekerja.
+> **Status pengujian:** build sebelumnya berhasil di GitHub Actions. Integrasi deteksi objek offline dengan fallback Image Labeling sudah digabung ke branch `main`. GitHub Actions pada commit pengembangan sebelum merge berhasil menjalankan tes logika dan build APK. Belum ada verifikasi menyeluruh pada perangkat fisik. Build berhasil tidak berarti aplikasi bebas crash atau seluruh fitur telah bekerja.
 
 ## Tampilan aplikasi
 
-Artwork 3D di bagian atas adalah ilustrasi identitas produk. Gambar berikut adalah screenshot asli yang dikirim untuk acuan desain; file gambar belum di-host di repository, sehingga belum ditampilkan sebagai gambar tertanam di halaman ini.
+Artwork 3D di bagian atas adalah ilustrasi identitas produk. Screenshot aplikasi asli yang dikirim digunakan sebagai acuan perbaikan UI; screenshot belum ditambahkan sebagai aset repository. Artwork banner 3D tambahan sudah dibuat untuk pembaruan identitas visual, tetapi belum tersedia sebagai file repository yang dapat ditautkan secara permanen. Karena itu README hanya menampilkan artwork SVG yang memang sudah tersimpan di repository, bukan tautan gambar yang belum ada.
 
 | Beranda Kobra OS | Pilihan fitur Mata Kedua |
 |---|---|
@@ -86,7 +86,7 @@ Saat ini belum ada rilis APK stabil yang dinyatakan siap untuk penggunaan rutin.
 - [x] Paket model offline tersedia terpisah.
 - [x] Pemeriksaan RAM sebelum pemuatan model lokal.
 - [x] Fallback pengenalan objek ke Image Labeling ditambahkan pada branch pengembangan.
-- [ ] Build Android terbaru setelah integrasi fallback.
+- [x] Build Android dan tes logika setelah integrasi fallback (GitHub Actions berhasil pada commit sebelum merge).
 - [ ] Uji instalasi dan fungsi di HP Android nyata.
 - [ ] Uji mikrofon pada layar terkunci dan penggunaan latar belakang.
 - [ ] Uji alur tunanetra end-to-end dengan TalkBack.
@@ -117,7 +117,7 @@ flowchart TD
 
 ## Build dari source
 
-Branch pengembangan aktif: `kobra-os-v7`.
+Branch utama: `main`. Perubahan pengembangan dari `kobra-os-v7` telah digabung melalui PR #1.
 
 ```bash
 git clone --branch kobra-os-v7 https://github.com/adebojel/Asisten-bantu.git
