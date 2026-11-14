@@ -394,6 +394,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
     };
 
+    // Satu callback retry dipakai ulang agar retry berulang tidak menumpuk di main looper.
+    private final Runnable micRetry = this::startListening;
+
     private final Runnable watchdog = new Runnable() {
         @Override public void run() {
             if (micOn && !listening && !pocketLocked && (config == null || !config.isPrivacyMode())
@@ -437,6 +440,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void stopMic() {
+        if (main != null) main.removeCallbacks(micRetry);
         if (recognizer != null && listening) {
             try { recognizer.cancel(); } catch (Exception ignored) { }
         }
@@ -444,7 +448,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void scheduleRetry(long ms) {
-        main.postDelayed(this::startListening, ms);
+        if (main == null || !micOn) return;
+        main.removeCallbacks(micRetry);
+        main.postDelayed(micRetry, ms);
     }
 
     private void createRecognizer() {
