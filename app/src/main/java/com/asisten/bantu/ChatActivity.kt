@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -366,7 +367,12 @@ open class ChatActivity : AppCompatActivity() {
         try {
             stopSpeechRecognition()
             val generation = ++recognitionGeneration
-            val sr = SpeechRecognizer.createSpeechRecognizer(this)
+            val sr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+                SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+            } else {
+                SpeechRecognizer.createSpeechRecognizer(this)
+            }
             speechRecognizer = sr
             isListening = true
             voiceOrb.setOrbState(VoiceOrbView.OrbState.LISTENING)
