@@ -213,6 +213,10 @@ object CommandRouter {
         // Prioritas 3A: Qwen3 0.6B via LiteRT-LM bila model ringan tersedia.
         if (!online) {
             if (LocalModelRuntimeManager.isModelAvailable(service)) {
+                if (!LocalModelRegistry.canAttemptLiteRtModel(service)) {
+                    speaker.speak("Memori bebas HP belum cukup untuk memuat Qwen tiga dengan aman. Tutup aplikasi lain lalu coba lagi. Perintah sistem dasar tetap tersedia offline.")
+                    return
+                }
                 speaker.speak("Internet terputus. Menyiapkan model lokal ringan.")
                 LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\n\nPengguna: $command") { answer, error ->
                     if (!answer.isNullOrBlank()) {
@@ -301,7 +305,8 @@ object CommandRouter {
             }
 
             override fun onError(message: String) {
-                if (LocalModelRuntimeManager.isModelAvailable(service)) {
+                if (LocalModelRuntimeManager.isModelAvailable(service) &&
+                    LocalModelRegistry.canAttemptLiteRtModel(service)) {
                     LocalModelRuntimeManager.answerAsync(service, "$sysPrompt\n\nPengguna: $command") { localAnswer, localError ->
                         if (!localAnswer.isNullOrBlank()) {
                             speaker.speak(localAnswer)
