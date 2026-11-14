@@ -1176,30 +1176,38 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void updateModelStatus() {
         LocalLlmEngine engine = LocalLlmEngine.getInstance(this);
-        File modelFile = engine.getModelFile();
-        boolean exists = modelFile.exists() && modelFile.length() > 1024 * 1024;
-        btnDeleteModel.setEnabled(modelFile.exists());
-        btnDeleteModel.setAlpha(modelFile.exists() ? 1.0f : 0.45f);
-        btnLoadModel.setEnabled(exists);
-        btnLoadModel.setAlpha(exists ? 1.0f : 0.45f);
+        File taskFile = engine.getModelFile();
+        LocalModelRegistry.ModelEntry liteEntry = LocalModelRegistry.findByFileName(
+                "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm");
+        File liteFile = LocalModelRegistry.fileFor(this, liteEntry);
+        boolean taskExists = taskFile.exists() && taskFile.length() > 1024 * 1024;
+        boolean liteExists = LocalModelRegistry.isValidFile(liteFile, liteEntry);
 
-        if (exists) {
-            long mb = modelFile.length() / (1024 * 1024);
-            if (engine.isInitialized()) {
-                tvModelStatus.setText("Status model: Aktif & Siap (" + mb + " MB, " + LocalLlmEngine.MODEL_FILENAME + ")");
-                tvModelStatus.setTextColor(0xFF00E5FF);
-            } else if (engine.isSafeMode()) {
-                String err = engine.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : engine.getLastError();
-                tvModelStatus.setText("Status model: " + err + " (" + mb + " MB)");
-                tvModelStatus.setTextColor(0xFFFFD600);
-            } else {
-                tvModelStatus.setText("Status model: Terpasang (" + mb + " MB, lazy-load hemat RAM)");
-                tvModelStatus.setTextColor(0xFF00E5FF);
-            }
+        btnDeleteModel.setEnabled(taskExists);
+        btnDeleteModel.setAlpha(taskExists ? 1.0f : 0.45f);
+        // The existing Load/Test action still targets MediaPipe .task only.
+        btnLoadModel.setEnabled(taskExists);
+        btnLoadModel.setAlpha(taskExists ? 1.0f : 0.45f);
+
+        StringBuilder status = new StringBuilder("Model lokal: ");
+        if (taskExists) {
+            status.append("Gemma 1B .task tersedia (")
+                    .append(taskFile.length() / (1024 * 1024)).append(" MB)");
+            if (engine.isInitialized()) status.append(" — aktif");
+            else if (engine.isSafeMode()) status.append(" — perlu pemeriksaan runtime");
         } else {
-            tvModelStatus.setText("Status model: Belum terpasang / Mode Aman (Pilih berkas .task dari HP)");
-            tvModelStatus.setTextColor(0xFFFFD600);
+            status.append("Gemma .task belum terpasang");
         }
+        status.append(" | ");
+        if (liteExists) {
+            status.append("Qwen3 0.6B .litertlm tersedia (")
+                    .append(liteFile.length() / (1024 * 1024)).append(" MB; runtime LiteRT-LM)");
+        } else {
+            status.append("Qwen3 .litertlm belum diimpor");
+        }
+        status.append("\nRekomendasi perangkat: ").append(LocalModelRegistry.recommendation(this));
+        tvModelStatus.setText(status.toString());
+        tvModelStatus.setTextColor((taskExists || liteExists) ? 0xFF00E5FF : 0xFFFFD600);
     }
 
     private void confirmDeleteLocalModel() {
