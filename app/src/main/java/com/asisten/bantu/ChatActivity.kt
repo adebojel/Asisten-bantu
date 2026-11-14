@@ -331,7 +331,11 @@ open class ChatActivity : AppCompatActivity() {
             if (clean.isNotEmpty()) {
                 // Device actions use the local command router; normal conversation
                 // continues through the same Chat/AI history and voice response path.
-                if (AsistenAccessibilityService.dispatchUnifiedInput(clean)) return@runOnUiThread
+                if (AsistenAccessibilityService.dispatchUnifiedInput(clean)) {
+                    // Tampilkan juga perintah perangkat di riwayat percakapan terpadu.
+                    addUserMessage(clean)
+                    return@runOnUiThread
+                }
                 etInput.setText(clean)
                 sendCurrentInput()
             }
