@@ -43,6 +43,13 @@ object OnlineAiRouter {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pool: ExecutorService = Executors.newCachedThreadPool()
 
+    // Katalog model gratis OpenRouter berubah-ubah. Cache hasil discovery agar router
+    // dapat memilih model gratis yang masih aktif tanpa bergantung pada satu ID model.
+    @Volatile private var freeModelCache: List<String> = emptyList()
+    @Volatile private var freeModelCacheAtMs: Long = 0L
+    private val freeModelCacheLock = Any()
+    private val freeModelCacheTtlMs = TimeUnit.HOURS.toMillis(6)
+
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(18, TimeUnit.SECONDS)
@@ -218,6 +225,11 @@ object OnlineAiRouter {
         if (imageBase64.isNullOrEmpty()) {
             val preferred = cfg.model
             if (preferred.isNotEmpty()) candidates.add(preferred)
+            // Gunakan katalog live terlebih dahulu; daftar bawaan tetap menjadi
+            // fallback jika endpoint katalog sedang tidak tersedia.
+            for (m in discoverFreeTextModels(apiKey)) {
+                if (!candidates.contains(m)) candidates.add(m)
+            }
             for (m in KobraConfig.TEXT_MODELS) {
                 if (!candidates.contains(m)) candidates.add(m)
             }
@@ -232,6 +244,59 @@ object OnlineAiRouter {
             if (!reply.isNullOrBlank()) return reply
         }
         return null
+    }
+
+    private fun discoverFreeTextModels(apiKey: String): List<String> {
+        val now = System.currentTimeMillis()
+        val cached = freeModelCache
+        if (cached.isNotEmpty() && now - freeModelCacheAtMs < freeModelCacheTtlMs) return cached
+
+        synchronized(freeModelCacheLock) {
+            val secondCheck = freeModelCache
+            if (secondCheck.isNotEmpty() && now - freeModelCacheAtMs < freeModelCacheTtlMs) {
+                return secondCheck
+            }
+            return try {
+                val request = Request.Builder()
+                    .url("https://openrouter.ai/api/v1/models")
+                    .addHeader("Authorization", "Bearer $apiKey")
+                    .addHeader("HTTP-Referer", "https://github.com/adebojel/Asisten-bantu")
+                    .addHeader("X-Title", "Kobra OS")
+                    .get()
+                    .build()
+                httpClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) return@synchronized secondCheck
+                    val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
+                        ?: return@synchronized secondCheck
+                    val discovered = ArrayList<String>()
+                    for (i in 0 until data.length()) {
+                        val model = data.optJSONObject(i) ?: continue
+                        val id = model.optString("id", "").trim()
+                        val pricing = model.optJSONObject("pricing") ?: continue
+                        val promptPrice = pricing.optString("prompt", "")
+                        val completionPrice = pricing.optString("completion", "")
+                        val isFree = promptPrice.toDoubleOrNull() == 0.0 &&
+                                completionPrice.toDoubleOrNull() == 0.0
+                        val isTextOnly = model.optJSONArray("architecture")
+                            ?.optJSONObject(0)?.optString("modality", "")?.contains("text") ?: true
+                        if (id.isNotEmpty() && isFree && isTextOnly &&
+                                !id.contains("embedding", ignoreCase = true) &&
+                                !id.contains("audio", ignoreCase = true)) {
+                            discovered.add(id)
+                        }
+                    }
+                    val result = discovered.distinct().take(8)
+                    if (result.isNotEmpty()) {
+                        freeModelCache = result
+                        freeModelCacheAtMs = now
+                    }
+                    result
+                }
+            } catch (t: Throwable) {
+                Log.w(TAG, "Discovery model gratis OpenRouter gagal: ${t.message}")
+                secondCheck
+            }
+        }
     }
 
     private fun callOpenRouterSingle(
