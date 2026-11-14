@@ -1421,7 +1421,7 @@ public class SettingsActivity extends AppCompatActivity {
                     if (destFile.length() != totalRead) {
                         throw new IOException("Verifikasi model hasil salinan gagal.");
                     }
-                    if (!tempFile.delete()) Log.w("KobraModelImport", "Berkas sementara belum terhapus.");
+                    tempFile.delete();
                 }
                 if (destFile.length() != totalRead) {
                     throw new IOException("Verifikasi ukuran model akhir gagal.");
