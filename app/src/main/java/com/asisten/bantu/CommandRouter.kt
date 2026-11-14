@@ -330,7 +330,7 @@ object CommandRouter {
                     } else {
                         engine.initEngineAsync(false) { ok, _ ->
                             if (ok) engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
-                            else speaker.speak(message)
+                            else speaker.speak(errorMessage)
                         }
                     }
         } else {
