@@ -70,6 +70,8 @@ open class ChatActivity : AppCompatActivity() {
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
     private var handsFreeConversation = false
+    private var suppressHandsFreeRearm = false
+    private var recognitionGeneration = 0L
     private var attachedImageB64: String? = null
     private var attachedBitmap: Bitmap? = null
 
@@ -88,7 +90,7 @@ open class ChatActivity : AppCompatActivity() {
                 if (!isListening) voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
                 // Turn-taking hands-free mode: listen again after the assistant finishes speaking.
                 // This is not full-duplex streaming; it uses Android SpeechRecognizer per turn.
-                if (handsFreeConversation && !isFinishing && current === this@ChatActivity) {
+                if (handsFreeConversation && !suppressHandsFreeRearm && !isFinishing && current === this@ChatActivity) {
                     voiceOrb.postDelayed({
                         if (handsFreeConversation && !isFinishing && !isListening && current === this@ChatActivity) {
                             startSpeechRecognition()
@@ -154,13 +156,19 @@ open class ChatActivity : AppCompatActivity() {
         voiceOrb.setOnClickListener(bargeInListener)
         val btnHandsFree = findViewById<Button>(R.id.btnHandsFreeConversation)
         btnHandsFree.setOnClickListener {
-            handsFreeConversation = !handsFreeConversation
-            btnHandsFree.text = if (handsFreeConversation) "Percakapan hands-free: AKTIF" else "Percakapan hands-free"
-            if (handsFreeConversation) {
+            val enable = !handsFreeConversation
+            if (enable) {
+                // Suppress the TTS completion callback so it cannot start a second recognizer.
+                suppressHandsFreeRearm = true
                 speaker.stop()
+                suppressHandsFreeRearm = false
+                handsFreeConversation = true
+                btnHandsFree.text = "Percakapan hands-free: AKTIF"
                 tvModelInfo.text = "Mode percakapan aktif • bicara bergantian"
                 startSpeechRecognition()
             } else {
+                handsFreeConversation = false
+                btnHandsFree.text = "Percakapan hands-free"
                 stopSpeechRecognition()
                 refreshModeBanner()
             }
@@ -300,7 +308,9 @@ open class ChatActivity : AppCompatActivity() {
     private fun triggerVoiceBargeIn() {
         // Barge-In: hentikan TTS seketika agar pengguna langsung bicara
         if (speaker.isSpeaking) {
+            suppressHandsFreeRearm = true
             speaker.stop()
+            suppressHandsFreeRearm = false
         }
         if (isListening) {
             stopSpeechRecognition()
@@ -320,6 +330,7 @@ open class ChatActivity : AppCompatActivity() {
         }
         try {
             stopSpeechRecognition()
+            val generation = ++recognitionGeneration
             val sr = SpeechRecognizer.createSpeechRecognizer(this)
             speechRecognizer = sr
             isListening = true
@@ -327,26 +338,43 @@ open class ChatActivity : AppCompatActivity() {
             HapticFeedback.vibrateAction(this)
 
             sr.setRecognitionListener(object : RecognitionListener {
+                private fun isCurrentSession(): Boolean =
+                    speechRecognizer === sr && recognitionGeneration == generation && !isFinishing
+
                 override fun onReadyForSpeech(params: Bundle?) {
+                    if (!isCurrentSession()) return
                     tvModelInfo.text = "Mendengarkan suara Anda..."
                 }
                 override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(rmsdB: Float) {
-                    voiceOrb.updateRmsDb(rmsdB)
+                    if (isCurrentSession()) voiceOrb.updateRmsDb(rmsdB)
                 }
                 override fun onBufferReceived(buffer: ByteArray?) {}
                 override fun onEndOfSpeech() {
-                    isListening = false
-                    voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
-                    refreshModeBanner()
+                    if (!isCurrentSession()) return
+                    // Keep the session marked active until final results or an error arrive.
+                    voiceOrb.setOrbState(VoiceOrbView.OrbState.LISTENING)
                 }
                 override fun onError(error: Int) {
+                    if (!isCurrentSession()) return
                     isListening = false
+                    speechRecognizer = null
+                    try { sr.destroy() } catch (_: Throwable) {}
                     voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
                     refreshModeBanner()
+                    if (handsFreeConversation && error != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                        voiceOrb.postDelayed({
+                            if (handsFreeConversation && !isListening && current === this@ChatActivity && !isFinishing) {
+                                startSpeechRecognition()
+                            }
+                        }, 900L)
+                    }
                 }
                 override fun onResults(results: Bundle?) {
+                    if (!isCurrentSession()) return
                     isListening = false
+                    speechRecognizer = null
+                    try { sr.destroy() } catch (_: Throwable) {}
                     voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
                     refreshModeBanner()
                     val list = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
@@ -374,12 +402,14 @@ open class ChatActivity : AppCompatActivity() {
 
     private fun stopSpeechRecognition() {
         isListening = false
+        recognitionGeneration++
+        val oldRecognizer = speechRecognizer
+        speechRecognizer = null
         try {
-            speechRecognizer?.stopListening()
-            speechRecognizer?.destroy()
+            oldRecognizer?.cancel()
+            oldRecognizer?.destroy()
         } catch (_: Throwable) {
         }
-        speechRecognizer = null
         voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
     }
 
