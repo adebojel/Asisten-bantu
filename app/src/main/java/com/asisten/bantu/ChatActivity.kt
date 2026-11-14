@@ -2,6 +2,7 @@ package com.asisten.bantu
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -247,6 +248,24 @@ open class ChatActivity : AppCompatActivity() {
         super.onPause()
     }
 
+    @Deprecated("Deprecated in Android API 23; retained for compatibility with this Activity permission flow")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 301) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startSpeechRecognition()
+            } else {
+                handsFreeConversation = false
+                findViewById<Button>(R.id.btnHandsFreeConversation).text = "Percakapan hands-free"
+                speaker.speak("Izin mikrofon belum diberikan. Aktifkan izin mikrofon untuk memakai percakapan suara.")
+            }
+        }
+    }
+
     fun onVoice(text: String) {
         runOnUiThread {
             val clean = text.trim()
@@ -382,6 +401,12 @@ open class ChatActivity : AppCompatActivity() {
                     if (spoken.isNotEmpty()) {
                         etInput.setText(spoken)
                         sendCurrentInput()
+                    } else if (handsFreeConversation) {
+                        voiceOrb.postDelayed({
+                            if (handsFreeConversation && !isListening && current === this@ChatActivity && !isFinishing) {
+                                startSpeechRecognition()
+                            }
+                        }, 500L)
                     }
                 }
                 override fun onPartialResults(partialResults: Bundle?) {}
@@ -500,6 +525,7 @@ open class ChatActivity : AppCompatActivity() {
         if (llm.isModelPresent && !config.isLlmSafeMode && !llm.isSafeMode) {
             tvModelInfo.text = "Memproses dengan Gemma 3 1B Offline..."
             llm.summarizeTextAsync(systemPrompt, "Chat", displayPrompt, speaker) { reply: String? ->
+                if (isFinishing || isDestroyed) return@summarizeTextAsync
                 val cleanReply = reply?.trim().orEmpty()
                 if (cleanReply.isNotEmpty() && !cleanReply.contains("Gagal memproses") && !cleanReply.contains("Mode Aman")) {
                     addAiMessage(cleanReply, "Gemma 3 1B Offline")
