@@ -74,10 +74,10 @@ Model tidak otomatis cocok untuk setiap ponsel. Kobra menggunakan pemeriksaan me
 ## Unduh dan instalasi
 
 - **APK rilis:** [GitHub Releases](https://github.com/adebojel/Asisten-bantu/releases)
-- **APK debug:** [GitHub Actions](https://github.com/adebojel/Asisten-bantu/actions) → pilih run dengan status Success → unduh artifact `Kobra-OS-APK`.
+- **APK debug terbaru:** [Build main #134 — unduh artifact Kobra-OS-APK](https://github.com/adebojel/Asisten-bantu/actions/runs/43637435906) → bagian Artifacts → `Kobra-OS-APK` → unzip → pasang `app-debug.apk`.
 - **Model offline:** [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0).
 
-Saat ini belum ada rilis APK stabil yang dinyatakan siap untuk penggunaan rutin. APK debug ditujukan untuk pengujian. Workflow prerelease APK sudah tersedia di [Kobra OS APK Release](.github/workflows/release-apk.yml); rilis baru dianggap tersedia setelah workflow dijalankan dan aset APK muncul di halaman Releases.
+APK debug #134 sudah tersedia untuk pengujian perangkat. Saat ini belum ada rilis APK stabil yang dinyatakan siap untuk penggunaan rutin. APK debug ditujukan untuk pengujian. Workflow prerelease APK sudah tersedia di [Kobra OS APK Release](.github/workflows/release-apk.yml); rilis baru dianggap tersedia setelah workflow dijalankan dan aset APK muncul di halaman Releases.
 
 ## Status pengembangan
 
@@ -86,7 +86,8 @@ Saat ini belum ada rilis APK stabil yang dinyatakan siap untuk penggunaan rutin.
 - [x] Paket model offline tersedia terpisah.
 - [x] Pemeriksaan RAM sebelum pemuatan model lokal.
 - [x] Fallback pengenalan objek ke Image Labeling ditambahkan pada branch pengembangan.
-- [x] Build Android dan tes logika setelah integrasi fallback (GitHub Actions berhasil pada commit sebelum merge).
+- [x] Build Android `main` dan tes unit setelah integrasi fallback (GitHub Actions #134 berhasil; artifact APK tersedia).
+- [ ] Uji instalasi dan fungsi di HP Android nyata (belum dilakukan; ikuti [UJI_DI_HP.md](UJI_DI_HP.md)).
 - [ ] Uji instalasi dan fungsi di HP Android nyata.
 - [ ] Uji mikrofon pada layar terkunci dan penggunaan latar belakang.
 - [ ] Uji alur tunanetra end-to-end dengan TalkBack.
