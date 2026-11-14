@@ -96,6 +96,8 @@ dependencies {
     // Google ML Kit (Offline Vision, Barcode, Translation & Text Recognition)
     implementation("com.google.mlkit:text-recognition:16.0.0")
     implementation("com.google.mlkit:image-labeling:17.0.9")
+    // Retained for legacy OfflineVision type references; no runtime detector client is created.
+    implementation("com.google.mlkit:object-detection:16.0.0")
     implementation("com.google.mlkit:face-detection:16.1.6")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("com.google.mlkit:translate:17.0.3")
