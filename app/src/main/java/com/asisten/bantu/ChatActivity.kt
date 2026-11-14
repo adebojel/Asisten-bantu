@@ -110,9 +110,11 @@ open class ChatActivity : AppCompatActivity() {
                 if (!isListening) voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
                 // Turn-taking hands-free mode: listen again after the assistant finishes speaking.
                 // This is not full-duplex streaming; it uses Android SpeechRecognizer per turn.
-                if (handsFreeConversation && !suppressHandsFreeRearm && !isFinishing && current === this@ChatActivity) {
+                if (handsFreeConversation && !AsistenAccessibilityService.isRunning()
+                    && !suppressHandsFreeRearm && !isFinishing && current === this@ChatActivity) {
                     voiceOrb.postDelayed({
-                        if (handsFreeConversation && !isFinishing && !isListening && current === this@ChatActivity) {
+                        if (handsFreeConversation && !AsistenAccessibilityService.isRunning()
+                    && !isFinishing && !isListening && current === this@ChatActivity) {
                             startSpeechRecognition()
                         }
                     }, 450L)
@@ -369,6 +371,10 @@ open class ChatActivity : AppCompatActivity() {
             suppressHandsFreeRearm = true
             speaker.stop()
             suppressHandsFreeRearm = false
+        }
+        if (handsFreeConversation && AsistenAccessibilityService.isRunning()) {
+            AsistenAccessibilityService.setUnifiedChatMode(true)
+            return
         }
         if (isListening) {
             stopSpeechRecognition()
