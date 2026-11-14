@@ -61,6 +61,7 @@ public class NavigationActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_radar);
         WindowInsetsHelper.applySystemBarInsets(this, true);
+        ThemeManager.applyTheme(this);
         previewView = findViewById(R.id.previewViewNav);
         sonarRadarView = findViewById(R.id.sonarRadarView);
         tvStatus = findViewById(R.id.tvNavStatus);
@@ -125,16 +126,17 @@ public class NavigationActivity extends AppCompatActivity {
     private void refreshGuardianStatus() {
         if (tvGuardianStatusNav == null) return;
         KobraConfig cfg = new KobraConfig(this);
+        ThemeManager.KobraTheme theme = ThemeManager.getActiveTheme(this);
         int interval = cfg.getGuardianIntervalMinutes();
         if (cfg.isGuardianAwaitingResponse()) {
             tvGuardianStatusNav.setText("Guardian: Menunggu konfirmasi aman!");
-            tvGuardianStatusNav.setTextColor(0xFFFFD600);
+            tvGuardianStatusNav.setTextColor(ThemeManager.ensureContrast(0xFFFFD600, theme.getCardColor(), 4.6));
         } else if (interval > 0) {
             tvGuardianStatusNav.setText("Guardian Aktif (setiap " + interval + " menit)");
-            tvGuardianStatusNav.setTextColor(0xFF00E5FF);
+            tvGuardianStatusNav.setTextColor(ThemeManager.ensureContrast(theme.getAccentColor(), theme.getCardColor(), 4.6));
         } else {
             tvGuardianStatusNav.setText("Guardian Check-In: Manual / Mati");
-            tvGuardianStatusNav.setTextColor(0xFF94A3B8);
+            tvGuardianStatusNav.setTextColor(ThemeManager.ensureContrast(theme.getTextColor(), theme.getCardColor(), 4.6));
         }
     }
 
@@ -151,6 +153,7 @@ public class NavigationActivity extends AppCompatActivity {
     @Override protected void onResume() {
         super.onResume();
         current = this;
+        ThemeManager.applyTheme(this);
         refreshGuardianStatus();
     }
 

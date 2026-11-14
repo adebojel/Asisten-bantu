@@ -22,6 +22,7 @@
             android:src="@drawable/ic_3d_kobra_logo" />
 
         <LinearLayout
+            android:id="@+id/cardBubbleAi"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
@@ -87,6 +88,7 @@
         android:visibility="gone">
 
         <LinearLayout
+            android:id="@+id/cardBubbleUser"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/bg_chat_bubble_user"

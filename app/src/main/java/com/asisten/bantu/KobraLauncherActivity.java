@@ -27,6 +27,7 @@ import java.util.Locale;
 public class KobraLauncherActivity extends AppCompatActivity {
 
     private TextView tvClock, tvListen, tvScreenReader;
+    private AppAdapter appAdapter;
     private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable clockTick = new Runnable() {
@@ -40,13 +41,15 @@ public class KobraLauncherActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
         WindowInsetsHelper.applySystemBarInsets(this, true);
+        ThemeManager.applyTheme(this);
         tvClock = findViewById(R.id.tvClock);
         tvListen = findViewById(R.id.tvListen);
         tvScreenReader = findViewById(R.id.tvScreenReader);
 
         RecyclerView rv = findViewById(R.id.rvApps);
         rv.setLayoutManager(new LinearLayoutManager(this));
-        rv.setAdapter(new AppAdapter(loadApps()));
+        appAdapter = new AppAdapter(loadApps());
+        rv.setAdapter(appAdapter);
 
         findViewById(R.id.btnReadScreen).setOnClickListener(v -> readScreen());
         ImageButton btnMic = findViewById(R.id.btnMic);
@@ -86,6 +89,12 @@ public class KobraLauncherActivity extends AppCompatActivity {
     @Override public boolean dispatchTouchEvent(MotionEvent ev) {
         if (screenHelper.handleTouchEvent(this, ev, Speaker.get(this))) return true;
         return super.dispatchTouchEvent(ev);
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        ThemeManager.applyTheme(this);
+        if (appAdapter != null) appAdapter.notifyDataSetChanged();
     }
 
     @Override protected void onDestroy() {
@@ -138,6 +147,7 @@ public class KobraLauncherActivity extends AppCompatActivity {
             ApplicationInfo app = items.get(position);
             String label = pm.getApplicationLabel(app).toString();
             holder.tv.setText(label);
+            ThemeManager.applyToDynamicView(KobraLauncherActivity.this, holder.itemView);
             holder.itemView.setOnClickListener(v -> {
                 Intent i = pm.getLaunchIntentForPackage(app.packageName);
                 if (i != null && KobraScreenHelper.safeStartActivity(KobraLauncherActivity.this, i,

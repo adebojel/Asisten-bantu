@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnShowFloatingOrb, btnResetAiSafeMode;
     private Button tabMain, tabUtils, tabVoice;
     private LinearLayout sectionMain, sectionUtils, sectionVoice;
+    private int currentTabIndex = 0;
 
     private Speaker speaker;
     private final KobraScreenHelper screenHelper = new KobraScreenHelper();
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         WindowInsetsHelper.applySystemBarInsets(this, true);
+        ThemeManager.applyTheme(this);
         speaker = Speaker.get(this);
 
         mainScroll = findViewById(R.id.mainScroll);
@@ -267,6 +269,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void selectTab(int index) {
         HapticFeedback.vibrateAction(this);
+        currentTabIndex = index;
         if (sectionMain != null) sectionMain.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
         if (sectionUtils != null) sectionUtils.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
         if (sectionVoice != null) sectionVoice.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
@@ -281,9 +284,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void styleTab(Button tab, boolean selected) {
-        if (tab == null) return;
-        tab.setBackgroundResource(selected ? R.drawable.bg_tab_active : R.drawable.bg_tab_inactive);
-        tab.setTextColor(selected ? 0xFF00E5FF : 0xFF94A3B8);
+        ThemeManager.styleTab(tab, selected);
     }
 
     private void showSafeModeDialog() {
@@ -372,6 +373,10 @@ public class MainActivity extends AppCompatActivity {
 
     @Override protected void onResume() {
         super.onResume();
+        ThemeManager.applyTheme(this);
+        styleTab(tabMain, currentTabIndex == 0);
+        styleTab(tabUtils, currentTabIndex == 1);
+        styleTab(tabVoice, currentTabIndex == 2);
         speaker.addListener(orbSpeechListener);
         showStatus();
     }
@@ -447,17 +452,18 @@ public class MainActivity extends AppCompatActivity {
         }
 
         boolean crashSafe = c.isLlmSafeMode() || (llm.isModelPresent() && llm.isSafeMode());
+        ThemeManager.KobraTheme activeTheme = ThemeManager.getActiveTheme(this);
         if (tvStatus != null) {
             if (crashSafe) {
                 String err = llm.getLastError().isEmpty() ? LocalLlmEngine.CRASH_SAFE_MODE_REASON : llm.getLastError();
                 tvStatus.setText(err);
-                tvStatus.setTextColor(0xFFFFD600);
+                tvStatus.setTextColor(ThemeManager.ensureContrast(0xFFFFD600, activeTheme.getCardColor(), 4.6));
             } else {
                 String aiLabel = llm.isInitialized() ? "Gemma Lokal Aktif"
                         : (llm.isModelPresent() ? "Gemma Lokal Siap"
                         : (NetworkState.isOnline(this) ? OnlineAiRouter.getActiveProviderSummary(this) : "Mode Offline"));
                 tvStatus.setText(aiLabel + " • Notif: " + (notifOk ? "Aktif" : "Mati") + " • Ruang: " + freeText);
-                tvStatus.setTextColor(0xFFE2E8F0);
+                tvStatus.setTextColor(ThemeManager.ensureContrast(activeTheme.getTextColor(), activeTheme.getCardColor(), 5.0));
             }
         }
         if (btnResetAiSafeMode != null) {

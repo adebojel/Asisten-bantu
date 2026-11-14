@@ -491,7 +491,434 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- CARD 5: KONTROL SUARA, NOMOR LAYAR & SENSOR -->
+            <!-- CARD 5: TEMA TAMPILAN & KONTRAS LAYAR -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="14dp"
+                android:background="@drawable/bg_glass_card_cyan"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:contentDescription="Tema Tampilan"
+                        android:src="@drawable/ic_3d_eye_vision" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:letterSpacing="0.05"
+                        android:text="5. TEMA TAMPILAN &amp; KONTRAS LAYAR"
+                        android:textColor="#00E5FF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvActiveThemeSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="Tema Aktif: Kobra Cyber • Tombol #00E5FF (Teks #06101C)"
+                    android:textColor="#E2E8F0"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="Pilihan Cepat 8 Preset Tema"
+                    android:textColor="#E2E8F0"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <!-- Preset Row 1: Kobra Cyber & Kontras Tinggi -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/cardThemeCyber"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="#0F2138"
+                        android:clickable="true"
+                        android:contentDescription="Pilih tema Kobra Cyber Default"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:tag="theme_preview_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginBottom="6dp"
+                            android:orientation="horizontal">
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#06101C" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#0F2138" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#00E5FF" />
+                        </LinearLayout>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Kobra Cyber" android:textColor="#00E5FF" android:textSize="12sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Default futuristik" android:textColor="#E2E8F0" android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/cardThemeHighContrast"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="#121212"
+                        android:clickable="true"
+                        android:contentDescription="Pilih tema Kontras Tinggi Tunanetra"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:tag="theme_preview_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginBottom="6dp"
+                            android:orientation="horizontal">
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#000000" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#FFFFFF" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#FFD600" />
+                        </LinearLayout>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Kontras Tinggi" android:textColor="#FFD600" android:textSize="12sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ramah low vision" android:textColor="#FFFFFF" android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Preset Row 2: Zamrud Nusantara & Emas Kerajaan -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/cardThemeZamrud"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="#0A2921"
+                        android:clickable="true"
+                        android:contentDescription="Pilih tema Zamrud Nusantara"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:tag="theme_preview_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginBottom="6dp"
+                            android:orientation="horizontal">
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#041712" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#0A2921" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#00E676" />
+                        </LinearLayout>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Zamrud Nusantara" android:textColor="#00E676" android:textSize="12sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hijau tenang" android:textColor="#E6F7F2" android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/cardThemeEmas"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="#211B12"
+                        android:clickable="true"
+                        android:contentDescription="Pilih tema Emas Kerajaan"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:tag="theme_preview_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginBottom="6dp"
+                            android:orientation="horizontal">
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#120F0A" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#211B12" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#FFB300" />
+                        </LinearLayout>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Emas Kerajaan" android:textColor="#FFB300" android:textSize="12sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Arang &amp; emas" android:textColor="#FFF8E7" android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Preset Row 3: Amethyst Malam & Merah Bara -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="8dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/cardThemeAmethyst"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="#1E1136"
+                        android:clickable="true"
+                        android:contentDescription="Pilih tema Amethyst Malam"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:tag="theme_preview_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginBottom="6dp"
+                            android:orientation="horizontal">
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#11091F" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1E1136" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#D500F9" />
+                        </LinearLayout>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Amethyst Malam" android:textColor="#F0ABFC" android:textSize="12sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ungu neon elegan" android:textColor="#F3E8FF" android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/cardThemeMerah"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="#2E0D11"
+                        android:clickable="true"
+                        android:contentDescription="Pilih tema Merah Bara"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:tag="theme_preview_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginBottom="6dp"
+                            android:orientation="horizontal">
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#1A0709" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#2E0D11" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#FF5252" />
+                        </LinearLayout>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Merah Bara" android:textColor="#FF8A80" android:textSize="12sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Marun tegas koral" android:textColor="#FFE8EA" android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Preset Row 4: Mode Terang Siang Hari & OLED Hemat Baterai -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/cardThemeDaylight"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1"
+                        android:background="#FFFFFF"
+                        android:clickable="true"
+                        android:contentDescription="Pilih tema Mode Terang Siang Hari Daylight Glass"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:tag="theme_preview_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginBottom="6dp"
+                            android:orientation="horizontal">
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#F2F5F9" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#FFFFFF" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#0066CC" />
+                        </LinearLayout>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Daylight Siang" android:textColor="#0066CC" android:textSize="12sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Mode terang bersih" android:textColor="#0D1B2A" android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/cardThemeOled"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="#0A0F18"
+                        android:clickable="true"
+                        android:contentDescription="Pilih tema OLED Hemat Baterai"
+                        android:focusable="true"
+                        android:orientation="vertical"
+                        android:padding="10dp"
+                        android:tag="theme_preview_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="10dp"
+                            android:layout_marginBottom="6dp"
+                            android:orientation="horizontal">
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#000000" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#0C121D" />
+                            <View android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="#40C4FF" />
+                        </LinearLayout>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="OLED Hemat" android:textColor="#40C4FF" android:textSize="12sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Hitam pekat &amp; es" android:textColor="#E2E8F0" android:textSize="10sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Editor Tema Kustom Lokal (Manual) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:background="@drawable/bg_telemetry_pill"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Editor Tema Kustom Lokal (Kode Hex #RRGGBB)"
+                        android:textColor="#00E5FF"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <!-- Latar Utama -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" android:gravity="center_vertical" android:orientation="horizontal">
+                        <View android:id="@+id/viewSwatchBg" android:layout_width="28dp" android:layout_height="28dp" android:background="#06101C" android:tag="theme_preview_card" />
+                        <TextView android:layout_width="82dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="Latar" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
+                        <EditText android:id="@+id/etThemeBgHex" android:layout_width="0dp" android:layout_height="40dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_glass_input" android:hint="#06101C" android:inputType="textCapCharacters|textNoSuggestions" android:maxLength="7" android:padding="8dp" android:textColor="#E2E8F0" android:textSize="12sp" />
+                        <Button android:id="@+id/btnPickBgColor" android:layout_width="64dp" android:layout_height="40dp" android:background="@drawable/bg_glass_button_secondary" android:text="Pilih" android:textAllCaps="false" android:textColor="#E2E8F0" android:textSize="11sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Kartu -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" android:gravity="center_vertical" android:orientation="horizontal">
+                        <View android:id="@+id/viewSwatchCard" android:layout_width="28dp" android:layout_height="28dp" android:background="#0F2138" android:tag="theme_preview_card" />
+                        <TextView android:layout_width="82dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="Kartu" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
+                        <EditText android:id="@+id/etThemeCardHex" android:layout_width="0dp" android:layout_height="40dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_glass_input" android:hint="#0F2138" android:inputType="textCapCharacters|textNoSuggestions" android:maxLength="7" android:padding="8dp" android:textColor="#E2E8F0" android:textSize="12sp" />
+                        <Button android:id="@+id/btnPickCardColor" android:layout_width="64dp" android:layout_height="40dp" android:background="@drawable/bg_glass_button_secondary" android:text="Pilih" android:textAllCaps="false" android:textColor="#E2E8F0" android:textSize="11sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Aksen / Tombol -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="6dp" android:gravity="center_vertical" android:orientation="horizontal">
+                        <View android:id="@+id/viewSwatchAccent" android:layout_width="28dp" android:layout_height="28dp" android:background="#00E5FF" android:tag="theme_preview_card" />
+                        <TextView android:layout_width="82dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="Aksen" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
+                        <EditText android:id="@+id/etThemeAccentHex" android:layout_width="0dp" android:layout_height="40dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_glass_input" android:hint="#00E5FF" android:inputType="textCapCharacters|textNoSuggestions" android:maxLength="7" android:padding="8dp" android:textColor="#E2E8F0" android:textSize="12sp" />
+                        <Button android:id="@+id/btnPickAccentColor" android:layout_width="64dp" android:layout_height="40dp" android:background="@drawable/bg_glass_button_secondary" android:text="Pilih" android:textAllCaps="false" android:textColor="#E2E8F0" android:textSize="11sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- Teks Utama -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:gravity="center_vertical" android:orientation="horizontal">
+                        <View android:id="@+id/viewSwatchText" android:layout_width="28dp" android:layout_height="28dp" android:background="#E2E8F0" android:tag="theme_preview_card" />
+                        <TextView android:layout_width="82dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:text="Teks" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
+                        <EditText android:id="@+id/etThemeTextHex" android:layout_width="0dp" android:layout_height="40dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_glass_input" android:hint="#E2E8F0" android:inputType="textCapCharacters|textNoSuggestions" android:maxLength="7" android:padding="8dp" android:textColor="#E2E8F0" android:textSize="12sp" />
+                        <Button android:id="@+id/btnPickTextColor" android:layout_width="64dp" android:layout_height="40dp" android:background="@drawable/bg_glass_button_secondary" android:text="Pilih" android:textAllCaps="false" android:textColor="#E2E8F0" android:textSize="11sp" android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvAutoContrastPreview"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Auto-Contrast Guard: Teks tombol otomatis #06101C (kontras optimal)."
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/btnApplyCustomTheme"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:background="@drawable/bg_glass_button_primary"
+                        android:text="Terapkan Tema Kustom"
+                        android:textAllCaps="false"
+                        android:textColor="#06101C"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <!-- Generator Tema Berbasis AI -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_telemetry_pill"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Buat Tema dengan AI (Online / Lokal Cerdas)"
+                        android:textColor="#FFD600"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <EditText
+                        android:id="@+id/etAiThemePrompt"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="6dp"
+                        android:background="@drawable/bg_glass_input"
+                        android:hint="Contoh: Tema hutan malam tenang tombol hijau terang"
+                        android:inputType="textCapSentences"
+                        android:padding="10dp"
+                        android:textColor="#E2E8F0"
+                        android:textColorHint="#64748B"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/btnGenerateAiTheme"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="8dp"
+                        android:background="@drawable/bg_glass_button_primary"
+                        android:text="Generate Tema AI"
+                        android:textAllCaps="false"
+                        android:textColor="#06101C"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvAiThemeStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Deskripsikan suasana warna, lalu ketuk Generate Tema AI."
+                        android:textColor="#94A3B8"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- CARD 6: KONTROL SUARA, NOMOR LAYAR & SENSOR -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -504,7 +931,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:letterSpacing="0.05"
-                    android:text="5. KONTROL SUARA, NOMOR LAYAR &amp; SENSOR"
+                    android:text="6. KONTROL SUARA, NOMOR LAYAR &amp; SENSOR"
                     android:textColor="#00E5FF"
                     android:textSize="13sp"
                     android:textStyle="bold" />
@@ -537,7 +964,7 @@
                 <Button android:id="@+id/btnTestTts" android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="8dp" android:background="@drawable/bg_glass_button_secondary" android:text="Tes Contoh Suara TTS" android:textAllCaps="false" android:textColor="#00E5FF" android:textSize="13sp" android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- CARD 6: KEAMANAN, DAILY BRIEFING & GUARDIAN SOS -->
+            <!-- CARD 7: KEAMANAN, DAILY BRIEFING & GUARDIAN SOS -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -550,7 +977,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:letterSpacing="0.05"
-                    android:text="6. KEAMANAN, DAILY BRIEFING &amp; GUARDIAN SOS"
+                    android:text="7. KEAMANAN, DAILY BRIEFING &amp; GUARDIAN SOS"
                     android:textColor="#FFD600"
                     android:textSize="13sp"
                     android:textStyle="bold" />

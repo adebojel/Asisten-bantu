@@ -6,6 +6,8 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -13,6 +15,8 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -58,12 +62,17 @@ import java.util.concurrent.Executors;
 public class SettingsActivity extends AppCompatActivity {
 
     private EditText etGeminiKey, etKey, etModel, etN8n, etNotes, etCustomAssistantName;
+    private EditText etThemeBgHex, etThemeCardHex, etThemeAccentHex, etThemeTextHex, etAiThemePrompt;
     private TextView tvStatus, tvSystemPermSummary, tvModelStatus, tvImportProgress;
     private TextView tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus, tvMemoryCountInfo, tvFloatingOrbAlpha;
-    private TextView tvActiveVoiceSummary;
+    private TextView tvActiveVoiceSummary, tvActiveThemeSummary, tvAutoContrastPreview, tvAiThemeStatus;
     private Button btnImportModel, btnDeleteModel, btnLoadModel, btnTestTts;
     private Button btnBackupData, btnRestoreData, btnCheckUpdate, btnViewCrashLog;
     private Button btnPresetKobra, btnPresetArka, btnPresetBima, btnPresetNala, btnPresetCakra, btnPresetTara, btnPresetKustom, btnApplyCustomVoice;
+    private Button btnApplyCustomTheme, btnGenerateAiTheme;
+    private View viewSwatchBg, viewSwatchCard, viewSwatchAccent, viewSwatchText;
+    private LinearLayout cardThemeCyber, cardThemeHighContrast, cardThemeZamrud, cardThemeEmas;
+    private LinearLayout cardThemeAmethyst, cardThemeMerah, cardThemeDaylight, cardThemeOled;
     private LinearLayout layoutMemoryList, layoutCustomVoiceConfig;
     private ProgressBar pbImportModel;
     private SeekBar sbSpeechRate, sbSpeechPitch, sbFloatingOrbAlpha;
@@ -101,6 +110,7 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
         WindowInsetsHelper.applySystemBarInsets(this, true);
+        ThemeManager.applyTheme(this);
         config = new KobraConfig(this);
         speaker = Speaker.get(this);
 
@@ -146,6 +156,29 @@ public class SettingsActivity extends AppCompatActivity {
         btnPresetTara = findViewById(R.id.btnPresetTara);
         btnPresetKustom = findViewById(R.id.btnPresetKustom);
         btnApplyCustomVoice = findViewById(R.id.btnApplyCustomVoice);
+
+        tvActiveThemeSummary = findViewById(R.id.tvActiveThemeSummary);
+        tvAutoContrastPreview = findViewById(R.id.tvAutoContrastPreview);
+        tvAiThemeStatus = findViewById(R.id.tvAiThemeStatus);
+        etThemeBgHex = findViewById(R.id.etThemeBgHex);
+        etThemeCardHex = findViewById(R.id.etThemeCardHex);
+        etThemeAccentHex = findViewById(R.id.etThemeAccentHex);
+        etThemeTextHex = findViewById(R.id.etThemeTextHex);
+        etAiThemePrompt = findViewById(R.id.etAiThemePrompt);
+        viewSwatchBg = findViewById(R.id.viewSwatchBg);
+        viewSwatchCard = findViewById(R.id.viewSwatchCard);
+        viewSwatchAccent = findViewById(R.id.viewSwatchAccent);
+        viewSwatchText = findViewById(R.id.viewSwatchText);
+        btnApplyCustomTheme = findViewById(R.id.btnApplyCustomTheme);
+        btnGenerateAiTheme = findViewById(R.id.btnGenerateAiTheme);
+        cardThemeCyber = findViewById(R.id.cardThemeCyber);
+        cardThemeHighContrast = findViewById(R.id.cardThemeHighContrast);
+        cardThemeZamrud = findViewById(R.id.cardThemeZamrud);
+        cardThemeEmas = findViewById(R.id.cardThemeEmas);
+        cardThemeAmethyst = findViewById(R.id.cardThemeAmethyst);
+        cardThemeMerah = findViewById(R.id.cardThemeMerah);
+        cardThemeDaylight = findViewById(R.id.cardThemeDaylight);
+        cardThemeOled = findViewById(R.id.cardThemeOled);
 
         btnImportModel = findViewById(R.id.btnImportModel);
         btnDeleteModel = findViewById(R.id.btnDeleteModel);
@@ -265,6 +298,9 @@ public class SettingsActivity extends AppCompatActivity {
         if (btnPresetKustom != null) btnPresetKustom.setOnClickListener(v -> selectVoicePreset(VoiceProfileManager.PRESET_KUSTOM));
         if (btnApplyCustomVoice != null) btnApplyCustomVoice.setOnClickListener(v -> applyCustomVoiceProfile());
 
+        // Card 5: Manajemen Tema Multi-Varian, Kustom Hex & Generator Tema AI
+        setupThemeEditorControls();
+
         // Card 5: Voice & Sensors listeners
         swFloatingOrb.setOnCheckedChangeListener((b, isChecked) -> {
             if (loadingFields) return;
@@ -316,8 +352,17 @@ public class SettingsActivity extends AppCompatActivity {
             if (!loadingFields) config.setBargeInEnabled(isChecked);
         });
         swHighContrast.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (loadingFields) return;
             config.setHighContrast(isChecked);
-            applyHighContrastVisual(isChecked);
+            if (isChecked) {
+                selectThemePreset(ThemeManager.PRESET_HIGH_CONTRAST, false);
+            } else if (ThemeManager.PRESET_HIGH_CONTRAST.equals(config.getThemeId())) {
+                selectThemePreset(ThemeManager.PRESET_KOBRA_CYBER, false);
+            } else {
+                ThemeManager.applyTheme(this);
+                refreshThemeUi();
+                refreshVoicePresetUi();
+            }
         });
 
         sbSpeechRate.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -534,6 +579,7 @@ public class SettingsActivity extends AppCompatActivity {
             btnDel.setTextSize(11f);
             btnDel.setTextColor(0xFFFFE4E6);
             btnDel.setBackgroundResource(R.drawable.bg_glass_button_danger);
+            btnDel.setTag(ThemeManager.TAG_BTN_DANGER);
             btnDel.setOnClickListener(v -> {
                 LocalMemoryStore.deleteMemory(this, item.getId());
                 refreshMemoryListUi();
@@ -543,6 +589,7 @@ public class SettingsActivity extends AppCompatActivity {
             row.addView(tv);
             row.addView(btnEdit);
             row.addView(btnDel);
+            ThemeManager.applyToDynamicView(this, row);
             layoutMemoryList.addView(row);
         }
     }
@@ -720,6 +767,9 @@ public class SettingsActivity extends AppCompatActivity {
 
     @Override protected void onResume() {
         super.onResume();
+        ThemeManager.applyTheme(this);
+        refreshThemeUi();
+        refreshVoicePresetUi();
         updateModelStatus();
         refreshSystemPermSummary();
         refreshMemoryListUi();
@@ -785,8 +835,11 @@ public class SettingsActivity extends AppCompatActivity {
 
         boolean hc = config.isHighContrast();
         swHighContrast.setChecked(hc);
-        applyHighContrastVisual(hc);
+        populateThemeEditorFields(ThemeManager.getActiveTheme(this));
         loadingFields = false;
+        ThemeManager.applyTheme(this);
+        refreshThemeUi();
+        refreshVoicePresetUi();
     }
 
     private void selectVoicePreset(String presetId) {
@@ -862,23 +915,234 @@ public class SettingsActivity extends AppCompatActivity {
             layoutCustomVoiceConfig.setVisibility(preset.isCustom() ? View.VISIBLE : View.GONE);
         }
 
-        stylePresetButton(btnPresetKobra, VoiceProfileManager.PRESET_KOBRA.equals(preset.getId()), false);
-        stylePresetButton(btnPresetArka, VoiceProfileManager.PRESET_ARKA.equals(preset.getId()), false);
-        stylePresetButton(btnPresetBima, VoiceProfileManager.PRESET_BIMA.equals(preset.getId()), false);
-        stylePresetButton(btnPresetNala, VoiceProfileManager.PRESET_NALA.equals(preset.getId()), false);
-        stylePresetButton(btnPresetCakra, VoiceProfileManager.PRESET_CAKRA.equals(preset.getId()), false);
-        stylePresetButton(btnPresetTara, VoiceProfileManager.PRESET_TARA.equals(preset.getId()), false);
-        stylePresetButton(btnPresetKustom, VoiceProfileManager.PRESET_KUSTOM.equals(preset.getId()), true);
+        ThemeManager.styleChip(btnPresetKobra, VoiceProfileManager.PRESET_KOBRA.equals(preset.getId()), false);
+        ThemeManager.styleChip(btnPresetArka, VoiceProfileManager.PRESET_ARKA.equals(preset.getId()), false);
+        ThemeManager.styleChip(btnPresetBima, VoiceProfileManager.PRESET_BIMA.equals(preset.getId()), false);
+        ThemeManager.styleChip(btnPresetNala, VoiceProfileManager.PRESET_NALA.equals(preset.getId()), false);
+        ThemeManager.styleChip(btnPresetCakra, VoiceProfileManager.PRESET_CAKRA.equals(preset.getId()), false);
+        ThemeManager.styleChip(btnPresetTara, VoiceProfileManager.PRESET_TARA.equals(preset.getId()), false);
+        ThemeManager.styleChip(btnPresetKustom, VoiceProfileManager.PRESET_KUSTOM.equals(preset.getId()), true);
     }
 
-    private void stylePresetButton(Button btn, boolean selected, boolean isCustomBtn) {
-        if (btn == null) return;
-        btn.setBackgroundResource(selected ? R.drawable.bg_persona_chip_active : R.drawable.bg_persona_chip_idle);
-        if (selected) {
-            btn.setTextColor(0xFF00E5FF);
-        } else {
-            btn.setTextColor(isCustomBtn ? 0xFFFFD600 : 0xFFE2E8F0);
+    private void setupThemeEditorControls() {
+        bindThemePresetCard(cardThemeCyber, ThemeManager.PRESET_KOBRA_CYBER);
+        bindThemePresetCard(cardThemeHighContrast, ThemeManager.PRESET_HIGH_CONTRAST);
+        bindThemePresetCard(cardThemeZamrud, ThemeManager.PRESET_ZAMRUD);
+        bindThemePresetCard(cardThemeEmas, ThemeManager.PRESET_EMAS);
+        bindThemePresetCard(cardThemeAmethyst, ThemeManager.PRESET_AMETHYST);
+        bindThemePresetCard(cardThemeMerah, ThemeManager.PRESET_MERAH);
+        bindThemePresetCard(cardThemeDaylight, ThemeManager.PRESET_DAYLIGHT);
+        bindThemePresetCard(cardThemeOled, ThemeManager.PRESET_OLED);
+
+        TextWatcher hexWatcher = new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                if (!loadingFields) updateThemePreviewSwatches();
+            }
+        };
+        if (etThemeBgHex != null) etThemeBgHex.addTextChangedListener(hexWatcher);
+        if (etThemeCardHex != null) etThemeCardHex.addTextChangedListener(hexWatcher);
+        if (etThemeAccentHex != null) etThemeAccentHex.addTextChangedListener(hexWatcher);
+        if (etThemeTextHex != null) etThemeTextHex.addTextChangedListener(hexWatcher);
+
+        bindColorPicker(R.id.btnPickBgColor, viewSwatchBg, etThemeBgHex, "Warna Latar Utama");
+        bindColorPicker(R.id.btnPickCardColor, viewSwatchCard, etThemeCardHex, "Warna Kartu");
+        bindColorPicker(R.id.btnPickAccentColor, viewSwatchAccent, etThemeAccentHex, "Warna Aksen & Tombol");
+        bindColorPicker(R.id.btnPickTextColor, viewSwatchText, etThemeTextHex, "Warna Teks Utama");
+
+        if (btnApplyCustomTheme != null) {
+            btnApplyCustomTheme.setOnClickListener(v -> applyManualCustomTheme());
         }
+        if (btnGenerateAiTheme != null) {
+            btnGenerateAiTheme.setOnClickListener(v -> generateAiTheme());
+        }
+    }
+
+    private void bindThemePresetCard(View card, String themeId) {
+        if (card != null) {
+            card.setOnClickListener(v -> selectThemePreset(themeId, true));
+        }
+    }
+
+    private void bindColorPicker(int btnId, View swatch, EditText target, String title) {
+        View.OnClickListener listener = v -> showColorPaletteDialog(target, title);
+        View btn = findViewById(btnId);
+        if (btn != null) btn.setOnClickListener(listener);
+        if (swatch != null) swatch.setOnClickListener(listener);
+    }
+
+    private void selectThemePreset(String themeId, boolean speakAnnouncement) {
+        HapticFeedback.vibrateAction(this);
+        ThemeManager.KobraTheme applied = ThemeManager.applyPreset(this, themeId);
+        loadingFields = true;
+        if (swHighContrast != null) swHighContrast.setChecked(applied.isHighContrast());
+        populateThemeEditorFields(applied);
+        loadingFields = false;
+
+        ThemeManager.applyTheme(this);
+        refreshThemeUi();
+        refreshVoicePresetUi();
+        if (tvStatus != null) {
+            tvStatus.setText("Tema aktif: " + applied.getName() + " (" + applied.getSubtitle() + ")");
+        }
+        if (speakAnnouncement) {
+            speaker.speak("Tema " + applied.getName() + " diterapkan.");
+        }
+    }
+
+    private void applyManualCustomTheme() {
+        HapticFeedback.vibrateAction(this);
+        ThemeManager.KobraTheme current = ThemeManager.getActiveTheme(this);
+        String bg = ThemeManager.normalizeHex(etThemeBgHex != null ? etThemeBgHex.getText().toString() : "", current.getBgHex());
+        String card = ThemeManager.normalizeHex(etThemeCardHex != null ? etThemeCardHex.getText().toString() : "", current.getCardHex());
+        String accent = ThemeManager.normalizeHex(etThemeAccentHex != null ? etThemeAccentHex.getText().toString() : "", current.getAccentHex());
+        String text = ThemeManager.normalizeHex(etThemeTextHex != null ? etThemeTextHex.getText().toString() : "", current.getTextHex());
+
+        ThemeManager.KobraTheme applied = ThemeManager.applyCustomTheme(this, "Tema Kustom Lokal", bg, card, accent, text);
+        loadingFields = true;
+        if (swHighContrast != null) swHighContrast.setChecked(false);
+        populateThemeEditorFields(applied);
+        loadingFields = false;
+
+        ThemeManager.applyTheme(this);
+        refreshThemeUi();
+        refreshVoicePresetUi();
+        speaker.speak("Tema kustom lokal diterapkan dengan pelindung kontras otomatis.");
+    }
+
+    private void generateAiTheme() {
+        HapticFeedback.vibrateAction(this);
+        String prompt = etAiThemePrompt != null ? etAiThemePrompt.getText().toString().trim() : "";
+        if (prompt.isEmpty()) {
+            if (tvAiThemeStatus != null) {
+                tvAiThemeStatus.setText("Tulis deskripsi tema dulu, misalnya: hutan malam tenang tombol hijau.");
+            }
+            speaker.speak("Tulis deskripsi tema terlebih dahulu sebelum membuat tema AI.");
+            return;
+        }
+        btnGenerateAiTheme.setEnabled(false);
+        if (tvAiThemeStatus != null) {
+            tvAiThemeStatus.setText("Merancang palet warna kontras tinggi dari deskripsi Anda...");
+        }
+        speaker.speak("Sedang merancang tema tampilan dari deskripsi Anda.");
+
+        ThemeManager.generateThemeWithAi(this, prompt, new ThemeManager.AiThemeCallback() {
+            @Override public void onThemeGenerated(ThemeManager.KobraTheme theme, String sourceLabel) {
+                if (isFinishing() || isDestroyed()) return;
+                btnGenerateAiTheme.setEnabled(true);
+                loadingFields = true;
+                if (swHighContrast != null) swHighContrast.setChecked(false);
+                populateThemeEditorFields(theme);
+                loadingFields = false;
+
+                ThemeManager.applyTheme(SettingsActivity.this);
+                refreshThemeUi();
+                refreshVoicePresetUi();
+                String msg = "Tema '" + theme.getName() + "' aktif (" + sourceLabel + ").";
+                if (tvAiThemeStatus != null) tvAiThemeStatus.setText(msg);
+                if (tvStatus != null) tvStatus.setText(msg);
+                speaker.speak("Tema " + theme.getName() + " berhasil dibuat dan langsung diterapkan.");
+            }
+
+            @Override public void onError(String message) {
+                if (isFinishing() || isDestroyed()) return;
+                btnGenerateAiTheme.setEnabled(true);
+                if (tvAiThemeStatus != null) tvAiThemeStatus.setText(message);
+                speaker.speak(message);
+            }
+        });
+    }
+
+    private void showColorPaletteDialog(EditText target, String title) {
+        if (target == null) return;
+        List<ThemeManager.PaletteColor> palette = ThemeManager.getPaletteChoices();
+        String[] labels = new String[palette.size()];
+        for (int i = 0; i < palette.size(); i++) {
+            ThemeManager.PaletteColor pc = palette.get(i);
+            labels[i] = pc.getName() + " (" + pc.getHex() + ")";
+        }
+        new AlertDialog.Builder(this)
+                .setTitle("Pilih " + title)
+                .setItems(labels, (d, which) -> {
+                    ThemeManager.PaletteColor chosen = palette.get(which);
+                    target.setText(chosen.getHex());
+                    updateThemePreviewSwatches();
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
+    private void populateThemeEditorFields(ThemeManager.KobraTheme theme) {
+        if (etThemeBgHex != null) etThemeBgHex.setText(theme.getBgHex());
+        if (etThemeCardHex != null) etThemeCardHex.setText(theme.getCardHex());
+        if (etThemeAccentHex != null) etThemeAccentHex.setText(theme.getAccentHex());
+        if (etThemeTextHex != null) etThemeTextHex.setText(theme.getTextHex());
+        updateThemePreviewSwatches();
+    }
+
+    private void updateThemePreviewSwatches() {
+        ThemeManager.KobraTheme cur = ThemeManager.getActiveTheme(this);
+        String bgHex = ThemeManager.normalizeHex(etThemeBgHex != null ? etThemeBgHex.getText().toString() : "", cur.getBgHex());
+        String cardHex = ThemeManager.normalizeHex(etThemeCardHex != null ? etThemeCardHex.getText().toString() : "", cur.getCardHex());
+        String accentHex = ThemeManager.normalizeHex(etThemeAccentHex != null ? etThemeAccentHex.getText().toString() : "", cur.getAccentHex());
+        String textHex = ThemeManager.normalizeHex(etThemeTextHex != null ? etThemeTextHex.getText().toString() : "", cur.getTextHex());
+
+        setSwatchColor(viewSwatchBg, ThemeManager.parseColorSafe(bgHex, cur.getBgColor()));
+        setSwatchColor(viewSwatchCard, ThemeManager.parseColorSafe(cardHex, cur.getCardColor()));
+        setSwatchColor(viewSwatchAccent, ThemeManager.parseColorSafe(accentHex, cur.getAccentColor()));
+        setSwatchColor(viewSwatchText, ThemeManager.parseColorSafe(textHex, cur.getTextColor()));
+
+        int accentColor = ThemeManager.parseColorSafe(accentHex, cur.getAccentColor());
+        int forcedBtnText = ThemeManager.computeContrastTextColor(accentColor);
+        String btnTextHex = ThemeManager.colorToHex(forcedBtnText);
+        if (tvAutoContrastPreview != null) {
+            String desc = ThemeManager.isColorLight(accentColor)
+                    ? "Latar tombol terang -> Teks otomatis hitam pekat " + btnTextHex
+                    : "Latar tombol gelap -> Teks otomatis putih bersih " + btnTextHex;
+            tvAutoContrastPreview.setText("Auto-Contrast Guard: " + desc);
+        }
+    }
+
+    private void setSwatchColor(View swatch, int color) {
+        if (swatch == null) return;
+        float d = getResources().getDisplayMetrics().density;
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(6f * d);
+        gd.setColor(color);
+        gd.setStroke((int) Math.max(1f, 1.5f * d), 0x80FFFFFF);
+        swatch.setBackground(gd);
+    }
+
+    private void refreshThemeUi() {
+        ThemeManager.KobraTheme active = ThemeManager.getActiveTheme(this);
+        if (tvActiveThemeSummary != null) {
+            tvActiveThemeSummary.setText("Tema Aktif: " + active.getName()
+                    + " • Tombol " + active.getAccentHex()
+                    + " (Teks " + active.getButtonTextHex() + ")");
+        }
+        stylePresetPreviewCard(cardThemeCyber, ThemeManager.PRESET_KOBRA_CYBER.equals(active.getId()), "#0F2138", "#00E5FF");
+        stylePresetPreviewCard(cardThemeHighContrast, ThemeManager.PRESET_HIGH_CONTRAST.equals(active.getId()), "#121212", "#FFFFFF");
+        stylePresetPreviewCard(cardThemeZamrud, ThemeManager.PRESET_ZAMRUD.equals(active.getId()), "#0A2921", "#00E676");
+        stylePresetPreviewCard(cardThemeEmas, ThemeManager.PRESET_EMAS.equals(active.getId()), "#211B12", "#FFB300");
+        stylePresetPreviewCard(cardThemeAmethyst, ThemeManager.PRESET_AMETHYST.equals(active.getId()), "#1E1136", "#D500F9");
+        stylePresetPreviewCard(cardThemeMerah, ThemeManager.PRESET_MERAH.equals(active.getId()), "#2E0D11", "#FF5252");
+        stylePresetPreviewCard(cardThemeDaylight, ThemeManager.PRESET_DAYLIGHT.equals(active.getId()), "#FFFFFF", "#0066CC");
+        stylePresetPreviewCard(cardThemeOled, ThemeManager.PRESET_OLED.equals(active.getId()), "#0A0F18", "#40C4FF");
+    }
+
+    private void stylePresetPreviewCard(LinearLayout card, boolean selected, String bgHex, String borderHex) {
+        if (card == null) return;
+        float d = getResources().getDisplayMetrics().density;
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(14f * d);
+        gd.setColor(Color.parseColor(bgHex));
+        int strokeW = selected ? (int) Math.max(2f, 2.8f * d) : (int) Math.max(1f, 1.2f * d);
+        int strokeColor = selected ? Color.parseColor(borderHex) : ThemeManager.adjustAlpha(Color.parseColor(borderHex), 110);
+        gd.setStroke(strokeW, strokeColor);
+        card.setBackground(gd);
     }
 
     private int guardianMinutesFromId(int id) {
@@ -892,18 +1156,6 @@ public class SettingsActivity extends AppCompatActivity {
         if (checkedId == R.id.rbStyleRingkas) return KobraConfig.STYLE_RINGKAS;
         if (checkedId == R.id.rbStyleDaerah) return KobraConfig.STYLE_DAERAH;
         return KobraConfig.STYLE_RAMAH;
-    }
-
-    private void applyHighContrastVisual(boolean highContrast) {
-        int textColor = highContrast ? 0xFFFFFF00 : 0xFFE2E8F0;
-        etGeminiKey.setTextColor(textColor);
-        etKey.setTextColor(textColor);
-        etModel.setTextColor(textColor);
-        etN8n.setTextColor(textColor);
-        etNotes.setTextColor(textColor);
-        if (etCustomAssistantName != null) etCustomAssistantName.setTextColor(textColor);
-        tvSpeechRate.setTextColor(textColor);
-        tvSpeechPitch.setTextColor(textColor);
     }
 
     private static float progressToRateValue(int progress) {

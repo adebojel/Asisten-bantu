@@ -87,6 +87,44 @@ public final class KobraConfig {
     public boolean isHighContrast() { return prefs.getBoolean("high_contrast", false); }
     public void setHighContrast(boolean enabled) { prefs.edit().putBoolean("high_contrast", enabled).apply(); }
 
+    public String getThemeId() {
+        String id = prefs.getString("theme_id", "").trim();
+        if (id.isEmpty()) {
+            return isHighContrast() ? "high_contrast" : "kobra_cyber";
+        }
+        return id;
+    }
+
+    public void setThemeId(String themeId) {
+        String clean = (themeId == null || themeId.trim().isEmpty()) ? "kobra_cyber" : themeId.trim();
+        prefs.edit().putString("theme_id", clean).apply();
+    }
+
+    public String getCustomThemeName() { return prefs.getString("theme_custom_name", "Tema Kustom").trim(); }
+    public void setCustomThemeName(String name) {
+        String clean = (name == null || name.trim().isEmpty()) ? "Tema Kustom" : name.trim();
+        prefs.edit().putString("theme_custom_name", clean).apply();
+    }
+
+    public String getCustomBgHex() { return prefs.getString("theme_custom_bg", "#06101C").trim(); }
+    public void setCustomBgHex(String hex) { prefs.edit().putString("theme_custom_bg", safeHex(hex, "#06101C")).apply(); }
+
+    public String getCustomCardHex() { return prefs.getString("theme_custom_card", "#0F2138").trim(); }
+    public void setCustomCardHex(String hex) { prefs.edit().putString("theme_custom_card", safeHex(hex, "#0F2138")).apply(); }
+
+    public String getCustomAccentHex() { return prefs.getString("theme_custom_accent", "#00E5FF").trim(); }
+    public void setCustomAccentHex(String hex) { prefs.edit().putString("theme_custom_accent", safeHex(hex, "#00E5FF")).apply(); }
+
+    public String getCustomTextHex() { return prefs.getString("theme_custom_text", "#E2E8F0").trim(); }
+    public void setCustomTextHex(String hex) { prefs.edit().putString("theme_custom_text", safeHex(hex, "#E2E8F0")).apply(); }
+
+    private static String safeHex(String raw, String fallback) {
+        if (raw == null) return fallback;
+        String clean = raw.trim().toUpperCase(Locale.ROOT);
+        if (!clean.startsWith("#")) clean = "#" + clean;
+        return clean.matches("^#[0-9A-F]{6}$") ? clean : fallback;
+    }
+
     public String getNotes() { return prefs.getString("notes", ""); }
     public void setNotes(String notes) { prefs.edit().putString("notes", notes == null ? "" : notes).apply(); }
 

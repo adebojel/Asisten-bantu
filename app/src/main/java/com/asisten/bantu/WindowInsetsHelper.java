@@ -25,6 +25,7 @@ public final class WindowInsetsHelper {
         if (content != null && content.getChildCount() > 0) {
             applySystemBarInsets(content.getChildAt(0), applyBottom);
         }
+        ThemeManager.applyTheme(activity);
     }
 
     public static void applySystemBarInsets(View rootView, boolean applyBottom) {

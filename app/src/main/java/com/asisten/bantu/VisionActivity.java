@@ -119,6 +119,7 @@ public class VisionActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_vision);
         WindowInsetsHelper.applySystemBarInsets(this, true);
+        ThemeManager.applyTheme(this);
         previewView = findViewById(R.id.previewViewVision);
         tvResult = findViewById(R.id.tvVisionResult);
         tvStatus = findViewById(R.id.tvVisionStatus);
@@ -233,6 +234,7 @@ public class VisionActivity extends AppCompatActivity {
     @Override protected void onResume() {
         super.onResume();
         current = this;
+        ThemeManager.applyTheme(this);
         if (!config.isPrivacyMode() && sensorManager != null && lightSensor != null) {
             autoTorchChecked = false;
             sensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_UI);

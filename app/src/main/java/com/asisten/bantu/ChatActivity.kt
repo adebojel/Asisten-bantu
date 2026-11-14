@@ -99,6 +99,7 @@ open class ChatActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
         WindowInsetsHelper.applySystemBarInsets(this, true)
+        ThemeManager.applyTheme(this)
 
         speaker = Speaker.get(this)
         config = KobraConfig(this)
@@ -193,6 +194,9 @@ open class ChatActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         current = this
+        ThemeManager.applyTheme(this)
+        refreshPersonaChips()
+        adapter.notifyDataSetChanged()
         speaker.addListener(speechListener)
         syncAssistantIdentity()
         refreshModeBanner()
@@ -247,8 +251,7 @@ open class ChatActivity : AppCompatActivity() {
     }
 
     private fun styleChip(btn: Button, selected: Boolean) {
-        btn.setBackgroundResource(if (selected) R.drawable.bg_persona_chip_active else R.drawable.bg_persona_chip_idle)
-        btn.setTextColor(if (selected) 0xFF00E5FF.toInt() else 0xFF94A3B8.toInt())
+        ThemeManager.styleChip(btn, selected, false)
     }
 
     private fun refreshModeBanner() {
@@ -608,15 +611,19 @@ open class ChatActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             val item = items[position]
+            val ctx = holder.itemView.context
             if (item.fromUser) {
                 holder.layoutAi.visibility = View.GONE
                 holder.layoutUser.visibility = View.VISIBLE
                 holder.tvUserText.text = item.text
+                ThemeManager.styleChatBubble(ctx, holder.cardUser, null, holder.tvUserText, null, true)
             } else {
                 holder.layoutUser.visibility = View.GONE
                 holder.layoutAi.visibility = View.VISIBLE
                 holder.tvAiMeta.text = item.meta
                 holder.tvAiText.text = item.text
+                ThemeManager.styleChatBubble(ctx, holder.cardAi, holder.tvAiMeta, holder.tvAiText, holder.tvReplayLabel, false)
+                ThemeManager.applyToDynamicView(ctx, holder.btnReplay)
                 holder.btnReplay.setOnClickListener { onReplayClick(item.text) }
                 holder.tvReplayLabel.setOnClickListener { onReplayClick(item.text) }
             }
@@ -627,6 +634,8 @@ open class ChatActivity : AppCompatActivity() {
         class VH(v: View) : RecyclerView.ViewHolder(v) {
             val layoutAi: LinearLayout = v.findViewById(R.id.layoutBubbleAi)
             val layoutUser: LinearLayout = v.findViewById(R.id.layoutBubbleUser)
+            val cardAi: LinearLayout = v.findViewById(R.id.cardBubbleAi)
+            val cardUser: LinearLayout = v.findViewById(R.id.cardBubbleUser)
             val tvAiMeta: TextView = v.findViewById(R.id.tvBubbleAiMeta)
             val tvAiText: TextView = v.findViewById(R.id.tvBubbleAiText)
             val btnReplay: ImageButton = v.findViewById(R.id.btnReplayTts)
