@@ -68,6 +68,7 @@ public final class NetworkState {
 
     /** Memanggil listener hanya ketika status berubah (bukan saat pertama kali dicek). */
     public static ConnectivityManager.NetworkCallback watch(Context c, Listener listener) {
+        if (c == null) return null;
         ConnectivityManager cm = (ConnectivityManager) c.getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) return null;
         final Boolean[] last = {null};
@@ -88,8 +89,11 @@ public final class NetworkState {
         };
         try {
             cm.registerNetworkCallback(request, callback);
-        } catch (Throwable ignored) {}
-        return callback;
+            return callback;
+        } catch (RuntimeException ignored) {
+            // Do not return an unregistered callback: callers would later try to unregister it.
+            return null;
+        }
     }
 
     public static void unwatch(Context c, ConnectivityManager.NetworkCallback callback) {
@@ -104,6 +108,12 @@ public final class NetworkState {
         if (last[0] != null && last[0] == online) return;
         boolean first = last[0] == null;
         last[0] = online;
-        if (!first && listener != null) listener.onChange(online);
+        if (!first && listener != null) {
+            try {
+                listener.onChange(online);
+            } catch (RuntimeException ignored) {
+                // A client listener must not crash Android's connectivity callback thread.
+            }
+        }
     }
 }
