@@ -5,57 +5,55 @@ on:
   push:
     branches:
       - kobra-os-v7
-/m
+    paths:
+      - '.github/workflows/publish-local-models.yml'
+
 permissions:
   contents: write
 
 jobs:
-  publish-model:
-    name: Download and publish Qwen3 0.6B INT4
+  publish-qwen3:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
-      - name: Download Apache-2.0 LiteRT-LM model
+      - name: Download Qwen3 0.6B INT4 no-think model
         shell: bash
         run: |
           set -euo pipefail
-          MODEL="qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
-          URL="https://huggingface.co/litert-community/Qwen3-0.6B-int4/resolve/main/${MODEL}"
-          curl --fail --location --retry 3 --retry-delay 5 "${URL}" --output "${MODEL}"
-          SIZE=$(stat -c%s "${MODEL}")
-          # Guard against HTML/error pages or an unexpected upstream file.
-          if [ "${SIZE}" -lt 250000000 ] || [ "${SIZE}" -gt 450000000 ]; then
-            echo "Unexpected model size: ${SIZE} bytes"
-            exit 1
-          fi
-          sha256sum "${MODEL}" > "${MODEL}.sha256"
-          echo "MODEL=${MODEL}" >> "${GITHUB_ENV}"
+          FILE="qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
+          URL="https://huggingface.co/litert-community/Qwen3-0.6B-int4/resolve/main/${FILE}?download=true"
+          curl -fL --retry 4 --retry-all-errors --retry-delay 5 "${URL}" -o "${FILE}"
+          BYTES="$(stat -c%s "${FILE}")"
+          echo "Downloaded ${BYTES} bytes"
+          test "${BYTES}" -ge 250000000
+          test "${BYTES}" -le 450000000
+          sha256sum "${FILE}" > "${FILE}.sha256"
+          echo "MODEL_FILE=${FILE}" >> "${GITHUB_ENV}"
 
-      - name: Publish GitHub Release asset
+      - name: Create or update model release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           TAG="kobra-offline-models-v1.0"
-          NOTES="$(cat <<'EOF'
-          # Kobra OS — Offline Model Pack
+          NOTES_FILE="release-notes.md"
+          cat > "${NOTES_FILE}" <<'EOF'
+          # Kobra OS Offline Model Pack
 
-          ## Included model
-          - Qwen3 0.6B INT4, no-think variant
-          - LiteRT-LM format (.litertlm)
-          - Intended for on-device text generation; actual RAM needs depend on runtime, context length, and device.
-          - Model license: Apache-2.0. The model is redistributed as an unmodified upstream artifact.
+          ## Qwen3 0.6B INT4 — No-Think
+          - Format: .litertlm (LiteRT-LM runtime required)
+          - License: Apache-2.0
+          - Intended for concise offline text chat and simple Q&A.
+          - Not an APK. Install a Kobra OS build with LiteRT-LM support before importing this model.
+          - Device memory use varies by runtime/backend and context length; a 0.6B model is not guaranteed to run on every low-RAM phone.
 
-          Upstream model and license:
-          https://huggingface.co/litert-community/Qwen3-0.6B-int4
-
-          This asset is a model file, not an installable APK. Kobra OS must include compatible LiteRT-LM runtime support before importing or running it.
-          Verify the SHA-256 checksum file before use.
+          Upstream source and license: https://huggingface.co/litert-community/Qwen3-0.6B-int4
+          Verify the accompanying SHA-256 file before use.
           EOF
-          )"
+
           if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release upload "${TAG}" "${MODEL}" "${MODEL}.sha256" --repo "${GITHUB_REPOSITORY}" --clobber
+            gh release upload "${TAG}" "${MODEL_FILE}" "${MODEL_FILE}.sha256" --repo "${GITHUB_REPOSITORY}" --clobber
           else
-            gh release create "${TAG}" "${MODEL}" "${MODEL}.sha256" --repo "${GITHUB_REPOSITORY}" --title "Kobra Offline Models v1.0" --notes "${NOTES}"
+            gh release create "${TAG}" "${MODEL_FILE}" "${MODEL_FILE}.sha256" --repo "${GITHUB_REPOSITORY}" --target "${GITHUB_SHA}" --title "Kobra OS Offline Models v1.0" --notes-file "${NOTES_FILE}"
           fi
