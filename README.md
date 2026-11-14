@@ -9,7 +9,7 @@
 
 **Asisten aksesibilitas yang dirancang untuk membantu pengguna mengoperasikan ponsel dengan suara, membaca informasi di layar, dan tetap memiliki fungsi dasar saat offline.**
 
-[📦 Download APK](https://github.com/adebojel/Asisten-bantu/actions) · [🧠 Download Model Lokal](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) · [🛠️ Source Code](https://github.com/adebojel/Asisten-bantu/tree/kobra-os-v7) · [🐞 Laporkan Bug](https://github.com/adebojel/Asisten-bantu/issues)
+[📦 **APK Releases**](https://github.com/adebojel/Asisten-bantu/releases) · [⚡ Build APK terbaru](https://github.com/adebojel/Asisten-bantu/actions) · [🧠 Model AI Offline](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) · [🛠️ Source Code](https://github.com/adebojel/Asisten-bantu/tree/kobra-os-v7) · [🐞 Laporkan Bug](https://github.com/adebojel/Asisten-bantu/issues)
 
 ![Android](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-Android-orange?logo=openjdk&logoColor=white)
@@ -32,9 +32,9 @@ Proyek ini sedang dikembangkan menuju arsitektur **AI hybrid**:
 - **Fallback:** jika layanan online gagal, aplikasi mencoba jalur lokal yang didukung perangkat.
 
 > [!IMPORTANT]
-> **Status pengembangan (15 November 2026):** build Android pada commit `baa8cab` berhasil di GitHub Actions. Artifact APK debug tersedia untuk pengujian awal. **Build sukses bukan berarti aplikasi sudah bebas crash atau sudah lulus uji perangkat nyata**; pengujian instalasi, izin, aksesibilitas, perpindahan AI online/offline, serta pemuatan model masih perlu dilakukan pada HP fisik.
+> **Status pengembangan (15 November 2026):** build Android pada commit `9669d19` berhasil di GitHub Actions. Artifact APK debug tersedia untuk pengujian awal. **Build sukses bukan berarti aplikasi sudah bebas crash atau sudah lulus uji perangkat nyata**; pengujian instalasi, izin, aksesibilitas, perpindahan AI online/offline, serta pemuatan model masih perlu dilakukan pada HP fisik.
 >
-> [**Buka hasil build sukses #111**](https://github.com/adebojel/Asisten-bantu/actions/runs/43635040270) lalu unduh artifact `Kobra-OS-APK` pada bagian Artifacts. Ukuran artifact sekitar 124 MB. Gunakan build ini hanya untuk pengujian, bukan sebagai rilis stabil.
+> [**Buka hasil build sukses #116**](https://github.com/adebojel/Asisten-bantu/actions/runs/43635308384) lalu unduh artifact `Kobra-OS-APK` pada bagian Artifacts. Ukuran artifact sekitar 124 MB. Gunakan build ini hanya untuk pengujian, bukan sebagai rilis stabil.
 
 ## ✨ Fitur dan kemampuan proyek
 
@@ -112,12 +112,13 @@ Cara mengambil APK:
 
 Jika artifact tidak tersedia, build belum berhasil atau artifact sudah kedaluwarsa. Jangan menganggap link Actions sebagai APK yang selalu siap diunduh.
 
-### Release
+### Releases dan APK
 
-- [Semua Releases](https://github.com/adebojel/Asisten-bantu/releases)
-- [Offline Model Pack v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0)
+- [**Buka halaman Releases**](https://github.com/adebojel/Asisten-bantu/releases) — tempat APK versi rilis akan ditampilkan.
+- [Offline Model Pack v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) — paket model, bukan APK.
+- [APK debug terbaru di GitHub Actions](https://github.com/adebojel/Asisten-bantu/actions/runs/43635308384) — unduh artifact `Kobra-OS-APK`.
 
-Saat ini link release model tidak boleh dianggap sebagai release APK. APK akan ditautkan di sini setelah ada release aplikasi yang valid dan teruji.
+Workflow [Kobra OS APK Release](.github/workflows/release-apk.yml) telah disiapkan. Ketika tag dengan pola `kobra-v*` diterbitkan, workflow akan menjalankan tes unit dan build APK, menghitung SHA-256, lalu membuat **GitHub prerelease** dengan APK dan checksum sebagai aset unduhan. Rilis pertama belum diterbitkan; halaman Releases akan menampilkan APK setelah workflow tag tersebut dijalankan dengan sukses.
 
 ## 🚀 Instalasi dan persiapan uji
 
@@ -220,7 +221,9 @@ GitHub Actions: [Build Kobra OS APK](https://github.com/adebojel/Asisten-bantu/a
 - [ ] Uji pemuatan dan jawaban model Qwen3 pada Android nyata.
 - [ ] Penyempurnaan pemilihan model berdasarkan kemampuan perangkat.
 - [ ] Dokumentasi screenshot aplikasi dari perangkat nyata.
-- [ ] Release APK stabil dengan checksum dan catatan perubahan.
+- [x] Workflow otomatis untuk menerbitkan APK prerelease dan checksum melalui GitHub Releases.
+- [ ] Rilis APK setelah tag versi dibuat dan workflow release berhasil.
+- [ ] Release APK stabil setelah uji perangkat nyata dan pemeriksaan keamanan.
 
 ## 🤝 Kontribusi dan laporan masalah
 
