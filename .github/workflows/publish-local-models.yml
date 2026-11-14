@@ -2,7 +2,10 @@ name: Publish Kobra Offline Model
 
 on:
   workflow_dispatch:
-
+  push:
+    branches:
+      - kobra-os-v7
+/m
 permissions:
   contents: write
 
