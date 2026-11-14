@@ -210,6 +210,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         AsistenAccessibilityService service = instance;
         if (service == null || raw == null || raw.trim().isEmpty()) return false;
         String c = raw.toLowerCase(Locale.ROOT).trim();
+        String wakeStripped = service.stripWake(c);
+        if (wakeStripped != null) c = wakeStripped;
+        final String command = c;
         boolean deviceCommand = c.startsWith("buka ") || c.startsWith("tekan ") || c.startsWith("klik ")
                 || c.startsWith("ketik ") || c.startsWith("tulis ") || c.startsWith("scroll ")
                 || c.startsWith("geser ") || c.startsWith("panggil ") || c.startsWith("telepon ")
@@ -227,7 +230,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 "ringkasan harian", "briefing pagi", "ingat bahwa", "simpan memori", "apa yang kamu ingat",
                 "saya aman", "konfirmasi aman", "sos", "darurat", "bantuan", "daftar perintah");
         if (!deviceCommand) return false;
-        service.main.post(() -> service.route(c));
+        service.main.post(() -> service.route(command));
         return true;
     }
 
