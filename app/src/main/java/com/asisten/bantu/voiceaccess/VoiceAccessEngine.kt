@@ -172,14 +172,14 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         // 2) Tampilan Nomor Layar & Grid 3x3
         val cfg = KobraConfig(service)
 
-        if (c.contains("tampilkan garis fokus") || c.contains("aktifkan garis fokus") || c.contains("bingkai fokus")) {
+        if (c == "tampilkan garis fokus" || c == "aktifkan garis fokus" || c == "tampilkan bingkai fokus" || c == "bingkai fokus") {
             cfg.setFocusOutlineEnabled(true)
             val bounds = NodeIndexer.focusedBounds(service)
             if (bounds != null) focusOutline.show(bounds)
             sayCallback.accept("Garis fokus aksesibilitas diaktifkan. Bagian tengah tetap transparan dan lapisan tidak menghalangi sentuhan.")
             return true
         }
-        if (c.contains("sembunyikan garis fokus") || c.contains("matikan garis fokus") || c.contains("nonaktifkan garis fokus")) {
+        if (c == "sembunyikan garis fokus" || c == "matikan garis fokus" || c == "nonaktifkan garis fokus") {
             cfg.setFocusOutlineEnabled(false)
             focusOutline.hide()
             sayCallback.accept("Garis fokus disembunyikan.")
