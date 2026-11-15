@@ -93,3 +93,11 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Updated the Settings subtitle and feature-gap matrix.
 - Important limitation: this is feature-group selection from Settings, not yet complete just-in-time prompting from each individual feature entry point. The remaining feature entrypoints need wiring before claiming full least-privilege runtime permission UX.
 - Latest code commit at this checkpoint: `790bb57598589cc88404fdcc8e7ce8661fbb5521`. Earlier successful build `29cbaab...` predates the permission-group code. Wait for a CI run containing the latest code before calling this update build-verified.
+
+
+## CI correction after permission test addition
+
+- The first permission unit-test version failed because it imported Robolectric, which is not a dependency in this project, and used non-static JUnit imports.
+- Corrected `PermsTest.java` to use the existing JUnit dependency only, static assertion imports, and no Robolectric runner. Tests cover only permission constants, group labels, and pure mapping behavior, so they do not need an Android runtime.
+- Latest code commit: `dc1ad0b6aeca29b51a616fc57cf5ba53959492e2`.
+- No completed CI run for this latest code commit was visible at the time of this checkpoint. Do not claim the permission-group change is build-verified until a workflow run for this commit or a later commit succeeds.
