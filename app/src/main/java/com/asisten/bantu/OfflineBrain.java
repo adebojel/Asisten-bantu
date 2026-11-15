@@ -278,6 +278,27 @@ public final class OfflineBrain {
         }
     }
 
+    /**
+     * Extract only an explicitly labelled, visible balance from screen text.
+     * Never infers a balance from an arbitrary number such as an OTP or account ID.
+     */
+    public static String visibleBalanceForSpeech(String screenText) {
+        if (screenText == null || screenText.trim().isEmpty()) return "";
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(
+                "(?i)(saldo(?:\\s+(?:anda|tersedia|rekening))?|available\\s+balance|total\\s+balance|balance)"
+                + "\\s*[:：-]?\\s*((?:rp|idr)\\s*)?([0-9][0-9., ]{2,})");
+        java.util.regex.Matcher matcher = pattern.matcher(screenText);
+        while (matcher.find()) {
+            String amount = matcher.group(3) == null ? "" : matcher.group(3).trim();
+            int digits = amount.replaceAll("[^0-9]", "").length();
+            if (digits < 3) continue;
+            String currency = matcher.group(2) == null ? "" : matcher.group(2).trim() + " ";
+            String label = matcher.group(1) == null ? "Saldo" : matcher.group(1).trim();
+            return label + " " + currency + amount + ". Ini hanya nominal yang terlihat pada layar.";
+        }
+        return "";
+    }
+
     /** Angka untuk dibacakan: bilangan bulat tanpa desimal, selain itu maksimal empat desimal dengan koma. */
     public static String formatNumber(double v) {
         if (v == Math.rint(v) && Math.abs(v) < 1e15) return String.valueOf((long) v);
