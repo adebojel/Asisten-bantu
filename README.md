@@ -7,7 +7,7 @@
 
 **Akses ponsel dengan suara. Baca informasi di sekitar. Tetap gunakan fungsi inti saat offline.**
 
-[**UNDUH APK KOBRA OS — BUILD MAIN TERBARU**](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-112/Kobra-OS-a974987.apk) · [Semua versi](https://github.com/adebojel/Asisten-bantu/releases) · [Status build APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/main) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
+[**UNDUH APK KOBRA OS — BUILD MAIN TERBARU**](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk) · [Semua versi](https://github.com/adebojel/Asisten-bantu/releases) · [Status build APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/main) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
 
 ![Android](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
@@ -76,19 +76,19 @@ Model tidak otomatis cocok untuk setiap ponsel. Kobra menggunakan pemeriksaan me
 <details>
 <summary><strong>Unduh aplikasi Kobra OS (APK)</strong></summary>
 
-**[UNDUH APK KOBRA OS — BUILD MAIN TERBARU (112)](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-112/Kobra-OS-a974987.apk)**
+**[UNDUH APK KOBRA OS — BUILD MAIN TERBARU](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk)**
 
-> Ini APK hasil build dari branch **main**, commit `a974987`. Pilih berkas APK di tautan langsung; jangan memilih rilis **Kobra OS Offline Models**, karena rilis itu hanya berisi model Qwen3.
+> Tautan ini selalu mengarah ke APK dari rilis **Latest** branch `main`. Rilis model **Kobra OS Offline Models** terpisah dan bukan APK aplikasi.
 
-Tautan langsung: [Kobra-OS-a974987.apk](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-112/Kobra-OS-a974987.apk) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-112/SHA256SUMS.txt) · [Halaman rilis Build 112](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-112)
+Tautan langsung: [Kobra-OS-main.apk](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/latest/download/SHA256SUMS.txt) · [Halaman rilis Build 112](https://github.com/adebojel/Asisten-bantu/releases/latest)
 
 Di halaman Releases:
-1. Buka **Kobra OS — Build 112** pada halaman Releases. Build APK ditandai **Pre-release** sehingga tidak selalu muncul sebagai rilis Latest GitHub.
+1. Buka rilis **Latest** bernama Kobra OS. Rilis APK utama tidak lagi ditandai Pre-release.
 2. Pada bagian **Assets**, pilih berkas `.apk` untuk mengunduh aplikasi.
 3. Unduh `SHA256SUMS.txt` bila ingin memeriksa integritas file.
 4. Setelah unduhan selesai, buka APK dan ikuti konfirmasi instalasi Android. Android mungkin meminta izin instalasi dari sumber ini.
 
-Jika tautan langsung tidak terbuka, buka rilis Build 112 di atas atau periksa [status workflow rilis APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml).
+Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [status workflow rilis APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml).
 
 </details>
 
