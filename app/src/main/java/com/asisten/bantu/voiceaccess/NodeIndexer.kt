@@ -297,6 +297,24 @@ object NodeIndexer {
         }
     }
 
+    @JvmStatic
+    fun focusedWordText(service: AccessibilityService?): String? {
+        if (service == null) return null
+        val root = selectActiveRoot(service) ?: return null
+        var focused: AccessibilityNodeInfo? = null
+        return try {
+            focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY) ?: return null
+            val text = focused?.text?.toString().orEmpty()
+            val start = focused?.textSelectionStart ?: -1
+            val end = focused?.textSelectionEnd ?: -1
+            val range = resolveWordRange(text, start, end) ?: return null
+            text.substring(range.first, range.last + 1)
+        } finally {
+            safeRecycle(focused)
+            safeRecycle(root)
+        }
+    }
+
     /**
      * Returns a tight screen rectangle for the current word using Android's per-character
      * text geometry. No full-line or full-TextView rectangle is drawn as a word substitute.
