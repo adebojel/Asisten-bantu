@@ -70,3 +70,13 @@ Important constraints:
 
 This document records intended behavior and code paths. It is not a claim that device-level
 compatibility has been verified; physical-device testing remains a separate gate.
+
+
+## Strict single-word boundary rule
+
+- A focused range is accepted only when Android exposes a real selection or caret.
+- A selection containing multiple alphanumeric words is rejected. It never becomes a full-line or paragraph outline.
+- A single-word selection with surrounding punctuation resolves to the word token only.
+- A collapsed caret resolves only the word touching that actual caret. Missing selection metadata never defaults to character zero or the first word.
+- If character geometry is unavailable, the outline stays hidden.
+- Target-label resolution uses a separate ranked matcher. Near-tied controls at distinct screen locations are ambiguous and not clicked; overlapping label/control pairs prefer the smaller actionable node.
