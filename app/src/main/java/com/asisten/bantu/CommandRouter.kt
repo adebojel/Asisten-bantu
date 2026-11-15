@@ -615,6 +615,9 @@ object CommandRouter {
                 if (decision.target.isBlank() || isRiskyAgentTarget(decision.target)) return false
                 val nodes = NodeIndexer.indexScreen(service)
                 val target = NodeIndexer.findByLabel(nodes, decision.target) ?: return false
+                // Re-check the actual resolved node, not only the model's query.
+                // A harmless-looking query must not bypass a risky visible label or resource ID.
+                if (isRiskyAgentTarget(target.label) || isRiskyAgentTarget(target.viewId)) return false
                 if (!target.isClickable || target.isEditable || target.isCheckable) return false
                 NodeIndexer.performClickAt(service, target.centerX, target.centerY)
             }
