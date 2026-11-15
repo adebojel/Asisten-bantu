@@ -71,3 +71,16 @@ Pada saat katalog dibuat, repository utama memiliki commit `6d45653410a34f7e4487
 - https://github.com/DrophouseLtd/SightBuddy
 - https://github.com/michael2505byte/SeeForMe
 - https://github.com/Cambric-software/c-around
+
+
+## Tambahan hasil pencarian 16 November 2026
+
+| Repository | Lisensi kode | Sistem/fungsi yang relevan | Keputusan KOBRA |
+|---|---|---|---|
+| [soniqo/speech-android](https://github.com/soniqo/speech-android) | Apache-2.0 | Android SDK streaming ASR, TTS, VAD, noise cancellation via ONNX; demo loop offline VAD→ASR→FunctionGemma→action→TTS. README menyebut model utama 25 bahasa Eropa; model multilingual lebih besar masih opsional/belum terukur. | Kandidat riset audio engine. Jangan ganti engine aktif sebelum bahasa Indonesia, RAM, latency, ABI dan lisensi model diuji. |
+| [edgeaitechnologies/offline-voice-ai](https://github.com/edgeaitechnologies/offline-voice-ai) | Tidak terdeteksi / belum terverifikasi | Kotlin coroutine API, Vosk STT, Sherpa-ONNX VITS TTS, streamed TTS, stop-on-silence. | Referensi API saja; tidak menyalin kode sampai lisensi dan dependensi dipastikan. |
+| [SHWETHAA-US/VisionAssist_Android](https://github.com/SHWETHAA-US/VisionAssist_Android) | MIT | ML Kit object detection/OCR, Android TTS, haptic navigation, voice commands, offline-first dan TalkBack compatibility. | Kandidat audit kode untuk pembanding dengan VisionActivity/ML Kit KOBRA; jangan menambah pipeline kamera kedua. |
+| [NTDuck/uet-2627i-int3011e-3-visionaid](https://github.com/NTDuck/uet-2627i-int3011e-3-visionaid) | Tidak terdeteksi pada fork | Explore/Find, YOLOv5, OCR offline, auto-capture, audio-first onboarding, haptic pulse guidance. | Feature reference; fork tidak punya lisensi terverifikasi. Cari dan audit lisensi upstream Shravan sebelum reuse. |
+| [qsn-7274-ywn/SightSync](https://github.com/qsn-7274-ywn/SightSync) | AGPL-3.0 | AccessibilityService, voice/TTS, screen extraction, constrained actions, local validation, privacy disclosure dan AI proxy. | Arsitektur keselamatan dan auditability saja; jangan copy kode kecuali proyek menerima kewajiban AGPL. Prototype awal, bukan production-ready. |
+
+Lisensi repository tidak otomatis melisensikan model, dataset, voice pack, atau binary submodule. Setiap aset perlu pemeriksaan tersendiri.
