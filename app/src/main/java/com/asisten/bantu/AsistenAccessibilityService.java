@@ -2473,9 +2473,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
                         || visible.equals("Layar ini tidak punya teks yang bisa dibaca.")) {
                     say("Percakapan " + name + " dibuka, tetapi teks pesannya tidak tersedia untuk dibaca dari layar saat ini.");
                 } else {
-                    say("Teks yang terlihat pada layar percakapan " + name + ": " + visible);
                     pending = new Pending("chat_reply_choice", name, "");
-                    say("Apakah Anda ingin membalas percakapan " + name + "? Bilang iya atau tidak.");
+                    say("Teks yang terlihat pada layar percakapan " + name + ": " + visible
+                            + ". Apakah Anda ingin membalas percakapan " + name + "? Bilang iya atau tidak.");
                 }
             }, 800);
         } else {
