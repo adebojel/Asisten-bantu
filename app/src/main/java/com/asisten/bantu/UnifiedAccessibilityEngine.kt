@@ -697,11 +697,6 @@ object UnifiedAccessibilityEngine {
     @JvmStatic
     fun scrollGlobal(service: AccessibilityService?, forward: Boolean): Boolean {
         if (service == null) return false
-        val root = try {
-            service.rootInActiveWindow
-        } catch (_: Throwable) {
-            null
-        }
         // Prefer a vertical swipe for feed-style apps (TikTok, Reels, Shorts).
         // ACTION_SCROLL_FORWARD can be interpreted horizontally by nested carousels
         // and video players even when the user's spoken intent is vertical.
@@ -711,6 +706,11 @@ object UnifiedAccessibilityEngine {
         val yEnd = if (forward) dm.heightPixels * 0.24f else dm.heightPixels * 0.76f
         if (swipe(service, cx, yStart, cx, yEnd, 420L)) return true
 
+        val root = try {
+            service.rootInActiveWindow
+        } catch (_: Throwable) {
+            null
+        }
         if (root != null) {
             try {
                 val scrollable = findScrollableNode(root, true) ?: findScrollableNode(root, false)
