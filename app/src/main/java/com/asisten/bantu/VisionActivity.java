@@ -242,6 +242,7 @@ public class VisionActivity extends AppCompatActivity {
 
     @Override protected void onPause() {
         super.onPause();
+        objectDetectionStability.reset();
         if (current == this) current = null;
         if (sensorManager != null) {
             sensorManager.unregisterListener(lightListener);
@@ -330,6 +331,7 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private void startCamera() {
+        objectDetectionStability.reset();
         ListenableFuture<ProcessCameraProvider> future = ProcessCameraProvider.getInstance(this);
         future.addListener(() -> {
             try {
