@@ -52,9 +52,10 @@ object OnlineAiRouter {
 
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(18, TimeUnit.SECONDS)
-            .readTimeout(45, TimeUnit.SECONDS)
-            .writeTimeout(20, TimeUnit.SECONDS)
+            .connectTimeout(12, TimeUnit.SECONDS)
+            .readTimeout(25, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .callTimeout(35, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
     }
@@ -239,7 +240,9 @@ object OnlineAiRouter {
             }
         }
 
-        for (model in candidates) {
+        // Avoid serially waiting on a long tail of unavailable free models.
+        // A short, bounded provider chain is more usable for a voice assistant.
+        for (model in candidates.take(3)) {
             val reply = callOpenRouterSingle(apiKey, model, systemPrompt, userPrompt, imageBase64)
             if (!reply.isNullOrBlank()) return reply
         }
@@ -289,7 +292,7 @@ object OnlineAiRouter {
                                     }
                                 }
                             }
-                            val result = discovered.distinct().take(8)
+                            val result = discovered.distinct().take(3)
                             if (result.isNotEmpty()) {
                                 freeModelCache = result
                                 freeModelCacheAtMs = now
