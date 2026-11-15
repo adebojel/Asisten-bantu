@@ -219,6 +219,17 @@ object NodeIndexer {
         return node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
     }
 
+    @JvmStatic
+    fun activePackageName(service: AccessibilityService?): String? {
+        if (service == null) return null
+        val root = selectActiveRoot(service) ?: return null
+        return try {
+            root.packageName?.toString()
+        } finally {
+            safeRecycle(root)
+        }
+    }
+
     private fun selectActiveRoot(service: AccessibilityService): AccessibilityNodeInfo? {
         return try {
             service.rootInActiveWindow
