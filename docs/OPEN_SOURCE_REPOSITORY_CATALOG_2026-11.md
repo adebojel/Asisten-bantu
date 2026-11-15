@@ -84,3 +84,21 @@ Pada saat katalog dibuat, repository utama memiliki commit `6d45653410a34f7e4487
 | [qsn-7274-ywn/SightSync](https://github.com/qsn-7274-ywn/SightSync) | AGPL-3.0 | AccessibilityService, voice/TTS, screen extraction, constrained actions, local validation, privacy disclosure dan AI proxy. | Arsitektur keselamatan dan auditability saja; jangan copy kode kecuali proyek menerima kewajiban AGPL. Prototype awal, bukan production-ready. |
 
 Lisensi repository tidak otomatis melisensikan model, dataset, voice pack, atau binary submodule. Setiap aset perlu pemeriksaan tersendiri.
+
+
+## Tambahan kandidat agen layar dan otomasi Android — 16 November 2026
+
+| Repository | Lisensi | Sistem/fungsi yang diteliti | Keputusan integrasi |
+|---|---|---|---|
+| [JMAN730/opendroid](https://github.com/JMAN730/opendroid) | LICENSE berisi Apache-2.0 (metadata GitHub NOASSERTION) | Agen Android mandiri, perencanaan tugas berurutan, evaluasi hasil, re-planning, disambiguasi kontak, guard untuk aksi gabungan, provider lokal/online. | Prioritas tinggi untuk desain observe-plan-act-verify dan guard aksi; audit modul/dependency sebelum porting karena repo besar dan KOBRA sudah punya runtime/service sendiri. |
+| [beingDurgesh/OnScreen-Agent](https://github.com/beingDurgesh/OnScreen-Agent) | MIT | Kotlin + Rust, agen multimodal, voice/STT/VLM/TTS provider slot, Play/Stop, tangkapan layar dan aksi accessibility. | Prioritas riset, bukan drop-in: README mensyaratkan Android 15+ sementara KOBRA mendukung lebih luas; hindari menambah service kedua. |
+| [alzin/lucy-screen-agent](https://github.com/alzin/lucy-screen-agent) | MIT | Asisten suara sadar layar, multimodal, taps/types/swipes, proses multi-langkah, dokumentasi privacy dan eksperimen. | Referensi UX dan state machine; implementasi Flutter dan ketergantungan Gemini/BYOK tidak cocok disalin langsung ke native Java/Kotlin atau dijadikan fitur gratis otomatis. |
+| [Bilal140202/MobileAgent](https://github.com/Bilal140202/MobileAgent) | Tidak ditemukan LICENSE | Kotlin AccessibilityService, parsing pohon layar, aksi terstruktur, voice, guard konfirmasi aksi destruktif, kontrol Telegram. | Referensi desain saja; tidak menyalin kode sebelum lisensi jelas. Remote control Telegram tidak dijadikan default karena risiko privasi. |
+| [j0taaa/android-use](https://github.com/j0taaa/android-use) | Tidak ditemukan LICENSE pada root | Agen lokal di ponsel, provider API, snapshot layar, semantic taps, gestures, pause/stop, history terenkripsi. | Referensi UX stop/pause dan riwayat; jangan copy kode tanpa lisensi. Provider API BYOK bukan jalur gratis bawaan. |
+
+### Prinsip seleksi untuk seluruh repository
+
+- **Integrasi langsung** hanya bila lisensi kode, model, dataset, aset, dan dependency sesuai; API cocok; dan fungsi dapat diuji.
+- **Adaptasi arsitektur** bila idenya kuat tetapi stack/SDK tidak cocok.
+- **Referensi saja** untuk repository tanpa lisensi yang jelas atau proyek eksperimental.
+- **Tolak** jika memerlukan akses root/ADB tersembunyi, menambah pemilik kedua kamera/mikrofon/AccessibilityService, atau mengirim data sensitif tanpa persetujuan yang jelas.
