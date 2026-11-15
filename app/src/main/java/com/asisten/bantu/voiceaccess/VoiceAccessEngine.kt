@@ -58,6 +58,21 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         }
     }
 
+    private fun focusBoundary(first: Boolean, sayCallback: Consumer<String>) {
+        val nodes = NodeIndexer.indexScreen(service)
+        if (nodes.isEmpty()) {
+            sayCallback.accept("Tidak ada target fokus yang bisa dijelajahi pada layar ini.")
+            return
+        }
+        val target = if (first) nodes.first() else nodes.last()
+        if (NodeIndexer.focusAt(service, target.centerX, target.centerY)) {
+            lastIndexedNodes = nodes
+            sayCallback.accept(target.label)
+        } else {
+            sayCallback.accept("Android tidak memberikan fokus aksesibilitas pada " + target.label + ".")
+        }
+    }
+
     private fun moveAccessibilityFocus(forward: Boolean, sayCallback: Consumer<String>) {
         val nodes = NodeIndexer.indexScreen(service)
         if (nodes.isEmpty()) {
@@ -161,6 +176,20 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             cfg.setFocusOutlineEnabled(false)
             focusOutline.hide()
             sayCallback.accept("Garis fokus disembunyikan.")
+            return true
+        }
+
+        if (c == "fokus pertama" || c == "item pertama" || c == "mulai dari awal") {
+            focusBoundary(true, sayCallback)
+            return true
+        }
+        if (c == "fokus terakhir" || c == "item terakhir" || c == "ke bagian akhir") {
+            focusBoundary(false, sayCallback)
+            return true
+        }
+        if (c == "baca fokus" || c == "apa yang dipilih" || c == "bacakan fokus") {
+            val label = NodeIndexer.focusedLabel(service)
+            sayCallback.accept(if (label.isNotEmpty()) label else "Belum ada elemen yang memiliki fokus aksesibilitas.")
             return true
         }
 
