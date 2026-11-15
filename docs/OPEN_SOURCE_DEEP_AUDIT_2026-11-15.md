@@ -195,3 +195,21 @@ A real integration was added to the active `CommandRouter.tryRouteFastOrVisual()
 - It does not take screen actions. This change is analysis-only; autonomous screen-agent execution remains blocked until action confirmation and post-action verification are implemented.
 
 The first CI run exposed a Kotlin compile error: the service was typed as the base `AccessibilityService`, so `readScreenText()` was not available. The fallback was corrected to use a safe cast to `AsistenAccessibilityService`. The next workflow run must verify the correction before the PR is considered build-clean.
+
+
+## 16 November 2026 — bounded screen-navigation agent
+
+A screen-navigation loop has now been connected only for multi-step commands that pass the risk-intent filter. It is not a general-purpose autonomous phone operator.
+
+Safety constraints in this implementation:
+- The loop uses `OnlineAiRouter` only; it requires a live image-capable model with zero input/output pricing verified by the existing provider catalog.
+- Allowed actions are limited to opening an app, clicking a uniquely resolved non-editable/non-checkable control, scrolling, Back and Home.
+- Typing, submitting, sending, calls, payments, purchases, deletion, installation, sharing, upload/download, permission changes and system-setting toggles are blocked.
+- Generic confirmation controls (OK/Yes/Continue/Save/Apply) are blocked to avoid accepting dialogs.
+- Each click target must resolve uniquely through the fresh accessibility index and be actionable. No model-proposed raw coordinate taps are accepted.
+- After each accepted action, a fresh accessibility snapshot must have a different fingerprint. This proves only that the UI changed, not that the user's overall goal succeeded.
+- A model `done` response is not treated as proof of completion. The agent explicitly tells the user to inspect the result and does not cache the run as a macro.
+- A voice command `hentikan agen layar`, `batalkan agen layar`, or `stop agen layar` requests cancellation after the current provider call/action. A synchronized state lock avoids losing a stop request during agent startup or teardown.
+- Risk-target logic has unit tests for destructive/transactional actions, system settings, confirmation controls and ordinary navigation labels.
+
+This agent is still experimental: screen fingerprint changes can be caused by unrelated UI animation or navigation and are not semantic proof of the requested end state. The user must review the resulting screen before any sensitive follow-up action.
