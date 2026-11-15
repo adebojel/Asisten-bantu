@@ -24,17 +24,17 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 13. "Kobra kirim SMS ke <kontak uji>", isi, "iya".
 14. "Kobra buka" lalu nama yang mirip beberapa aplikasi (misalnya "Google"): Kobra harus menyebut nomor; jawab "dua".
 
-## E. Layar
-15. Buka aplikasi apa saja, ucapkan "Kobra baca layar". Pastikan Kobra membacakan teks/label dan kontrol, bukan hanya tombol.
-16. Pilih elemen teks yang tidak memiliki tombol aksesibilitas: "Kobra klik [teks yang terlihat]". Pastikan Kobra mengetuk area teks yang benar atau jujur menyatakan target tidak tersedia.
-17. Uji dua label mirip, misalnya beberapa tombol "Putar". Kobra tidak boleh menebak; harus meminta nomor.
-18. "Kobra tampilkan nomor", pilih target, lalu ucapkan "Kobra klik nomor 1". Pastikan nomor diperbarui setelah layar berubah.
-19. "Kobra scroll bawah", "Kobra geser kiri", "Kobra kembali", "Kobra beranda".
-20. Uji "Kobra tampilkan label", "Kobra ketuk nomor 2", "Kobra seret nomor 3 ke nomor 8", "Kobra zoom in", dan "Kobra zoom out" pada aplikasi uji yang mendukung gestur. Pastikan respons menyebut gestur dikirim, bukan mengklaim hasil aplikasi sudah berubah.
-21. Ucapkan "Kobra tampilkan garis fokus". Pastikan bingkai mengikuti fokus aksesibilitas, bagian tengah transparan, dan sentuhan pada aplikasi tetap dapat diteruskan.
-22. Uji "Kobra bicara lebih cepat", "Kobra bicara lebih lambat", "Kobra kecepatan bicara normal", "Kobra suara lebih tinggi", dan "Kobra suara lebih rendah". Pastikan perubahan suara berlaku pada pembacaan berikutnya dan tetap tersimpan setelah aplikasi dibuka ulang.
-23. Ucapkan "Kobra fokus pertama", "Kobra fokus berikutnya", "Kobra fokus sebelumnya", "Kobra fokus terakhir", dan "Kobra baca fokus". Pastikan item yang dibacakan sesuai bingkai.
-24. Pindah ke aplikasi lain. Garis lama harus hilang dan mengikuti fokus baru setelah aplikasi mengirim event fokus. Ucapkan "Kobra sembunyikan garis fokus" untuk menonaktifkan.
+## E. Layar, kata, dan tampilan minimal
+15. Buka aplikasi apa saja, ucapkan "Kobra baca layar". Pastikan Kobra membacakan teks, label, dan kontrol yang benar-benar diekspos aplikasi.
+16. Ucapkan "Kobra klik [nama tombol]" pada satu target unik. Jika ada beberapa target mirip, Kobra harus meminta pemilihan yang lebih tepat dan tidak menebak.
+17. Ucapkan "Kobra tampilkan nomor" atau ketuk mikrofon dua kali. Pastikan indeks target dibacakan, tetapi tidak ada lencana nomor yang digambar di layar.
+18. Ucapkan "Kobra kata berikutnya" dan "Kobra kata sebelumnya" saat fokus berada pada teks yang mendukung navigasi granularitas kata. Pastikan kata yang dibacakan berubah sesuai seleksi.
+19. Ucapkan "Kobra baca kata fokus". Pastikan hanya kata yang sedang difokuskan yang dibacakan.
+20. Ucapkan "Kobra klik kata ini" pada teks yang menyediakan koordinat karakter. Jika koordinat tidak tersedia, Kobra harus menyatakan tidak tersedia dan tidak menebak titik ketukan.
+21. Ucapkan "Kobra ketuk B3" dan "Kobra geser A1 ke C5" pada aplikasi uji. Pastikan aksi dikirim tanpa menampilkan grid visual.
+22. Ucapkan "Kobra fokus pertama", "Kobra fokus berikutnya", "Kobra fokus sebelumnya", "Kobra fokus terakhir", dan "Kobra baca fokus".
+23. Ubah seleksi teks atau pindah aplikasi. Batas fokus harus mengikuti kata/elemen aktif, hanya sebesar kata/elemen, sangat tipis, transparan, dan tidak menerima sentuhan.
+24. Pastikan hanya ikon mikrofon kecil 44dp yang mengambang. Tidak boleh ada panel, toolbar, lencana nomor, grid, dimming, atau glow yang menutupi aplikasi. Uji juga "Kobra bicara lebih cepat", "Kobra bicara lebih lambat", dan "Kobra kecepatan bicara normal".
 
 ## F. Pesan masuk dan telepon
 25. Minta teman mengirim WhatsApp dan SMS. Notifikasi harus dibacakan; lalu "Kobra baca notifikasi", "Kobra baca SMS".
