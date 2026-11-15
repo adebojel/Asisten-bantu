@@ -208,7 +208,7 @@ object CommandRouter {
         // Internet hanya dipakai jika model lokal tidak siap, gagal, atau perangkat kekurangan RAM.
         if (LocalModelRuntimeManager.isModelAvailable(service)) {
             if (LocalModelRegistry.canAttemptLiteRtModel(service)) {
-                LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\\n\\nPengguna: $command") { answer, error ->
+                LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\n\nPengguna: $command") { answer, error ->
                     if (!answer.isNullOrBlank()) {
                         speaker.speak(answer)
                     } else if (online) {
@@ -526,10 +526,10 @@ object CommandRouter {
 
     @JvmStatic
     fun callGeminiBlocking(context: Context, prompt: String, imageBase64: String? = null): String? {
-        val key = resolveGeminiApiKey(context)
-        if (key.isEmpty()) return null
-        val fullPrompt = KobraPersona.buildFullSystemPrompt(context) + "\n\n" + prompt
-        return OnlineAiRouter.callGeminiWithFallback(key, fullPrompt, imageBase64)?.let { cleanForSpeech(it) }
+        // Gemini REST dapat memakai akun dengan billing aktif. Nonaktifkan jalur ini
+        // sampai tersedia integrasi gratis yang terverifikasi dan dipilih secara eksplisit.
+        Log.w(TAG, "Gemini REST dinonaktifkan oleh kebijakan gratis-tanpa-tagihan Kobra.")
+        return null
     }
 
     private suspend fun executeSingleStep(service: AccessibilityService, step: MacroStep): Boolean {
@@ -630,7 +630,8 @@ Balas HANYA 1 objek JSON valid tanpa markdown dengan salah satu action berikut:
     }
 
     private fun callGeminiRest(apiKey: String, prompt: String, screenshotBase64: String?): String? {
-        return OnlineAiRouter.callGeminiWithFallback(apiKey, prompt, screenshotBase64)
+        // Jangan mengirim screenshot/prompt ke endpoint Gemini REST berpotensi berbayar.
+        return null
     }
 
     private fun isVisualScreenQuery(c: String): Boolean {
