@@ -86,7 +86,10 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // Kotlin Coroutines & Network Client (Gemini / AI Studio REST Integration)
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
+    // LiteRT-LM 0.16.1 calls the SendChannel.close$default interface bridge introduced in 1.11.0.
+    // Keep Android and core coroutines aligned to prevent NoSuchMethodError after local inference.
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // CameraX 1.3.1
