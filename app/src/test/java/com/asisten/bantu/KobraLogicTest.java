@@ -187,6 +187,16 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testExplicitCancelDoesNotMatchNormalMessageText() {
+        assertTrue(VoiceSilenceCommandParser.isExplicitCancelCommand("tidak"));
+        assertTrue(VoiceSilenceCommandParser.isExplicitCancelCommand("jangan kirim"));
+        assertTrue(VoiceSilenceCommandParser.isExplicitCancelCommand("tidak jadi"));
+        assertTrue(!VoiceSilenceCommandParser.isExplicitCancelCommand("saya tidak bisa datang besok"));
+        assertTrue(!VoiceSilenceCommandParser.isExplicitCancelCommand("jangan lupa bawa dokumen"));
+        assertTrue(!VoiceSilenceCommandParser.isExplicitCancelCommand("saya batal berangkat kemarin"));
+    }
+
+    @Test
     public void testPersistentSilenceIsSeparateFromOneShotStop() {
         assertTrue(VoiceSilenceCommandParser.isSilenceCommand("diam dulu"));
         assertTrue(VoiceSilenceCommandParser.isSilenceCommand("Kobra diam"));
