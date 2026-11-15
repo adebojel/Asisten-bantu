@@ -193,7 +193,7 @@ object OnlineAiRouter {
             httpClient.newCall(req).execute().use { resp ->
                 val bodyStr = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) {
-                    Log.w(TAG, "Gemini ($model) HTTP ${resp.code}: $bodyStr")
+                    Log.w(TAG, "Gemini ($model) HTTP ${resp.code}; lanjut fallback gratis: $bodyStr")
                     return null
                 }
                 val root = JSONObject(bodyStr)
@@ -224,11 +224,16 @@ object OnlineAiRouter {
     ): String? {
         val candidates = ArrayList<String>()
         if (imageBase64.isNullOrEmpty()) {
+            // Hanya izinkan model yang secara eksplisit gratis. Model pilihan
+            // pengguna tidak boleh melewati filter harga karena dapat menimbulkan biaya.
+            val discoveredFree = discoverFreeTextModels(apiKey)
             val preferred = cfg.model
-            if (preferred.isNotEmpty()) candidates.add(preferred)
-            // Gunakan katalog live terlebih dahulu; daftar bawaan tetap menjadi
-            // fallback jika endpoint katalog sedang tidak tersedia.
-            for (m in discoverFreeTextModels(apiKey)) {
+            if (preferred.endsWith(":free", ignoreCase = true) ||
+                discoveredFree.contains(preferred)) {
+                if (preferred.isNotEmpty()) candidates.add(preferred)
+            }
+            // Katalog live hanya memasukkan model dengan harga prompt dan completion = 0.
+            for (m in discoveredFree) {
                 if (!candidates.contains(m)) candidates.add(m)
             }
             for (m in KobraConfig.TEXT_MODELS) {
@@ -240,9 +245,8 @@ object OnlineAiRouter {
             }
         }
 
-        // Avoid serially waiting on a long tail of unavailable free models.
-        // A short, bounded provider chain is more usable for a voice assistant.
-        for (model in candidates.take(3)) {
+        // Jika satu model limit/429/5xx, lanjut ke model gratis berikutnya.
+        for (model in candidates.distinct()) {
             val reply = callOpenRouterSingle(apiKey, model, systemPrompt, userPrompt, imageBase64)
             if (!reply.isNullOrBlank()) return reply
         }
@@ -350,10 +354,14 @@ object OnlineAiRouter {
             httpClient.newCall(req).execute().use { resp ->
                 val body = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) {
-                    Log.w(TAG, "OpenRouter ($model) HTTP ${resp.code}")
+                    Log.w(TAG, "OpenRouter ($model) HTTP ${resp.code}; lanjut fallback gratis")
                     return null
                 }
-                parseOpenAiStyleContent(body)
+                val parsed = parseOpenAiStyleContent(body)
+                if (parsed.isNullOrBlank()) {
+                    Log.w(TAG, "OpenRouter ($model) tidak mengembalikan teks; lanjut fallback gratis")
+                }
+                parsed
             }
         } catch (t: Throwable) {
             Log.w(TAG, "Gagal menghubungi OpenRouter ($model): ${t.message}")
