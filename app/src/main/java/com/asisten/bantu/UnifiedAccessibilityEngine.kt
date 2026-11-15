@@ -696,6 +696,32 @@ object UnifiedAccessibilityEngine {
         }
     }
 
+    /** Two-finger pinch gesture centered on the display. */
+    @JvmStatic
+    fun pinch(service: AccessibilityService?, zoomIn: Boolean): Boolean {
+        if (service == null) return false
+        return try {
+            val dm = service.resources.displayMetrics
+            val cx = dm.widthPixels / 2f
+            val cy = dm.heightPixels / 2f
+            val inner = 24f * dm.density
+            val outer = 112f * dm.density
+            val start = if (zoomIn) inner else outer
+            val end = if (zoomIn) outer else inner
+            val first = Path().apply { moveTo(cx - start, cy); lineTo(cx - end, cy) }
+            val second = Path().apply { moveTo(cx + start, cy); lineTo(cx + end, cy) }
+            val strokeA = GestureDescription.StrokeDescription(first, 0L, 420L)
+            val strokeB = GestureDescription.StrokeDescription(second, 0L, 420L)
+            val gesture = GestureDescription.Builder()
+                .addStroke(strokeA)
+                .addStroke(strokeB)
+                .build()
+            service.dispatchGesture(gesture, null, null)
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
     @JvmStatic
     fun scrollGlobal(service: AccessibilityService?, forward: Boolean): Boolean {
         if (service == null) return false
