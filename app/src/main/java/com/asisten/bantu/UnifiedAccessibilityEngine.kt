@@ -702,26 +702,29 @@ object UnifiedAccessibilityEngine {
         } catch (_: Throwable) {
             null
         }
+        // Prefer a vertical swipe for feed-style apps (TikTok, Reels, Shorts).
+        // ACTION_SCROLL_FORWARD can be interpreted horizontally by nested carousels
+        // and video players even when the user's spoken intent is vertical.
+        val dm = service.resources.displayMetrics
+        val cx = dm.widthPixels / 2f
+        val yStart = if (forward) dm.heightPixels * 0.76f else dm.heightPixels * 0.24f
+        val yEnd = if (forward) dm.heightPixels * 0.24f else dm.heightPixels * 0.76f
+        if (swipe(service, cx, yStart, cx, yEnd, 420L)) return true
+
         if (root != null) {
             try {
                 val scrollable = findScrollableNode(root, true) ?: findScrollableNode(root, false)
                 if (scrollable != null) {
-                    val ok = scrollable.performAction(
+                    return scrollable.performAction(
                         if (forward) AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
                         else AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD
                     )
-                    if (ok) return true
                 }
             } finally {
                 safeRecycle(root)
             }
         }
-        // Fallback gestur swipe
-        val dm = service.resources.displayMetrics
-        val cx = dm.widthPixels / 2f
-        val yStart = if (forward) dm.heightPixels * 0.72f else dm.heightPixels * 0.28f
-        val yEnd = if (forward) dm.heightPixels * 0.28f else dm.heightPixels * 0.72f
-        return swipe(service, cx, yStart, cx, yEnd, 360L)
+        return false
     }
 
     @JvmStatic
