@@ -1,16 +1,11 @@
 package com.asisten.bantu;
 
 import android.Manifest;
-import org.junit.Assert.assertArrayEquals;
-import org.junit.Assert.assertEquals;
-import org.junit.Assert.assertTrue;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-@RunWith(RobolectricTestRunner.class)
-@Config(sdk = {34})
 public class PermsTest {
 
     @Test
