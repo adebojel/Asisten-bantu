@@ -193,8 +193,9 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             val target = NodeIndexer.findByNumber(nodes, longClickNum)
             if (target != null) {
                 numberOverlay.hide()
-                UnifiedAccessibilityEngine.longClickAt(service, target.centerX.toFloat(), target.centerY.toFloat())
-                sayCallback.accept("Menahan ${target.label}.")
+                val accepted = UnifiedAccessibilityEngine.longClickAt(service, target.centerX.toFloat(), target.centerY.toFloat())
+                sayCallback.accept(if (accepted) "Perintah tekan lama untuk ${target.label} dikirim ke sistem."
+                    else "Sistem menolak perintah tekan lama untuk ${target.label}.")
                 return true
             }
             sayCallback.accept("Nomor $longClickNum tidak ditemukan.")
@@ -208,8 +209,13 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             val target = NodeIndexer.findByNumber(nodes, clickNum)
             if (target != null) {
                 numberOverlay.hide()
-                UnifiedAccessibilityEngine.clickAt(service, target.centerX.toFloat(), target.centerY.toFloat())
-                sayCallback.accept("Membuka ${target.label}.")
+                val clicked = NodeIndexer.performClickAt(service, target.centerX, target.centerY)
+                val accepted = clicked || UnifiedAccessibilityEngine.clickAt(service, target.centerX.toFloat(), target.centerY.toFloat())
+                sayCallback.accept(
+                    if (clicked) "Tombol ${target.label} menerima aksi klik."
+                    else if (accepted) "Gestur ketuk untuk ${target.label} dikirim. Perubahan layar belum diverifikasi."
+                    else "Sistem menolak klik pada ${target.label}. Layar mungkin berubah; sebutkan baca layar lalu coba lagi."
+                )
                 return true
             }
             sayCallback.accept("Nomor $clickNum tidak ada pada layar.")
@@ -390,7 +396,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
     }
 
     private fun currentOrRefreshNodes(): List<NodeIndexer.IndexedNode> {
-        if (lastIndexedNodes.isNotEmpty()) return lastIndexedNodes
+        // Re-index on every selection: the app, dialog, or list may have changed
+        // since the last spoken readout. Never click using stale screen coordinates.
         return NodeIndexer.indexScreen(service).also { lastIndexedNodes = it }
     }
 
