@@ -46,6 +46,22 @@ public final class VoiceSilenceCommandParser {
                 "jeda bicara", "pause suara", "jeda suara", "cukup bicara");
     }
 
+    /** Unambiguous multi-word stop phrases safe to act on before recognition finalizes. */
+    public static boolean isImmediateSpeechInterruptCommand(String input) {
+        String normalized = normalize(input);
+        if (normalized.startsWith("stop video") || normalized.startsWith("berhenti video")
+                || normalized.startsWith("hentikan video") || normalized.startsWith("pause video")
+                || normalized.startsWith("stop musik") || normalized.startsWith("berhenti musik")
+                || normalized.startsWith("stop lagu") || normalized.startsWith("hentikan sirine")) {
+            return false;
+        }
+        return containsAnyPhrase(normalized,
+                "berhenti bicara", "hentikan bicara", "hentikan suara",
+                "stop bicara", "stop baca", "berhenti membaca", "hentikan bacaan",
+                "jeda bicara", "pause suara", "jeda suara", "cukup bicara",
+                "diam dulu", "stop sekarang");
+    }
+
     private static boolean containsAnyPhrase(String input, String... phrases) {
         String text = normalize(input);
         if (text.isEmpty()) return false;
