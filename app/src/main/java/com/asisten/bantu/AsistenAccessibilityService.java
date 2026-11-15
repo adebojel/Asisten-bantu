@@ -327,10 +327,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
         UnifiedAccessibilityEngine.onAccessibilityEvent(this, event);
-        if (voiceAccessEngine != null && event != null
-                && (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED)) {
-            voiceAccessEngine.refreshOverlaysIfActive();
+        if (voiceAccessEngine != null && event != null) {
+            voiceAccessEngine.onAccessibilityEvent(event);
+            if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+                    || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+                voiceAccessEngine.refreshOverlaysIfActive();
+            }
         }
     }
 
