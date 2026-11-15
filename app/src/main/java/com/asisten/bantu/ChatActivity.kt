@@ -561,6 +561,7 @@ open class ChatActivity : AppCompatActivity() {
                 scheduleHandsFreeRetry("inisialisasi pengenalan suara")
             } else {
                 speaker.speak("Mikrofon gagal dimulai. Periksa izin mikrofon dan layanan pengenalan suara di pengaturan Android.")
+            }
         }
     }
 
