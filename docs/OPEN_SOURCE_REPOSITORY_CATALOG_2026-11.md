@@ -133,3 +133,21 @@ Lisensi repository tidak otomatis melisensikan model, dataset, voice pack, atau 
 ## Catatan audit kualitas repository
 
 Banyak hasil pencarian GitHub berupa proyek demo, tugas kuliah, fork, prototype server-based, atau repositori tanpa lisensi. Jumlah repository bukan ukuran kualitas. KOBRA hanya mengadopsi implementasi setelah source code, tests, commit upstream, lisensi dependency, model weights, ABI, minSdk, ukuran, performa, privasi, dan lifecycle diverifikasi.
+
+## Tambahan riset audio, navigasi, dan assistive sensing — 16 November 2026
+
+| Repository | Lisensi kode | Sistem/fungsi | Penilaian untuk KOBRA |
+|---|---|---|---|
+| [R-Dilipkumar/LiveSub-Offline-Translator](https://github.com/R-Dilipkumar/LiveSub-Offline-Translator) | MIT | Streaming ASR offline, terjemahan on-device, VAD; README mencantumkan model multilingual yang termasuk Bahasa Indonesia. Android 10+, Sherpa-ONNX dan ML Kit. | Kandidat untuk menguji ASR Indonesia offline. Ambil adapter/model hanya setelah verifikasi lisensi masing-masing model, ukuran, latency dan penggunaan mic. Jangan ambil overlay subtitle karena KOBRA hanya mempertahankan orb mic sebagai overlay persisten. |
+| [LucT3/Indoor-Navigation-Assistant-App](https://github.com/LucT3/Indoor-Navigation-Assistant-App) | GPL-3.0 | Navigasi indoor melalui BLE beacon dan QR code. | Referensi fitur indoor; memerlukan infrastruktur beacon/QR yang dipasang di lokasi. Jangan copy kode kecuali proyek menerima kewajiban GPL. |
+| [Fox-Islam/android-agent](https://github.com/Fox-Islam/android-agent) | Tidak ditemukan LICENSE | Agen ponsel via AccessibilityService, semantic screen actions, checklist, MCP tools, pertanyaan saat macet, confirmation-before-irreversible. README menyebut keterbatasan FLAG_SECURE, lock screen dan runtime permission dialogs. | Referensi untuk pause/stop, risk policy, dan pengungkapan keterbatasan. Tidak menyalin kode tanpa lisensi. |
+| [SuyashVMane/NaviSense](https://github.com/SuyashVMane/NaviSense) | Tidak ditemukan LICENSE | CameraX/TFLite vehicle detection, prioritas haptic untuk hazard, directional vibration. README menyebut navigation simulation/demo mode. | Ide haptic urgency saja; bukan sumber implementasi navigasi nyata dan tidak boleh dianggap sudah tervalidasi. Tidak menyalin kode. |
+| [Amir-Nafissi/CueMate](https://github.com/Amir-Nafissi/CueMate) | MIT | MediaPipe face/gesture recognition, local inference, speech dan directional haptics. | Kandidat riset aksesibilitas sosial opsional. Tidak menjadi prioritas P0; deteksi ekspresi bukan fakta pasti tentang emosi/niat seseorang dan harus diberi batasan ketidakpastian. |
+| [michael2505byte/SeeForMe](https://github.com/michael2505byte/SeeForMe) | Tidak ditemukan LICENSE | YOLO, OCR, Vosk offline, TTS multi-bahasa dan auto-capture. | Referensi fitur; jangan menyalin kode atau model sebelum lisensi ditemukan. |
+| [ssharmapavitra/Shravan](https://github.com/ssharmapavitra/Shravan) | Tidak ditemukan LICENSE pada repository upstream | TFLite object detection, OCR reader, camera overlay. | Repo upstream belum memuat lisensi; jangan copy. Fork VisionAid menyebut MIT di README tetapi tidak menyediakan file LICENSE, jadi lisensi belum dianggap terverifikasi. |
+
+### Catatan Bahasa Indonesia
+
+- `LiveSub` mencantumkan model streaming multilingual yang menyertakan Bahasa Indonesia, tetapi lisensi model, ukuran, dan performa harus diverifikasi satu per satu.
+- `soniqo/speech-android` belum menjadi kandidat ASR Indonesia karena README utamanya menyebut 25 bahasa Eropa.
+- `sherpa-onnx` tetap menjadi framework utama yang layak diuji untuk model Indonesia; framework Apache-2.0 tidak otomatis melisensikan setiap model yang diunduh.
