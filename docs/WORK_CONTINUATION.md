@@ -8,7 +8,7 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Main branch: `main`
 - Active PR: https://github.com/adebojel/Asisten-bantu/pull/16
 - Branch: `research/open-source-expansion-2026-11-15`
-- Current head: `2752ecfd1ce5139d9d64a378f3cc3f5e385f3d6a`
+- Live head SHA: see the PR link above (this file is updated on the same branch, so the head advances when the handoff is refreshed).
 - PR state: open, mergeable; deliberately not merged while more integration and final verification remain.
 
 ## Implemented in this branch
