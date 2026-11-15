@@ -857,7 +857,8 @@ public class SettingsActivity extends AppCompatActivity {
         if (tvGeminiLiveVoiceSummary != null) {
             tvGeminiLiveVoiceSummary.setText("Profil dipilih: " + active.getDisplayName()
                     + " • Karakter Live API: " + active.getApiVoiceName()
-                    + "\\nPilihan ini tersimpan untuk sesi Live online. TTS lokal tetap memakai suara yang tersedia di HP.");
+                    + "
+Pilihan ini tersimpan untuk sesi Live online. TTS lokal tetap memakai suara yang tersedia di HP.");
         }
 
         for (int start = 0; start < VoiceProfileManager.GEMINI_LIVE_VOICES.size(); start += 2) {
@@ -870,7 +871,8 @@ public class SettingsActivity extends AppCompatActivity {
                 VoiceProfileManager.GeminiLiveVoiceProfile profile =
                         VoiceProfileManager.GEMINI_LIVE_VOICES.get(col);
                 Button choice = new Button(this);
-                choice.setText(profile.getDisplayName() + "\\n" + profile.getCharacter());
+                choice.setText(profile.getDisplayName() + "
+" + profile.getCharacter());
                 choice.setAllCaps(false);
                 choice.setTextSize(11f);
                 choice.setMinHeight((int) (52 * getResources().getDisplayMetrics().density));
