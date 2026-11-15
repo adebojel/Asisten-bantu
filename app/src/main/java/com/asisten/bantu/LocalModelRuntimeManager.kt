@@ -68,7 +68,7 @@ object LocalModelRuntimeManager {
                     }
                     override fun onError(message: String) {
                         finishRequest()
-                        callback(null, message)
+                        postResult(callback, null, message)
                     }
                 })
             }
@@ -76,7 +76,7 @@ object LocalModelRuntimeManager {
             override fun onComplete() {}
             override fun onError(message: String) {
                 finishRequest()
-                callback(null, message)
+                postResult(callback, null, message)
             }
         })
     }
