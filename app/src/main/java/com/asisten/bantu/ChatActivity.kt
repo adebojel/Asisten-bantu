@@ -33,6 +33,8 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.io.ByteArrayOutputStream
 import java.util.Locale
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.concurrent.Executors
 
 /**
@@ -110,6 +112,12 @@ open class ChatActivity : AppCompatActivity() {
     private var recognitionGeneration = 0L
     private var recognitionRetryCount = 0
     private lateinit var btnHandsFreeConversation: Button
+
+    companion object {
+        private const val CHAT_HISTORY_PREFS = "kobra_chat_history_v1"
+        private const val CHAT_HISTORY_KEY = "messages"
+        private const val MAX_PERSISTED_CHAT_MESSAGES = 120
+    }
     private var attachedImageB64: String? = null
     private var attachedBitmap: Bitmap? = null
 
@@ -174,6 +182,7 @@ open class ChatActivity : AppCompatActivity() {
             HapticFeedback.vibrateAction(this)
             speaker.speak(msgText)
         }
+        restoreChatHistory()
         rvMessages.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         rvMessages.adapter = adapter
 
@@ -792,12 +801,48 @@ open class ChatActivity : AppCompatActivity() {
 
     private fun addUserMessage(text: String) {
         adapter.addMessage(ChatMessage(text, true))
+        persistChatHistory()
         rvMessages.scrollToPosition(adapter.itemCount - 1)
     }
 
     private fun addAiMessage(text: String, meta: String) {
         adapter.addMessage(ChatMessage(text, false, meta))
+        persistChatHistory()
         rvMessages.scrollToPosition(adapter.itemCount - 1)
+    }
+
+    private fun persistChatHistory() {
+        if (!::adapter.isInitialized) return
+        val json = JSONArray()
+        adapter.snapshot().forEach { message ->
+            json.put(JSONObject().apply {
+                put("text", message.text)
+                put("user", message.fromUser)
+                put("meta", message.meta)
+            })
+        }
+        getSharedPreferences(CHAT_HISTORY_PREFS, MODE_PRIVATE).edit()
+            .putString(CHAT_HISTORY_KEY, json.toString()).apply()
+    }
+
+    private fun restoreChatHistory() {
+        val raw = getSharedPreferences(CHAT_HISTORY_PREFS, MODE_PRIVATE)
+            .getString(CHAT_HISTORY_KEY, null) ?: return
+        try {
+            val json = JSONArray(raw)
+            val restored = ArrayList<ChatMessage>()
+            for (i in 0 until json.length()) {
+                val item = json.optJSONObject(i) ?: continue
+                val message = item.optString("text").trim()
+                if (message.isNotEmpty()) restored.add(
+                    ChatMessage(message, item.optBoolean("user"), item.optString("meta", "Kobra OS"))
+                )
+            }
+            adapter.restore(restored.takeLast(MAX_PERSISTED_CHAT_MESSAGES))
+        } catch (_: Exception) {
+            getSharedPreferences(CHAT_HISTORY_PREFS, MODE_PRIVATE).edit()
+                .remove(CHAT_HISTORY_KEY).apply()
+        }
     }
 
     private fun replyAndSpeak(text: String, meta: String, userTurn: String? = null) {
@@ -840,6 +885,14 @@ open class ChatActivity : AppCompatActivity() {
                     (if (item.fromUser) "Pengguna: " else "Kobra: ") + item.text
                 }
                 .takeLast(2600)
+        }
+
+        fun snapshot(): List<ChatMessage> = items.toList()
+
+        fun restore(messages: List<ChatMessage>) {
+            items.clear()
+            items.addAll(messages.takeLast(MAX_MESSAGES_IN_MEMORY))
+            notifyDataSetChanged()
         }
 
         companion object {
