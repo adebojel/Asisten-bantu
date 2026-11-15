@@ -342,7 +342,11 @@ object NodeIndexer {
             val union = RectF()
             var hasRect = false
             for (item in rects) {
-                val charRect = item as? RectF ?: continue
+                val charRect = when (item) {
+                    is RectF -> item
+                    is Rect -> RectF(item)
+                    else -> continue
+                }
                 if (charRect.isEmpty || !charRect.left.isFinite() || !charRect.top.isFinite()) continue
                 if (!hasRect) {
                     union.set(charRect)
