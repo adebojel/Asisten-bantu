@@ -151,3 +151,26 @@ Banyak hasil pencarian GitHub berupa proyek demo, tugas kuliah, fork, prototype 
 - `LiveSub` mencantumkan model streaming multilingual yang menyertakan Bahasa Indonesia, tetapi lisensi model, ukuran, dan performa harus diverifikasi satu per satu.
 - `soniqo/speech-android` belum menjadi kandidat ASR Indonesia karena README utamanya menyebut 25 bahasa Eropa.
 - `sherpa-onnx` tetap menjadi framework utama yang layak diuji untuk model Indonesia; framework Apache-2.0 tidak otomatis melisensikan setiap model yang diunduh.
+
+
+## Tambahan riset target resolution dan mobile GUI agents — 16 November 2026
+
+| Repository | Lisensi | Temuan teknis | Keputusan KOBRA |
+|---|---|---|---|
+| [NITISH-R-G/ScreenSaathi](https://github.com/NITISH-R-G/ScreenSaathi) | MIT | Kotlin native, Accessibility API, target resolver dengan skor exact/normalized/word-prefix, ambiguitas berbasis margin dan overlap, policy guard, eval/test suite. UI highlight hanya menunjuk; pengguna yang mengetuk. Min SDK 26. | Prioritas tinggi. Pola target ranking dan refusal diadaptasi menjadi `TargetLabelMatcher` KOBRA. Tidak menyalin overlay cursor/ring penuh karena KOBRA mempertahankan mic-only overlay dan batas fokus kata yang tipis. Sarvam voice stack tidak diambil karena fokus bahasa dan layanan berbeda. |
+| [GiggleWang/MobileAgent-Android](https://github.com/GiggleWang/MobileAgent-Android) | MIT | Android-native VLM agent dengan Manager/Executor/Reflector/Notetaker, accessibility tree, screenshot, before/after reflection dan execution log. | Referensi arsitektur refleksi; tidak menambah status overlay persisten. KOBRA memakai agen navigasi yang lebih terbatas dan model gratis terverifikasi. |
+| [Core-Mate/OpenGUI](https://github.com/Core-Mate/OpenGUI) | Business Source License 1.1 (Additional Use Grant: None) | Multi-role Android GUI agent, real screenshots, app operations, testing and task workflows. | Referensi konsep saja; BSL bukan lisensi open-source permisif untuk menyalin kode ke KOBRA. |
+| [MadeAgents/mobile-use](https://github.com/MadeAgents/mobile-use) | MIT | ADB-driven multi-agent GUI automation, hierarchical reflection, proactive exploration, AndroidWorld/AndroidLab evaluation. | Benchmark dan evaluasi saja; tidak cocok menjadi runtime on-device karena bergantung pada ADB/host. |
+| [appwiz/droidrun](https://github.com/appwiz/droidrun) | MIT | Python framework untuk Android/iOS, tools UI-native, screenshots, tap/swipe/type, planning dan tracing. | Referensi evaluasi/automation harness; bukan library native Android siap-tempel. |
+| [orailnoor/private-agent](https://github.com/orailnoor/private-agent) | Tidak ditemukan LICENSE | Flutter + AccessibilityService, DeepSeek/OpenRouter free model, voice, Telegram remote control, multi-step automation. | Referensi saja; tidak menyalin kode tanpa lisensi, dan Telegram remote control tidak menjadi fitur default. |
+
+### Dampak implementasi ScreenSaathi
+
+KOBRA sekarang memakai resolver murni yang:
+- Mengutamakan exact text, lalu exact resource ID, normalized match, word-prefix, dan word-boundary match.
+- Mengutamakan elemen actionable dan area yang lebih kecil ketika skor setara.
+- Menolak dua target berbeda yang skornya hampir sama; tidak memilih berdasarkan urutan traversal.
+- Menggunakan batas huruf/angka Unicode, agar kata seperti `call` tidak cocok di dalam `Recall`.
+- Tetap menggunakan accessibility node aktual; tidak membentuk hitbox buatan per kata dari teks OCR.
+
+Implementasi berada di `voiceaccess/TargetLabelMatcher.kt`, dipanggil oleh `NodeIndexer.findByLabel()`, dengan unit test untuk exact match, ambiguitas, overlap, resource ID dan batas kata Unicode.
