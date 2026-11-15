@@ -2411,7 +2411,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void openVisibleConversation(String name) {
         if (clickAny(name)) {
-            main.postDelayed(() -> say("Percakapan " + name + " dibuka."), 500);
+            main.postDelayed(() -> {
+                String visible = readScreenText();
+                if (visible == null || visible.trim().isEmpty()
+                        || visible.equals("Layar tidak bisa dibaca sekarang.")
+                        || visible.equals("Layar ini tidak punya teks yang bisa dibaca.")) {
+                    say("Percakapan " + name + " dibuka, tetapi teks pesannya tidak tersedia untuk dibaca dari layar saat ini.");
+                } else {
+                    say("Teks yang terlihat pada layar percakapan " + name + ": " + visible);
+                }
+            }, 800);
         } else if (openChatDeepLink(name, "whatsapp", "")) {
             say("Membuka WhatsApp untuk " + name + ". Saya belum bisa memastikan percakapannya terbuka.");
         } else {
@@ -2534,10 +2543,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void playVisibleVoiceNote() {
-        boolean played = clickAny("Putar pesan suara") || clickAny("Play voice message")
-                || clickAny("Putar") || clickAny("Play");
-        say(played ? "Tombol putar pesan suara ditekan."
-                : "Tombol putar voice note tidak ditemukan pada layar saat ini.");
+        // Hindari label generik "Putar/Play": bisa menunjuk video, musik, atau kontrol lain.
+        // Hanya klik kontrol yang secara eksplisit menyebut pesan suara.
+        boolean requested = clickExact("Putar pesan suara", "Play voice message",
+                "Putar pesan audio", "Play audio message");
+        say(requested ? "Kontrol pesan suara ditemukan dan perintah putar berhasil dikirim ke Android."
+                : "Kontrol pesan suara yang jelas tidak ditemukan. Saya tidak akan menekan tombol Putar umum agar tidak salah menjalankan media lain.");
     }
 
     private String[] findContact(String name) {
