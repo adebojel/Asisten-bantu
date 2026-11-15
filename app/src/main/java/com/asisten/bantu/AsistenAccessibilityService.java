@@ -223,7 +223,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         boolean deviceCommand = c.startsWith("buka ") || c.startsWith("tekan ") || c.startsWith("klik ")
                 || c.startsWith("ketik ") || c.startsWith("tulis ") || c.startsWith("scroll ") || c.startsWith("matikan video") || c.startsWith("jeda video") || c.startsWith("pause video") || c.startsWith("hentikan video") || c.startsWith("stop video")
                 || c.startsWith("geser ") || c.startsWith("panggil ") || c.startsWith("telepon ")
-                || c.startsWith("telpon ") || c.startsWith("kirim pesan ") || c.startsWith("chat ke ")
+                || c.startsWith("telpon ") || c.startsWith("kirim pesan ") || c.startsWith("buka pesan ") || c.startsWith("buka chat ") || c.startsWith("chat ke ")
                 || c.startsWith("whatsapp ke ") || c.startsWith("arahkan ke ") || c.startsWith("navigasi ke ")
                 || c.startsWith("pandu ke ") || c.startsWith("tuntun ke ")
                 || has(c, "kembali", "beranda", "layar utama", "aplikasi terbaru", "pengaturan cepat",
@@ -1225,8 +1225,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (has(c, "gps", "lokasi")) { openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS, "Pengaturan lokasi dibuka."); return; }
         if (has(c, "kecerahan")) { openSettings(Settings.ACTION_DISPLAY_SETTINGS, "Pengaturan layar dibuka."); return; }
 
+        // Buka percakapan yang sedang terlihat di daftar aplikasi pesan.
+        if (c.startsWith("buka pesan ") || c.startsWith("buka chat ")) {
+            String contact = afterAny(c, "buka pesan ", "buka chat ").trim();
+            if (contact.isEmpty()) { say("Pesan siapa yang ingin dibuka?"); return; }
+            openVisibleConversation(contact);
+            return;
+        }
+
         // WhatsApp dan telepon
-        if (has(c, "kirim pesan", "kirim wa", "kirim whatsapp", "balas pesan")) { startSendMessage(afterLast(c, " ke ")); return; }
+        if (has(c, "kirim pesan", "kirim wa", "kirim whatsapp", "balas pesan")) {
+            startSendMessage(extractMessageRecipient(c));
+            return;
+        }
         if (has(c, "baca pesan", "baca chat", "isi chat")) { say(readScreenText()); return; }
         if (has(c, "panggil ", "telepon ", "telpon ")) {
             startCall(afterAny(c, "panggil ", "telepon ", "telpon "));
@@ -2102,12 +2113,46 @@ public class AsistenAccessibilityService extends AccessibilityService {
     public String readScreenText() {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return "Layar tidak bisa dibaca sekarang.";
+        CharSequence packageName = root.getPackageName();
+        String pkg = packageName == null ? "" : packageName.toString();
+        if (pkg.equals("com.whatsapp") || pkg.equals("com.whatsapp.w4b")) {
+            String names = readVisibleWhatsAppLabels(root);
+            if (!names.isEmpty()) return "Nama yang terlihat di WhatsApp: " + names;
+        }
         StringBuilder sb = new StringBuilder();
         collectText(root, sb);
         String s = sb.toString().replaceAll("\\s+", " ").trim();
-        if (s.isEmpty()) return "Layar ini tidak punya teks.";
+        if (s.isEmpty()) return "Layar ini tidak punya teks yang bisa dibaca.";
         if (s.length() > 700) s = s.substring(0, 700) + ". Masih banyak lagi.";
         return s;
+    }
+
+    /** Mode daftar WhatsApp: prioritaskan label orang/grup, bukan isi pratinjau chat. */
+    private String readVisibleWhatsAppLabels(AccessibilityNodeInfo root) {
+        java.util.LinkedHashSet<String> labels = new java.util.LinkedHashSet<>();
+        collectWhatsAppLabels(root, labels);
+        StringBuilder out = new StringBuilder();
+        for (String label : labels) {
+            if (label.length() < 2 || label.length() > 70) continue;
+            String lower = label.toLowerCase(Locale.ROOT);
+            if (lower.matches(".*\\b(whatsapp|pencarian|search|kamera|camera|status|panggilan|calls|komunitas|communities|chat baru|new chat)\\b.*")) continue;
+            if (out.length() > 0) out.append(", ");
+            out.append(label);
+            if (out.length() > 450) break;
+        }
+        return out.toString();
+    }
+
+    private void collectWhatsAppLabels(AccessibilityNodeInfo node, java.util.Set<String> labels) {
+        if (node == null) return;
+        CharSequence text = node.getText();
+        CharSequence desc = node.getContentDescription();
+        String value = text != null && text.length() > 0 ? text.toString().trim()
+                : (desc != null ? desc.toString().trim() : "");
+        if (!value.isEmpty() && !value.matches(".*\\b(\\d{1,2}:\\d{2}|\\d+\\s*(menit|jam|hari|minute|hour|day)s? lalu)\\b.*")) {
+            labels.add(value);
+        }
+        for (int i = 0; i < node.getChildCount(); i++) collectWhatsAppLabels(node.getChild(i), labels);
     }
 
     private void collectText(AccessibilityNodeInfo node, StringBuilder sb) {
@@ -2281,9 +2326,25 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void openChatByName(String name) {
         if (name.isEmpty()) { say("Buka chat siapa?"); return; }
         if (!openWhatsApp()) return;
-        main.postDelayed(() -> say(clickAny(name)
-                ? "Chat " + name + " dibuka. Bilang baca layar untuk membaca pesan."
-                : "Chat " + name + " tidak terlihat di layar."), 2000);
+        main.postDelayed(() -> openVisibleConversation(name), 1800);
+    }
+
+    private void openVisibleConversation(String name) {
+        if (clickAny(name)) {
+            main.postDelayed(() -> say("Percakapan " + name + " dibuka."), 500);
+        } else if (openChatDeepLink(name, "whatsapp", "")) {
+            say("Membuka WhatsApp untuk " + name + ". Saya belum bisa memastikan percakapannya terbuka.");
+        } else {
+            say("Nama " + name + " tidak ditemukan pada daftar yang terlihat atau kontak HP. Pesan belum dibuka.");
+        }
+    }
+
+    private String extractMessageRecipient(String command) {
+        String value = command.trim();
+        value = value.replaceFirst("^(kirim pesan|kirim whatsapp|kirim wa|balas pesan)\\s*", "");
+        value = value.replaceFirst("^ke\\s+", "");
+        value = value.replaceAll("\\s+(melalui|lewat|via|pakai|di)\\s+(whatsapp|wa|telegram|sms)$", "");
+        return value.trim();
     }
 
     private void startSendMessage(String target) {
