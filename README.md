@@ -24,7 +24,7 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian:** build sebelumnya berhasil di GitHub Actions. Integrasi deteksi objek offline dengan fallback Image Labeling sudah digabung ke branch `main`. GitHub Actions pada commit pengembangan sebelum merge berhasil menjalankan tes logika dan build APK. Belum ada verifikasi menyeluruh pada perangkat fisik. Build berhasil tidak berarti aplikasi bebas crash atau seluruh fitur telah bekerja.
+> **Status pengujian:** commit `83d921b` di `main` telah melewati workflow `Build Kobra OS APK` #251 dan `Auto Build and Release` #134; keduanya sukses dan aset APK serta checksum tersedia pada rilis Build 134. Tes logika murni dan kompilasi Android berhasil di CI. Belum ada verifikasi menyeluruh pada perangkat Android fisik. Build berhasil tidak membuktikan mikrofon, kamera, inferensi model, aksesibilitas, atau perilaku latar belakang bekerja sempurna.
 
 ## Tampilan aplikasi
 
@@ -54,18 +54,18 @@ Artwork 3D di bagian atas adalah ilustrasi identitas produk. Screenshot aplikasi
 | AI online | Router provider ketika internet dan konfigurasi tersedia |
 | AI lokal | Runtime MediaPipe dan LiteRT-LM untuk model yang kompatibel |
 
-Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, provider, dan model yang terpasang. Chat, input suara dari chat, dan perintah global dirancang masuk ke jalur percakapan yang sama; riwayat chat kini disimpan lokal dan dipulihkan saat layar chat dibuka kembali.
+Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, provider, dan model. Chat, input suara dari chat, dan perintah global diarahkan ke jalur percakapan yang sama; riwayat chat disimpan lokal dan dipulihkan saat layar chat dibuka kembali. Mode percakapan hands-free saat ini bergiliran mendengar dan berbicara melalui SpeechRecognizer/TTS Android, bukan audio streaming full-duplex berlatensi rendah. Analisis kamera berjalan saat layar Mata Kedua aktif; kamera tidak dijanjikan terus berjalan setelah Activity ditutup.
 
 ## AI hybrid: online dan offline
 
-Paket APK sudah menyertakan **otak offline dasar Kobra** (mesin aturan, kalkulator, dan basis pengetahuan `kobra_kb.txt`) sehingga fungsi bantuan dasar tidak memerlukan unduhan model tambahan. Ini bukan LLM generatif penuh. Untuk percakapan generatif lokal, urutan Chat adalah Gemma 3 1B jika tersedia, lalu Qwen3 0.6B LiteRT-LM jika sudah diimpor dan lolos pemeriksaan RAM, kemudian AI online jika internet tersedia. Jika semua model gagal/tidak tersedia, Kobra tetap menjalankan perintah lokal, kalkulator, memori, agenda, dan pengetahuan dasar. Model LLM besar tetap dipisah dari APK agar ukuran instalasi dan kebutuhan RAM tidak membengkak; Qwen3 sekitar 300–400 MB. Pengenalan suara offline tetap bergantung pada dukungan dan paket bahasa offline layanan SpeechRecognizer Android.
+Paket APK menyertakan **otak offline dasar Kobra** (mesin aturan, kalkulator, dan basis pengetahuan `kobra_kb.txt`); ini bukan LLM generatif penuh. Build `main` saat ini juga mengunduh model Qwen3 0.6B INT4 ketika Gradle melakukan build bersih, lalu mengemas berkas `.litertlm` sebagai aset APK. Saat pertama kali dipakai, model disalin secara asinkron ke penyimpanan privat aplikasi sebelum LiteRT-LM memuatnya. Build 134 menghasilkan APK sekitar 645 MB, sehingga ukuran unduhan dan ruang penyimpanan harus diperhitungkan. Runtime tetap memeriksa ketersediaan model dan RAM; model tidak dijamin berjalan pada semua perangkat. Jika model gagal/tidak tersedia, Kobra harus kembali ke perintah lokal dan basis pengetahuan. Pengenalan suara offline tetap bergantung pada dukungan dan paket bahasa offline layanan SpeechRecognizer Android.
 
 | Jalur | Format | Runtime |
 |---|---|---|
 | Gemma on-device | `.task` | MediaPipe LLM Inference |
 | Qwen LiteRT-LM | `.litertlm` | LiteRT-LM |
 
-Paket model terpisah dari APK:
+Rilis **Kobra Offline Models v1.0** tetap tersedia sebagai paket model terpisah untuk impor manual dan pemulihan:
 
 [**Buka Kobra Offline Models v1.0**](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0)
 
@@ -80,7 +80,7 @@ Model tidak otomatis cocok untuk setiap ponsel. Kobra menggunakan pemeriksaan me
 
 > Tautan ini selalu mengarah ke APK dari rilis **Latest** branch `main`. Rilis model **Kobra OS Offline Models** terpisah dan bukan APK aplikasi.
 
-Tautan langsung: [Kobra-OS-main.apk](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/latest/download/SHA256SUMS.txt) · [Halaman rilis Build 112](https://github.com/adebojel/Asisten-bantu/releases/latest)
+Tautan langsung: [Kobra-OS-main.apk](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/latest/download/SHA256SUMS.txt) · [Halaman rilis terbaru](https://github.com/adebojel/Asisten-bantu/releases/latest)
 
 Di halaman Releases:
 1. Buka rilis **Latest** bernama Kobra OS. Rilis APK utama tidak lagi ditandai Pre-release.
@@ -94,9 +94,9 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 
 - **Semua versi dan catatan rilis:** [GitHub Releases](https://github.com/adebojel/Asisten-bantu/releases)
 - **Status build/publikasi otomatis:** [Kobra OS — Auto Build and Release](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml)
-- **Model offline Qwen3 0.6B:** [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0). Unduh berkas `.litertlm` dan file `.sha256`, verifikasi checksum, lalu buka Kobra → Pengaturan → AI & Model → Impor Model. Ikuti petunjuk di aplikasi dan pastikan ruang penyimpanan serta RAM memadai.
+- **Model offline Qwen3 0.6B:** build `main` saat ini sudah mengemas Qwen3 di dalam APK; impor manual dari [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) hanya diperlukan untuk paket model terpisah/pemulihan. Pastikan ruang penyimpanan dan RAM memadai.
 
-**Status distribusi:** workflow pada branch `main` kini dikonfigurasi untuk membangun APK debug, membuat checksum SHA-256, dan menerbitkan keduanya sebagai GitHub Pre-release setiap kali perubahan masuk ke `main`. Rilis hanya dapat diunduh setelah workflow selesai sukses dan aset APK benar-benar tampil pada halaman Releases. Build debug ditujukan untuk pengujian, bukan dinyatakan sebagai rilis stabil.
+**Status distribusi:** workflow `main` membangun APK debug, membuat checksum SHA-256, dan menerbitkan aset pada GitHub Releases. Build 134 saat ini berstatus Latest dan bukan draft/pre-release. Meskipun workflow berhasil, build ini tetap belum dinyatakan stabil atau lulus uji perangkat; gunakan sebagai build kandidat untuk pengujian setelah tahap pengembangan kode selesai.
 
 ## Status pengembangan
 
@@ -109,12 +109,13 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - [x] Riwayat chat terpadu (suara/teks dan respons lokal/online) disimpan lokal dan dipulihkan saat chat dibuka kembali.
 - [x] Fallback perintah dan pengetahuan dasar tetap tersedia ketika model generatif tidak bisa dimuat.
 - [x] Fallback pengenalan objek ke Image Labeling ditambahkan pada branch pengembangan.
-- [x] Build Android `main` dan tes unit setelah integrasi fallback (GitHub Actions #134 berhasil; artifact APK tersedia).
-- [ ] Uji instalasi dan fungsi di HP Android nyata (belum dilakukan; ikuti [UJI_DI_HP.md](UJI_DI_HP.md)).
-- [ ] Uji instalasi dan fungsi di HP Android nyata.
+- [x] Build Android `main` dan tes unit untuk commit `83d921b` (workflow APK #251 dan rilis #134 berhasil; aset APK tersedia).
+- [ ] Audit dan pengujian fungsional di HP Android nyata (sengaja ditunda sampai pengembangan kode selesai; ikuti [UJI_DI_HP.md](UJI_DI_HP.md)).
 - [ ] Uji mikrofon pada layar terkunci dan penggunaan latar belakang.
 - [ ] Uji alur tunanetra end-to-end dengan TalkBack.
 - [ ] Penyempurnaan visual seluruh layar dan dialog.
+- [ ] Integrasi kamera + pembacaan layar dalam satu sesi asisten yang tetap hidup lintas Activity.
+- [ ] Penyempurnaan kendali suara lintas aplikasi dan ketahanan percakapan dua arah.
 - [ ] Screenshot autentik dari build terbaru.
 
 Panduan pengujian: [UJI_DI_HP.md](UJI_DI_HP.md).
@@ -154,7 +155,7 @@ APK debug, jika build berhasil, berada di `app/build/outputs/apk/debug/app-debug
 ## Privasi dan batasan Android
 
 - API key provider AI harus disimpan sebagai rahasia dan tidak boleh di-commit.
-- Provider gratis dapat memiliki kuota, batas kecepatan, atau berubah sewaktu-waktu.
+- Jalur AI online otomatis saat ini memerlukan API key OpenRouter yang dimasukkan pengguna. Router hanya memilih model yang harga input dan output-nya terdeteksi nol pada katalog provider dan memverifikasi ulang sebelum request; tidak ada jaminan model gratis selalu tersedia. Tanpa key/provider gratis yang tersedia, Kobra kembali ke model lokal dan pengetahuan offline.
 - Aplikasi biasa tidak dapat bebas mengaktifkan atau menonaktifkan Wi-Fi/data seluler.
 - TalkBack tetap dikendalikan oleh pengguna melalui pengaturan Android.
 - Pembacaan notifikasi dan SMS dapat membacakan informasi pribadi; aktifkan hanya jika diperlukan.
