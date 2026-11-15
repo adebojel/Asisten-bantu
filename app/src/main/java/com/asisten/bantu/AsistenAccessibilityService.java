@@ -2145,6 +2145,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void collectWhatsAppLabels(AccessibilityNodeInfo node, java.util.Set<String> labels) {
         if (node == null) return;
+        // Baris chat/kontak biasanya satu node klik. Ambil label pertama dari baris itu
+        // agar pratinjau isi pesan tidak ikut dibacakan sebagai nama.
+        if (node.isClickable()) {
+            String first = firstWhatsAppRowLabel(node);
+            if (!first.isEmpty()) labels.add(first);
+            return;
+        }
         CharSequence text = node.getText();
         CharSequence desc = node.getContentDescription();
         String value = text != null && text.length() > 0 ? text.toString().trim()
@@ -2153,6 +2160,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
             labels.add(value);
         }
         for (int i = 0; i < node.getChildCount(); i++) collectWhatsAppLabels(node.getChild(i), labels);
+    }
+
+    private String firstWhatsAppRowLabel(AccessibilityNodeInfo node) {
+        if (node == null) return "";
+        CharSequence text = node.getText();
+        if (text != null && text.length() > 0) return text.toString().trim();
+        CharSequence desc = node.getContentDescription();
+        if (desc != null && desc.length() > 0 && node.getChildCount() == 0) return desc.toString().trim();
+        for (int i = 0; i < node.getChildCount(); i++) {
+            String found = firstWhatsAppRowLabel(node.getChild(i));
+            if (!found.isEmpty()) return found;
+        }
+        return "";
     }
 
     private void collectText(AccessibilityNodeInfo node, StringBuilder sb) {
