@@ -451,8 +451,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private final Speaker.Listener speechListener = new Speaker.Listener() {
         @Override public void onSpeechStart() {
-            stopMic();
+            // Barge-in: pertahankan pengenal suara saat TTS berbicara agar pengguna
+            // dapat memotong bacaan tanpa menyentuh layar. Opsi ini dapat dimatikan.
+            if (config == null || !config.isBargeInEnabled()) stopMic();
             updateOrbState(FloatingVoiceOrbManager.OrbState.SPEAKING);
+            if (config != null && config.isBargeInEnabled() && !listening) {
+                main.postDelayed(() -> startListeningForBargeIn(), 180L);
+            }
         }
         @Override public void onSpeechEnd() {
             if (config != null && config.isPrivacyMode()) {
@@ -480,7 +485,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void startListening() {
         main.post(() -> {
             if (!micOn || listening || pocketLocked || (config != null && config.isPrivacyMode())
-                    || speaker == null || speaker.isSpeaking()) return;
+                    || speaker == null || (speaker.isSpeaking() && (config == null || !config.isBargeInEnabled()))) return;
             if (!Perms.has(this, Manifest.permission.RECORD_AUDIO)) {
                 updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
                 if (!warnedNoPermission) {
@@ -507,6 +512,22 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 scheduleRetry(2000);
             }
         });
+    }
+
+    private void startListeningForBargeIn() {
+        if (config == null || !config.isBargeInEnabled() || !micOn || listening
+                || pocketLocked || config.isPrivacyMode()
+                || !Perms.has(this, Manifest.permission.RECORD_AUDIO)
+                || !SpeechRecognizer.isRecognitionAvailable(this)) return;
+        if (recognizer == null) createRecognizer();
+        try {
+            recognizer.startListening(recognizerIntent);
+            listening = true;
+            updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING);
+        } catch (Exception e) {
+            Log.w(TAG, "Barge-in voice recognition unavailable", e);
+            destroyRecognizer();
+        }
     }
 
     private void stopMic() {
@@ -694,6 +715,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void handleSpoken(String raw) {
         String text = raw.toLowerCase(Locale.ROOT).trim();
         if (text.isEmpty()) return;
+
+        // Interupsi real-time harus didahulukan dari Chat/AI dan VoiceAccess.
+        // Jangan memberi balasan suara setelah perintah berhenti, agar tidak mulai bicara lagi.
+        String interruptText = stripWake(text);
+        String interrupt = interruptText == null ? text : interruptText.trim();
+        if (has(interrupt, "berhenti", "stop", "diam", "cukup", "hentikan bicara",
+                "berhenti bicara", "hentikan suara", "stop bicara", "pause suara", "jeda bicara")) {
+            if (speaker != null) speaker.stop();
+            if (main != null) main.removeCallbacks(micRetry);
+            updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
+            if (micOn) scheduleRetry(250L);
+            return;
+        }
 
         // Perintah diam/aktif diproses sebelum Chat agar tidak tertelan oleh pipeline percakapan.
         String wakeCommand = stripWake(text);
