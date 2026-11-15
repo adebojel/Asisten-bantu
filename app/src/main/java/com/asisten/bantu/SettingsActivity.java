@@ -539,8 +539,7 @@ public class SettingsActivity extends AppCompatActivity {
                 "Mikrofon: " + (mic ? "Aktif" : "Belum") +
                 " • Kamera: " + (cam ? "Aktif" : "Belum") +
                 " • Aksesibilitas: " + (acc ? "Aktif" : "Mati") +
-                "
-Overlay: " + (ovl ? "Aktif" : "Belum") +
+                "\nOverlay: " + (ovl ? "Aktif" : "Belum") +
                 " • Notifikasi: " + (notif ? "Aktif" : "Belum")
         );
     }
@@ -701,10 +700,7 @@ Overlay: " + (ovl ? "Aktif" : "Belum") +
 
                 new AlertDialog.Builder(SettingsActivity.this)
                         .setTitle("Pembaruan Kobra OS " + info.tagName)
-                        .setMessage("Versi baru " + info.tagName + " tersedia.
-
-Catatan rilis:
-" + info.releaseNotesForSpeech)
+                        .setMessage("Versi baru " + info.tagName + " tersedia.\n\nCatatan rilis:\n" + info.releaseNotesForSpeech)
                         .setPositiveButton("Unduh & Pasang", (d, w) -> beginApkDownload(info))
                         .setNegativeButton("Nanti", null)
                         .show();
@@ -1266,8 +1262,7 @@ Catatan rilis:
         } else {
             status.append("Qwen3 .litertlm belum diimpor");
         }
-        status.append("
-Rekomendasi perangkat: ").append(LocalModelRegistry.recommendation(this));
+        status.append("\nRekomendasi perangkat: ").append(LocalModelRegistry.recommendation(this));
         tvModelStatus.setText(status.toString());
         tvModelStatus.setTextColor((taskExists || liteExists) ? 0xFF00E5FF : 0xFFFFD600);
     }
