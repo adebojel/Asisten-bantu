@@ -28,6 +28,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
 
     private val numberOverlay = NumberBadgeOverlay(service)
     private val gridOverlay = ScreenGridOverlay(service)
+    private val focusOutline = FocusOutlineOverlay(service)
 
     @Volatile
     private var lastIndexedNodes: List<NodeIndexer.IndexedNode> = emptyList()
@@ -39,6 +40,47 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
     fun onDestroy() {
         numberOverlay.hide()
         gridOverlay.hide()
+        focusOutline.hide()
+    }
+
+    /** Focus indicator for every app; its transparent overlay never intercepts touch. */
+    fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) {
+        if (event == null) return
+        val cfg = KobraConfig(service)
+        when (event.eventType) {
+            android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED,
+            android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
+                if (!cfg.isFocusOutlineEnabled()) return
+                val bounds = NodeIndexer.focusedBounds(service)
+                if (bounds != null) focusOutline.show(bounds)
+            }
+            android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUS_CLEARED -> focusOutline.hide()
+        }
+    }
+
+    private fun moveAccessibilityFocus(forward: Boolean, sayCallback: Consumer<String>) {
+        val nodes = NodeIndexer.indexScreen(service)
+        if (nodes.isEmpty()) {
+            sayCallback.accept("Tidak ada target fokus yang bisa dijelajahi pada layar ini.")
+            return
+        }
+        val current = NodeIndexer.focusedBounds(service)
+        val currentIndex = if (current == null) -1 else nodes.indexOfFirst {
+            it.bounds.contains(current.centerX(), current.centerY()) || current.contains(it.centerX, it.centerY)
+        }
+        val nextIndex = when {
+            currentIndex < 0 && forward -> 0
+            currentIndex < 0 -> nodes.lastIndex
+            forward -> (currentIndex + 1).coerceAtMost(nodes.lastIndex)
+            else -> (currentIndex - 1).coerceAtLeast(0)
+        }
+        val target = nodes[nextIndex]
+        if (NodeIndexer.focusAt(service, target.centerX, target.centerY)) {
+            lastIndexedNodes = nodes
+            sayCallback.accept(target.label)
+        } else {
+            sayCallback.accept("Android tidak memberikan fokus aksesibilitas pada " + target.label + ".")
+        }
     }
 
     fun isSleeping(): Boolean = isSleepMode
@@ -46,6 +88,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
     fun hideAllOverlays() {
         numberOverlay.hide()
         gridOverlay.hide()
+        focusOutline.hide()
     }
 
     fun refreshOverlaysIfActive() {
@@ -106,6 +149,36 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
 
         // 2) Tampilan Nomor Layar & Grid 3x3
         val cfg = KobraConfig(service)
+
+        if (c.contains("tampilkan garis fokus") || c.contains("aktifkan garis fokus") || c.contains("bingkai fokus")) {
+            cfg.setFocusOutlineEnabled(true)
+            val bounds = NodeIndexer.focusedBounds(service)
+            if (bounds != null) focusOutline.show(bounds)
+            sayCallback.accept("Garis fokus aksesibilitas diaktifkan. Bagian tengah tetap transparan dan lapisan tidak menghalangi sentuhan.")
+            return true
+        }
+        if (c.contains("sembunyikan garis fokus") || c.contains("matikan garis fokus") || c.contains("nonaktifkan garis fokus")) {
+            cfg.setFocusOutlineEnabled(false)
+            focusOutline.hide()
+            sayCallback.accept("Garis fokus disembunyikan.")
+            return true
+        }
+
+        if (c == "item berikutnya" || c == "elemen berikutnya" || c == "fokus berikutnya" || c == "baca item berikutnya") {
+            moveAccessibilityFocus(true, sayCallback)
+            return true
+        }
+        if (c == "item sebelumnya" || c == "elemen sebelumnya" || c == "fokus sebelumnya" || c == "baca item sebelumnya") {
+            moveAccessibilityFocus(false, sayCallback)
+            return true
+        }
+        if (c == "baca dari atas" || c == "mulai baca layar") {
+            val text = if (service is com.asisten.bantu.AsistenAccessibilityService) service.readScreenText()
+                else NodeIndexer.buildAudioReadout(NodeIndexer.indexScreen(service))
+            sayCallback.accept(text)
+            return true
+        }
+
         if (c.contains("tampilkan nomor") || c.contains("munculkan nomor") || c.contains("lihat nomor")) {
             val nodes = NodeIndexer.indexScreen(service)
             lastIndexedNodes = nodes
