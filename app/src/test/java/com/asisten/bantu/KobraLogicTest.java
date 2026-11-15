@@ -180,6 +180,25 @@ public class KobraLogicTest {
         assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("hentikan bacaan"));
         assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("jeda suara"));
         assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("desktop terbuka"));
+        assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("stop video"));
+        assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("hentikan video"));
+        assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("stop musik"));
+        assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("baca layar"));
+    }
+
+    @Test
+    public void testPersistentSilenceIsSeparateFromOneShotStop() {
+        assertTrue(VoiceSilenceCommandParser.isSilenceCommand("diam dulu"));
+        assertTrue(VoiceSilenceCommandParser.isSilenceCommand("Kobra diam"));
+        assertTrue(!VoiceSilenceCommandParser.isSilenceCommand("berhenti bicara"));
+    }
+
+
+        assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("stop"));
+        assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("Kobra berhenti bicara sekarang"));
+        assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("hentikan bacaan"));
+        assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("jeda suara"));
+        assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("desktop terbuka"));
         assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("hentikan video"));
         assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("baca layar"));
     }
