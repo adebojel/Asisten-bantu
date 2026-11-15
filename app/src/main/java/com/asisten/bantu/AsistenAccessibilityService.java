@@ -285,6 +285,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         speaker.addListener(speechListener);
         UnifiedAccessibilityEngine.onServiceConnected(this);
         voiceAccessEngine = new VoiceAccessEngine(this);
+        if (main != null) main.postDelayed(() -> {
+            if (voiceAccessEngine != null) voiceAccessEngine.refreshFocusOutline();
+        }, 350L);
 
         // Lazy-load Mesin LLM Offline: cek crash-guard tanpa memuat model berat saat startup
         localLlmEngine = LocalLlmEngine.getInstance(this);
@@ -332,6 +335,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
             if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
                     || event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
                 voiceAccessEngine.refreshOverlaysIfActive();
+                if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && main != null) {
+                    main.postDelayed(() -> {
+                        if (voiceAccessEngine != null) voiceAccessEngine.refreshFocusOutline();
+                    }, 180L);
+                }
             }
         }
     }
