@@ -2256,18 +2256,30 @@ public class AsistenAccessibilityService extends AccessibilityService {
     public String readScreenText() {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return "Layar tidak bisa dibaca sekarang.";
-        CharSequence packageName = root.getPackageName();
-        String pkg = packageName == null ? "" : packageName.toString();
-        if (pkg.equals("com.whatsapp") || pkg.equals("com.whatsapp.w4b")) {
-            String names = readVisibleWhatsAppLabels(root);
-            if (!names.isEmpty()) return "Nama yang terlihat di WhatsApp: " + names;
+        try {
+            CharSequence packageName = root.getPackageName();
+            String pkg = packageName == null ? "" : packageName.toString();
+            if (pkg.equals("com.whatsapp") || pkg.equals("com.whatsapp.w4b")) {
+                String names = readVisibleWhatsAppLabels(root);
+                if (!names.isEmpty()) return "Nama yang terlihat di WhatsApp: " + names;
+            }
+            StringBuilder sb = new StringBuilder();
+            collectText(root, sb);
+            String spoken = sb.toString().replaceAll("\\s+", " ").trim();
+            if (spoken.isEmpty()) return "Layar ini tidak punya teks yang bisa dibaca.";
+            if (spoken.length() > 700) spoken = spoken.substring(0, 700) + ". Masih banyak lagi.";
+            return spoken;
+        } finally {
+            recycleAccessibilityNode(root);
         }
-        StringBuilder sb = new StringBuilder();
-        collectText(root, sb);
-        String s = sb.toString().replaceAll("\\s+", " ").trim();
-        if (s.isEmpty()) return "Layar ini tidak punya teks yang bisa dibaca.";
-        if (s.length() > 700) s = s.substring(0, 700) + ". Masih banyak lagi.";
-        return s;
+    }
+
+    private static void recycleAccessibilityNode(AccessibilityNodeInfo node) {
+        if (node == null || Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return;
+        try {
+            node.recycle();
+        } catch (Throwable ignored) {
+        }
     }
 
     /** Mode daftar WhatsApp: prioritaskan label orang/grup, bukan isi pratinjau chat. */
@@ -2302,7 +2314,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (!value.isEmpty() && !value.matches(".*\\b(\\d{1,2}:\\d{2}|\\d+\\s*(menit|jam|hari|minute|hour|day)s? lalu)\\b.*")) {
             labels.add(value);
         }
-        for (int i = 0; i < node.getChildCount(); i++) collectWhatsAppLabels(node.getChild(i), labels);
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            try {
+                collectWhatsAppLabels(child, labels);
+            } finally {
+                recycleAccessibilityNode(child);
+            }
+        }
     }
 
     private String firstWhatsAppRowLabel(AccessibilityNodeInfo node) {
@@ -2312,8 +2331,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
         CharSequence desc = node.getContentDescription();
         if (desc != null && desc.length() > 0 && node.getChildCount() == 0) return desc.toString().trim();
         for (int i = 0; i < node.getChildCount(); i++) {
-            String found = firstWhatsAppRowLabel(node.getChild(i));
-            if (!found.isEmpty()) return found;
+            AccessibilityNodeInfo child = node.getChild(i);
+            try {
+                String found = firstWhatsAppRowLabel(child);
+                if (!found.isEmpty()) return found;
+            } finally {
+                recycleAccessibilityNode(child);
+            }
         }
         return "";
     }
@@ -2324,7 +2348,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
         CharSequence d = node.getContentDescription();
         if (t != null && t.length() > 0) sb.append(t).append(". ");
         else if (d != null && d.length() > 0) sb.append(d).append(". ");
-        for (int i = 0; i < node.getChildCount(); i++) collectText(node.getChild(i), sb);
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            try {
+                collectText(child, sb);
+            } finally {
+                recycleAccessibilityNode(child);
+            }
+        }
     }
 
     private String readFocus() {
