@@ -434,7 +434,7 @@ object CommandRouter {
         userQuestion: String,
         sayCallback: Consumer<String>
     ) {
-        sayCallback.accept("Saya sedang memeriksa layar. Mohon tunggu.")
+        sayCallback.accept("Analisis visual memakai model vision online gratis yang Anda konfigurasi. Screenshot layar dapat dikirim ke penyedia tersebut; jika layanan tidak tersedia, saya hanya memakai teks aksesibilitas lokal.")
         UnifiedAccessibilityEngine.getScope().launch {
             val snapshot = withContext(Dispatchers.Default) {
                 UnifiedAccessibilityEngine.captureScreenSnapshot(service, preferForeignWindow = false)
@@ -497,7 +497,7 @@ object CommandRouter {
             sayCallback.accept("Agen layar sedang menjalankan tugas lain.")
             return
         }
-        sayCallback.accept("Saya akan menjalankan langkah navigasi yang aman dan memeriksa perubahan layar setelah setiap langkah.")
+        sayCallback.accept("Agen layar memakai model vision online gratis yang Anda konfigurasi; screenshot dan struktur UI dapat dikirim ke penyedia tersebut. Agen hanya melakukan navigasi terbatas. Ucapkan hentikan agen layar untuk berhenti.")
         UnifiedAccessibilityEngine.getScope().launch {
             val executedSteps = ArrayList<MacroStep>()
             var finalMessage = ""
