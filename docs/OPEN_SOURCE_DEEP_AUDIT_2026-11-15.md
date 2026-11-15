@@ -149,3 +149,16 @@ These findings are based on the current `main` source inspected during this audi
 - Add tests for provider unavailable, no model found, malformed JSON, stale screen, action API false, unchanged screen, changed screen and cancellation.
 
 This gap analysis takes precedence over aspirational feature lists in README files. Build success alone does not prove the screen agent or vision geometry works on a physical phone.
+
+
+## Update 16 November 2026 — minimal overlay dan word targeting
+
+- `FloatingVoiceOrbManager.kt` sudah menjadi pemilik satu kontrol global mic. Ukuran default yang ada 44dp; panel chat/katalog/kamera tidak perlu menjadi overlay permanen.
+- `VoiceAccessEngine.refreshFocusOutline()` sudah memilih `NodeIndexer.focusedWordBounds()` dan menyembunyikan outline jika provider tidak memberi geometri kata. Tidak ada fallback palsu ke bounds satu baris atau satu paragraf.
+- Perbaikan pada `NodeIndexer.focusedWordBounds()`: kini memeriksa apakah accessibility provider secara eksplisit mengiklankan `EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY` sebelum meminta geometri; menolak Rect yang kosong atau koordinat tidak finite.
+- Perbaikan pada `FocusOutlineOverlay.kt`: outline transparan, tidak bisa menerima sentuhan, stroke diperkecil menjadi 0.75dp, dan padding dikurangi hingga sekadar mencegah clipping.
+- Dokumen spesifikasi: `docs/ACCESSIBILITY_OVERLAY_AND_WORD_TARGETING.md`.
+
+**Batas yang tidak boleh dilanggar:** geometry kata ≠ jaminan kata itu clickable. Aksi klik tetap harus diarahkan ke node/action yang diekspos aplikasi. Jika provider hanya mengekspos satu node untuk seluruh kalimat, KOBRA tidak boleh membuat hitbox per kata dari perkiraan OCR atau membagi lebar teks secara rata.
+
+**Status validasi:** perubahan sudah tercatat pada branch PR, tetapi commit terbaru belum memiliki hasil CI terkonfirmasi dan belum diuji pada perangkat. Perangkat testing tetap ditunda sampai gate build dan pemeriksaan kode selesai.
