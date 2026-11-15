@@ -33,8 +33,8 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 20. Ucapkan "Kobra klik kata ini" pada teks yang menyediakan koordinat karakter. Jika koordinat tidak tersedia, Kobra harus menyatakan tidak tersedia dan tidak menebak titik ketukan.
 21. Ucapkan "Kobra ketuk B3" dan "Kobra geser A1 ke C5" pada aplikasi uji. Pastikan aksi dikirim tanpa menampilkan grid visual.
 22. Ucapkan "Kobra fokus pertama", "Kobra fokus berikutnya", "Kobra fokus sebelumnya", "Kobra fokus terakhir", dan "Kobra baca fokus".
-23. Ubah seleksi teks atau pindah aplikasi. Batas fokus harus mengikuti kata/elemen aktif, hanya sebesar kata/elemen, sangat tipis, transparan, dan tidak menerima sentuhan.
-24. Pastikan hanya ikon mikrofon kecil 44dp yang mengambang. Tidak boleh ada panel, toolbar, lencana nomor, grid, dimming, atau glow yang menutupi aplikasi. Uji juga "Kobra bicara lebih cepat", "Kobra bicara lebih lambat", dan "Kobra kecepatan bicara normal".
+23. Ubah seleksi teks atau pindah aplikasi. Batas fokus hanya muncul untuk kata yang benar-benar memiliki rentang seleksi dan koordinat karakter; ukurannya pas mengelilingi kata, sangat tipis, transparan, dan tidak menerima sentuhan. Jika provider tidak menyediakan geometri kata, batas harus hilang (bukan berubah menjadi kotak baris atau elemen).
+24. Pastikan hanya ikon mikrofon kecil 44dp yang mengambang; tidak boleh ada tab tepi atau auto-hide yang menggantikannya. Tidak boleh ada panel, toolbar, lencana nomor, grid, dimming, atau glow yang menutupi aplikasi. Uji juga "Kobra bicara lebih cepat", "Kobra bicara lebih lambat", dan "Kobra kecepatan bicara normal".
 
 ## F. Pesan masuk dan telepon
 25. Minta teman mengirim WhatsApp dan SMS. Notifikasi harus dibacakan; lalu "Kobra baca notifikasi", "Kobra baca SMS".
