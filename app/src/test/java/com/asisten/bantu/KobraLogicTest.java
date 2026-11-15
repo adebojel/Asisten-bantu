@@ -174,6 +174,23 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testVoiceScreenTargetLabelMatchingDoesNotGuessAmbiguousItems() {
+        java.util.List<com.asisten.bantu.voiceaccess.NodeIndexer.IndexedNode> nodes =
+                new java.util.ArrayList<>();
+        nodes.add(new com.asisten.bantu.voiceaccess.NodeIndexer.IndexedNode(
+                1, "Putar video", 100, 100, new android.graphics.Rect(50, 50, 150, 150),
+                false, false, false, false, "", "TextView"));
+        nodes.add(new com.asisten.bantu.voiceaccess.NodeIndexer.IndexedNode(
+                2, "Putar berikutnya", 200, 100, new android.graphics.Rect(150, 50, 250, 150),
+                false, false, false, false, "", "TextView"));
+        assertNull(com.asisten.bantu.voiceaccess.NodeIndexer.findByLabel(nodes, "putar"));
+        assertEquals("Putar video",
+                com.asisten.bantu.voiceaccess.NodeIndexer.findByLabel(nodes, "putar video").getLabel());
+        assertEquals("Putar berikutnya",
+                com.asisten.bantu.voiceaccess.NodeIndexer.findByLabel(nodes, "berikutnya").getLabel());
+    }
+
+    @Test
     public void testSpeechInterruptCommandParser() {
         assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("stop"));
         assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("Kobra berhenti bicara sekarang"));
