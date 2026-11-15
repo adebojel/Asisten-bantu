@@ -191,6 +191,34 @@ object VoiceProfileManager {
     }
 
     @JvmStatic
+    fun adjustSpeechRate(context: Context, delta: Float): Float {
+        val cfg = KobraConfig(context.applicationContext)
+        val updated = clampRate(cfg.speechRate + delta)
+        cfg.speechRate = updated
+        syncAllTts(context.applicationContext)
+        return updated
+    }
+
+    @JvmStatic
+    fun adjustSpeechPitch(context: Context, delta: Float): Float {
+        val cfg = KobraConfig(context.applicationContext)
+        val updated = clampPitch(cfg.speechPitch + delta)
+        cfg.speechPitch = updated
+        syncAllTts(context.applicationContext)
+        return updated
+    }
+
+    @JvmStatic
+    fun resetSpeechRate(context: Context): Float {
+        val cfg = KobraConfig(context.applicationContext)
+        val preset = getPresetById(cfg.voiceProfileId)
+        val updated = clampRate(if (preset.isCustom) 1.0f else preset.rate)
+        cfg.speechRate = updated
+        syncAllTts(context.applicationContext)
+        return updated
+    }
+
+    @JvmStatic
     fun syncAllTts(context: Context) {
         val ctx = context.applicationContext
         Speaker.get(ctx).applyVoiceSettings()
@@ -241,8 +269,9 @@ object VoiceProfileManager {
         val cfg = KobraConfig(ctx)
         val preset = getPresetById(cfg.voiceProfileId)
 
-        val rate = if (preset.isCustom) clampRate(cfg.speechRate) else clampRate(preset.rate)
-        val pitch = if (preset.isCustom) clampPitch(cfg.speechPitch) else clampPitch(preset.pitch)
+        // Preset selection seeds these values; voice commands may then adjust them.
+        val rate = clampRate(cfg.speechRate)
+        val pitch = clampPitch(cfg.speechPitch)
 
         try {
             val bestVoice = selectBestIndonesianVoice(tts, preset.genderHint)
