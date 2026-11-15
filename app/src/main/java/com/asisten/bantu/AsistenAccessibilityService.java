@@ -2605,9 +2605,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
         say("Percakapan WhatsApp " + name + " dibuka. Mencari tombol panggilan suara.");
         main.postDelayed(() -> {
             boolean pressed = clickExact("Panggilan suara", "Voice call", "Panggilan", "Voice call button");
-            say(pressed
-                    ? "Tombol panggilan WhatsApp ditekan. Status memanggil atau berdering belum dapat dipastikan dari sistem."
-                    : "Percakapan terbuka, tetapi tombol panggilan suara tidak ditemukan. Panggilan belum dimulai.");
+            if (!pressed) {
+                say("Percakapan terbuka, tetapi tombol panggilan suara tidak ditemukan. Panggilan belum dimulai.");
+                return;
+            }
+            say("Tombol panggilan WhatsApp ditekan. Memeriksa status pada layar.");
+            main.postDelayed(() -> announceCallStatus(name, readScreenText()), 1800L);
         }, 2200L);
     }
 
@@ -2654,6 +2657,24 @@ public class AsistenAccessibilityService extends AccessibilityService {
         return out;
     }
 
+    private void announceCallStatus(String name, String visibleScreenText) {
+        CallStatusParser.Status status = CallStatusParser.parse(visibleScreenText);
+        switch (status) {
+            case RINGING:
+                say("Status panggilan ke " + name + ": sedang memanggil atau berdering menurut teks yang terlihat di layar.");
+                break;
+            case CONNECTED:
+                say("Status panggilan ke " + name + ": layar menunjukkan panggilan terhubung.");
+                break;
+            case ENDED:
+                say("Status panggilan ke " + name + ": layar menunjukkan panggilan berakhir, gagal, sibuk, atau tidak dijawab.");
+                break;
+            default:
+                say("Panggilan ke " + name + " sudah diminta, tetapi layar tidak menampilkan status yang dapat saya verifikasi. Saya tidak akan menebak apakah telepon berdering.");
+                break;
+        }
+    }
+
     private void placeCall(String name, String number) {
         try {
             // Use direct calling only when Android has explicitly granted CALL_PHONE.
@@ -2663,9 +2684,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
                     Uri.parse("tel:" + number));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
-            say(canCall
-                    ? "Menelepon " + name + "."
-                    : "Nomor " + name + " sudah disiapkan di aplikasi telepon. Tekan tombol panggil untuk melanjutkan.");
+            if (canCall) {
+                say("Permintaan panggilan ke " + name + " dibuka. Memeriksa status panggilan.");
+                main.postDelayed(() -> announceCallStatus(name, readScreenText()), 1800L);
+            } else {
+                say("Nomor " + name + " sudah disiapkan di aplikasi telepon. Tekan tombol panggil untuk melanjutkan.");
+            }
         } catch (Exception e) {
             Log.w(TAG, "Panggilan gagal", e);
             say("Gagal membuka aplikasi telepon untuk " + name + ".");
