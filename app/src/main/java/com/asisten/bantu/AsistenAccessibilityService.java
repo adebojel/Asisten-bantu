@@ -1307,13 +1307,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         // Navigasi layar & kontrol global (#66 & #68)
         if (has(c, "menu aksesibilitas", "buka menu aksesibilitas")) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                boolean opened = performGlobalAction(GLOBAL_ACTION_ACCESSIBILITY_MENU);
-                say(opened ? "Menu Aksesibilitas Android diminta untuk dibuka."
-                        : "Menu Aksesibilitas tidak tersedia. Aktifkan Menu Aksesibilitas di Pengaturan Android terlebih dahulu.");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                boolean invoked = performGlobalAction(GLOBAL_ACTION_ACCESSIBILITY_SHORTCUT);
+                say(invoked ? "Pintasan Aksesibilitas Android dipanggil. Jika yang terbuka bukan Menu Aksesibilitas, periksa pintasan yang Anda pilih di Pengaturan."
+                        : "Pintasan Aksesibilitas tidak tersedia. Buka Pengaturan Aksesibilitas Android untuk mengaturnya.");
             } else {
                 openSettings(Settings.ACTION_ACCESSIBILITY_SETTINGS,
-                        "Menu Aksesibilitas Android memerlukan pengaturan sistem. Silakan aktifkan dari sini.");
+                        "Pintasan Aksesibilitas Android memerlukan pengaturan sistem. Silakan atur dari sini.");
             }
             return;
         }
