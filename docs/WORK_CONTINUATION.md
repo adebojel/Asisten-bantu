@@ -68,3 +68,16 @@ Updated: 2026-11-16 (Asia/Jakarta)
 7. Update README, verify main build/release artifacts and checksum.
 8. Clean obsolete branches only after merge and after confirming no unique work remains.
 9. Device testing remains deferred until implementation is ready and the user authorizes the test phase.
+
+
+## Continuation update — 16 November 2026, after next review
+
+- PR #16 remains open and mergeable; branch is 51 commits ahead of main and 0 behind at the last comparison.
+- Latest confirmed successful build at review time: workflow run [43741094405](https://github.com/adebojel/Asisten-bantu/actions/runs/43741094405), commit `29cbaab83c5fad5b6504f2d6099ac31372268f2f`. Its steps include `testDebugUnitTest assembleDebug` and APK artifact upload. The catalog-only commit `92e2893b29dce087618f970532445038f0392b38` was made after that run; wait for its CI result.
+- Reviewed the active bounded screen agent: at most five steps, only open-app/click-label/scroll/back/home/done, refuses risky target names and resolved node labels/resource IDs, rejects ambiguous target matches, captures a fresh screenshot/tree per step, and stops if the screen fingerprint does not change. It does not type text, send messages, call, pay, buy, delete, or change security settings.
+- Added pure tests for risky targets, single-word selection resolution, ambiguity, exact label ranking, Unicode word boundaries and hyphenated labels. Latest successful workflow executes Gradle `testDebugUnitTest` before `assembleDebug`.
+- Audited [ScreenSaathi](https://github.com/NITISH-R-G/ScreenSaathi), MIT licensed. Its target resolver is an architecture reference; KOBRA keeps its independently implemented Unicode-aware matcher and does not import its voice/planner/overlay/task service. Added the decision to the repository catalog and retained third-party notice.
+- Audited droid-mcp as an Apache-2.0 architecture reference; no runtime dependency imported. Avoid `droid-mcp-all` and all duplicate service owners.
+- Offline Indonesian ASR remains a design decision only. LiveSub's Sherpa model is optional, around 247 MB, and has separate model licensing; no second microphone capture path has been added.
+- Main README and releases have not yet been rewritten; main has existing 3D SVG assets, but no verified current in-app screenshots. Do not use a failed CI screenshot as a product screenshot.
+- No merge, release, branch deletion, or physical-device test has occurred. Do not clean branches until all intended changes are safely in main and release artifacts have been verified.
