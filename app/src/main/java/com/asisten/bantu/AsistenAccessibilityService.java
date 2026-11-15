@@ -774,7 +774,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private static boolean containsAnyPhrase(String text, String... phrases) {
         if (text == null) return false;
         for (String phrase : phrases) {
-            if (text.equals(phrase) || text.startsWith(phrase + " ") || text.contains(" " + phrase + " ")) {
+            if (text.equals(phrase) || text.startsWith(phrase + " ") || text.endsWith(" " + phrase) || text.contains(" " + phrase + " ")) {
                 return true;
             }
         }
