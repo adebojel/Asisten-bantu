@@ -2321,8 +2321,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         String destination = number == null || number.trim().isEmpty() ? name : number;
         if (openChatDeepLink(destination, "whatsapp", body)) {
             main.postDelayed(() -> say(clickExact("kirim", "send")
-                    ? "Pesan terkirim ke " + name + "."
-                    : "Pesan sudah diketik di chat " + name + ", tetapi tombol kirim tidak ketemu. Tekan kirim sendiri."), 3000);
+                    ? "Tombol kirim ditekan untuk chat " + name + ". Status terkirim belum dikonfirmasi WhatsApp."
+                    : "Pesan sudah disiapkan di chat " + name + ", tetapi tombol kirim tidak ditemukan. Pesan belum dikirim."), 3000);
             return;
         }
         if (!openWhatsApp()) return;
