@@ -559,7 +559,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID");
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
         // The system recognizer may need its network service when the Indonesian
         // offline language pack is missing; do not force it into offline-only mode.
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, recognizerUsesOnDevice);
@@ -585,7 +585,21 @@ public class AsistenAccessibilityService extends AccessibilityService {
             // while Android is still delivering the first session's result.
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
         }
-        @Override public void onPartialResults(Bundle partialResults) { }
+        @Override public void onPartialResults(Bundle partialResults) {
+            if (speaker == null || !speaker.isSpeaking() || config == null
+                    || !config.isBargeInEnabled() || !micOn || partialResults == null) return;
+            ArrayList<String> partial = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            if (partial == null) return;
+            for (String candidate : partial) {
+                if (VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand(candidate)) {
+                    // Destroy the active recognizer before stopping TTS so its later
+                    // ERROR_CLIENT callback cannot restart listening over the user's stop.
+                    destroyRecognizer();
+                    handleSpoken(candidate);
+                    return;
+                }
+            }
+        }
         @Override public void onEvent(int eventType, Bundle params) { }
 
         @Override public void onError(int error) {
