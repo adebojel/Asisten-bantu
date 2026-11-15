@@ -24,7 +24,7 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian:** commit `83d921b` di `main` telah melewati workflow `Build Kobra OS APK` #251 dan `Auto Build and Release` #134; keduanya sukses dan aset APK serta checksum tersedia pada rilis Build 134. Tes logika murni dan kompilasi Android berhasil di CI. Belum ada verifikasi menyeluruh pada perangkat Android fisik. Build berhasil tidak membuktikan mikrofon, kamera, inferensi model, aksesibilitas, atau perilaku latar belakang bekerja sempurna.
+> **Status pengujian:** commit `57aa88f` di `main` telah melewati tes unit Android (`testDebugUnitTest`) dan kompilasi APK pada workflow rilis #171; publikasi aset masih berjalan. Build #160 sebelumnya juga berhasil. Belum ada verifikasi menyeluruh pada perangkat Android fisik. Build berhasil tidak membuktikan mikrofon, kamera, inferensi model, panggilan, WhatsApp, atau perilaku latar belakang bekerja sempurna.
 
 ## Tampilan aplikasi
 
@@ -47,18 +47,18 @@ Artwork 3D di bagian atas adalah ilustrasi identitas produk. Screenshot aplikasi
 |---|---|
 | Kontrol suara | Membuka aplikasi, navigasi layar, dan menjalankan perintah yang diizinkan Android |
 | Aksesibilitas | Membaca teks layar dan berinteraksi dengan elemen antarmuka melalui Accessibility Service |
-| Mata Kedua | OCR, warna pakaian, wajah, barcode/QR, dan pengenalan objek |
-| Mode Tongkat | Panduan arah objek berbasis kamera, suara, dan getaran; bukan pengganti tongkat putih |
+| Mata Kedua Terpadu | Satu sesi kamera: OCR langsung, label objek offline, panduan posisi teks, senter adaptif, dan perintah analisis sesuai pertanyaan |
+| Tongkat Digital | Terintegrasi ke Mata Kedua Terpadu; deteksi label tidak mengukur jarak/arah dan bukan pengganti tongkat putih |
 | Komunikasi | Alur panggilan, SMS, notifikasi, dan aplikasi pesan dengan izin serta konfirmasi |
 | Otak offline | Perintah dasar, kalkulator, dan basis pengetahuan lokal |
 | AI online | Router provider ketika internet dan konfigurasi tersedia |
 | AI lokal | Runtime MediaPipe dan LiteRT-LM untuk model yang kompatibel |
 
-Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, provider, dan model. Chat, input suara dari chat, dan perintah global diarahkan ke jalur percakapan yang sama; riwayat chat disimpan lokal dan dipulihkan saat layar chat dibuka kembali. Mode percakapan hands-free saat ini bergiliran mendengar dan berbicara melalui SpeechRecognizer/TTS Android, bukan audio streaming full-duplex berlatensi rendah. Analisis kamera berjalan saat layar Mata Kedua aktif; kamera tidak dijanjikan terus berjalan setelah Activity ditutup.
+Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, provider, dan model. Voice Access menyediakan indeks elemen layar, klik nomor 1–60, grid 3×3 dengan zoom bertingkat, ketik, gulir, dan gestur yang diizinkan Android. Interupsi ucapan memakai partial speech results untuk frasa berhenti yang jelas; perintah diam persisten dibedakan dari STOP satu kali. Chat, input suara, dan perintah global diarahkan ke jalur percakapan yang sama; riwayat chat disimpan lokal. Mode hands-free masih bergiliran melalui SpeechRecognizer/TTS, bukan streaming full-duplex.
 
 ## AI hybrid: online dan offline
 
-Paket APK menyertakan **otak offline dasar Kobra** (mesin aturan, kalkulator, dan basis pengetahuan `kobra_kb.txt`); ini bukan LLM generatif penuh. Build `main` saat ini juga mengunduh model Qwen3 0.6B INT4 ketika Gradle melakukan build bersih, lalu mengemas berkas `.litertlm` sebagai aset APK. Saat pertama kali dipakai, model disalin secara asinkron ke penyimpanan privat aplikasi sebelum LiteRT-LM memuatnya. Build 134 menghasilkan APK sekitar 645 MB, sehingga ukuran unduhan dan ruang penyimpanan harus diperhitungkan. Runtime tetap memeriksa ketersediaan model dan RAM; model tidak dijamin berjalan pada semua perangkat. Jika model gagal/tidak tersedia, Kobra harus kembali ke perintah lokal dan basis pengetahuan. Pengenalan suara offline tetap bergantung pada dukungan dan paket bahasa offline layanan SpeechRecognizer Android.
+Paket APK menyertakan **otak offline dasar Kobra** (mesin aturan, kalkulator, dan basis pengetahuan `kobra_kb.txt`); ini bukan LLM generatif penuh. Build `main` mengemas Qwen3 0.6B INT4 LiteRT-LM sebagai model lokal. Runtime memeriksa ketersediaan model dan RAM; jika model gagal dimuat, Kobra kembali ke perintah lokal dan basis pengetahuan. APK Build 160 berukuran sekitar 645 MB, sehingga ruang unduhan dan penyimpanan harus diperhitungkan. Jalur AI online gratis memerlukan API key OpenRouter dari pengguna dan ketersediaan model gratis; kuota/model tidak dijamin selalu tersedia. Pengenalan suara offline bergantung pada dukungan dan paket bahasa offline Android.
 
 | Jalur | Format | Runtime |
 |---|---|---|
@@ -96,7 +96,7 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - **Status build/publikasi otomatis:** [Kobra OS — Auto Build and Release](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml)
 - **Model offline Qwen3 0.6B:** build `main` saat ini sudah mengemas Qwen3 di dalam APK; impor manual dari [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) hanya diperlukan untuk paket model terpisah/pemulihan. Pastikan ruang penyimpanan dan RAM memadai.
 
-**Status distribusi:** workflow `main` membangun APK debug, membuat checksum SHA-256, dan menerbitkan aset pada GitHub Releases. Build 134 saat ini berstatus Latest dan bukan draft/pre-release. Meskipun workflow berhasil, build ini tetap belum dinyatakan stabil atau lulus uji perangkat; gunakan sebagai build kandidat untuk pengujian setelah tahap pengembangan kode selesai.
+**Status distribusi:** Build 168 adalah rilis APK terbaru yang sudah dipublikasikan saat catatan ini diperbarui. Workflow rilis #171 untuk commit `57aa88f` telah melewati tes dan kompilasi; publikasi aset sedang berjalan. Semua APK adalah kandidat debug, bukan versi final yang sudah lulus uji perangkat.
 
 ## Status pengembangan
 
@@ -108,15 +108,19 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - [x] Callback runtime Qwen dikembalikan ke main thread untuk menjaga keamanan UI Android.
 - [x] Riwayat chat terpadu (suara/teks dan respons lokal/online) disimpan lokal dan dipulihkan saat chat dibuka kembali.
 - [x] Fallback perintah dan pengetahuan dasar tetap tersedia ketika model generatif tidak bisa dimuat.
-- [x] Fallback pengenalan objek ke Image Labeling ditambahkan pada branch pengembangan.
-- [x] Build Android `main` dan tes unit untuk commit `83d921b` (workflow APK #251 dan rilis #134 berhasil; aset APK tersedia).
+- [x] Fallback pengenalan objek offline ke Image Labeling pada `main` tanpa klaim arah/jarak.
+- [x] Workflow APK dan rilis menjalankan `testDebugUnitTest` sebelum `assembleDebug`.
+- [x] Build #160 berhasil; workflow rilis #171 untuk commit `57aa88f` lulus tes dan kompilasi.
+- [x] Entry point Mata Kedua Terpadu + Tongkat Digital memakai sesi kamera `live_companion`.
+- [x] Voice Access: nomor elemen 1–60, grid 3×3 bertingkat, ketik/gulir/klik, dan interupsi ucapan parsial.
+- [x] Daftar WhatsApp dibaca berdasarkan nama percakapan; alur balasan teks meminta konfirmasi.
+- [x] Status panggilan hanya diumumkan jika label status terlihat pada layar.
+- [ ] Balasan voice note native otomatis; belum tersedia dan tidak disimulasikan.
+- [ ] Pemilihan SIM 1/SIM 2 yang tervalidasi.
+- [ ] Screen sharing/capture visual lintas aplikasi dalam satu sesi dengan izin MediaProjection.
 - [ ] Audit dan pengujian fungsional di HP Android nyata (sengaja ditunda sampai pengembangan kode selesai; ikuti [UJI_DI_HP.md](UJI_DI_HP.md)).
-- [ ] Uji mikrofon pada layar terkunci dan penggunaan latar belakang.
-- [ ] Uji alur tunanetra end-to-end dengan TalkBack.
-- [ ] Penyempurnaan visual seluruh layar dan dialog.
-- [ ] Integrasi kamera + pembacaan layar dalam satu sesi asisten yang tetap hidup lintas Activity.
-- [ ] Penyempurnaan kendali suara lintas aplikasi dan ketahanan percakapan dua arah.
-- [ ] Screenshot autentik dari build terbaru.
+- [ ] Uji mikrofon pada layar terkunci, latar belakang, dan alur tunanetra end-to-end dengan TalkBack.
+- [ ] Penyempurnaan visual seluruh layar dan dialog serta screenshot autentik dari build terbaru.
 
 Panduan pengujian: [UJI_DI_HP.md](UJI_DI_HP.md).
 
@@ -142,7 +146,7 @@ flowchart TD
 
 ## Build dari source
 
-Branch utama: `main`. Perubahan pengembangan dari `kobra-os-v7` telah digabung melalui PR #1.
+Branch utama: `main`. Branch lama dan PR yang sudah digantikan diaudit; perubahan relevan dipertahankan atau disempurnakan di `main`, sedangkan implementasi lama yang berisiko tidak digabung ulang.
 
 ```bash
 git clone --branch main https://github.com/adebojel/Asisten-bantu.git
@@ -151,6 +155,17 @@ cd Asisten-bantu
 ```
 
 APK debug, jika build berhasil, berada di `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Batasan fungsi saat ini
+
+- Image Labeling offline tidak menyediakan bounding box, arah, atau jarak. Kobra bukan pengganti tongkat putih dan tidak boleh dipakai untuk menyimpulkan jalur aman atau menyeberang.
+- Panduan posisi kamera berasal dari bounding box teks OCR, bukan deteksi tepi uang atau objek yang terkalibrasi.
+- Pembacaan nominal uang berbasis OCR perlu verifikasi; penghitungan banyak lembar uang dalam satu frame belum dapat dijamin.
+- Penghitung orang memakai deteksi wajah, bukan jaminan jumlah seluruh orang yang tertutup atau tidak menghadap kamera.
+- WhatsApp dibaca melalui teks yang diekspos Accessibility. Voice note hanya diputar jika kontrol pesan suara dikenali secara eksplisit; perekaman/pengiriman voice note native otomatis belum tersedia.
+- Status panggilan hanya diumumkan jika teks status terlihat pada pohon aksesibilitas. Jika tidak, Kobra menyatakan status tidak terverifikasi. Pemilihan SIM 1/2 belum tersedia.
+- Android membatasi layar aman, dialog sistem, izin, aplikasi yang memblokir Accessibility, dan tindakan tertentu. Voice Access tidak dapat menjamin kendali mutlak atas setiap aplikasi.
+- Mata Kedua saat ini menggabungkan OCR dan label objek dalam satu sesi kamera; ini belum setara dengan streaming multimodal Gemini Live atau screen sharing penuh.
 
 ## Privasi dan batasan Android
 
