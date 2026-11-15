@@ -25,9 +25,9 @@ jobs:
       - name: Prepare release files
         run: |
           mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk release/Kobra-OS-${GITHUB_SHA::7}.apk
+          cp app/build/outputs/apk/debug/app-debug.apk release/Kobra-OS-main.apk
           cd release
-          sha256sum Kobra-OS-${GITHUB_SHA::7}.apk > SHA256SUMS.txt
+          sha256sum Kobra-OS-main.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: Kobra-OS-APK
@@ -40,11 +40,11 @@ jobs:
           tag_name: kobra-os-build-${{ github.run_number }}
           name: Kobra OS — Build ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          prerelease: true
-          make_latest: false
+          prerelease: false
+          make_latest: true
           generate_release_notes: true
           body: |
-            APK Kobra OS untuk pengujian.
+            APK Kobra OS terbaru dari branch main. Rilis ini otomatis dijadikan Latest dan menyediakan nama aset stabil Kobra-OS-main.apk.
 
             Commit sumber: ${{ github.sha }}
             Branch: main
