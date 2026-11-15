@@ -620,7 +620,7 @@ open class ChatActivity : AppCompatActivity() {
                 if (isFinishing || isDestroyed) return@summarizeTextAsync
                 val cleanReply = reply?.trim().orEmpty()
                 if (cleanReply.isNotEmpty() && !cleanReply.contains("Gagal memproses") && !cleanReply.contains("Mode Aman")) {
-                    replyAndSpeak(cleanReply, "Gemma 3 1B Offline")
+                    replyAndSpeak(cleanReply, "Gemma 3 1B Offline", displayPrompt)
                     refreshModeBanner()
                 } else {
                     routeToOnlineOrFallback(displayPrompt, systemPrompt)
@@ -642,7 +642,7 @@ open class ChatActivity : AppCompatActivity() {
                     runOnUiThread {
                         bmp?.recycle()
                         attachedBitmap = null
-                        replyAndSpeak(geminiReply, "Gemini Vision")
+                        replyAndSpeak(geminiReply, "Gemini Vision", prompt)
                         refreshModeBanner()
                     }
                     return@execute
@@ -653,11 +653,11 @@ open class ChatActivity : AppCompatActivity() {
                             override fun onResult(text: String) {
                                 bmp.recycle()
                                 attachedBitmap = null
-                                replyAndSpeak(text, "OpenRouter Vision")
+                                replyAndSpeak(text, "OpenRouter Vision", prompt)
                                 refreshModeBanner()
                             }
                             override fun onError(message: String) {
-                                fallbackOfflineImageOcr(bmp)
+                                fallbackOfflineImageOcr(bmp, prompt)
                             }
                         })
                     } else {
@@ -670,9 +670,9 @@ open class ChatActivity : AppCompatActivity() {
         }
     }
 
-    private fun fallbackOfflineImageOcr(bmp: Bitmap?) {
+    private fun fallbackOfflineImageOcr(bmp: Bitmap?, prompt: String) {
         if (bmp == null) {
-            replyAndSpeak("Gambar tidak dapat diproses secara offline.", "Mata Lokal")
+            replyAndSpeak("Gambar tidak dapat diproses secara offline.", "Mata Lokal", prompt)
             return
         }
         val ocr = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -686,13 +686,13 @@ open class ChatActivity : AppCompatActivity() {
                 }
                 bmp.recycle()
                 attachedBitmap = null
-                replyAndSpeak(msg, "OCR Offline")
+                replyAndSpeak(msg, "OCR Offline", prompt)
                 refreshModeBanner()
             }
             .addOnFailureListener {
                 bmp.recycle()
                 attachedBitmap = null
-                replyAndSpeak("Gagal membaca gambar secara offline.", "OCR Offline")
+                replyAndSpeak("Gagal membaca gambar secara offline.", "OCR Offline", prompt)
                 refreshModeBanner()
             }
     }
@@ -707,13 +707,13 @@ open class ChatActivity : AppCompatActivity() {
             OnlineAiRouter.askAsync(this, contextualQuestion, systemPrompt, object : OnlineAiRouter.Callback {
                 override fun onResult(text: String, providerLabel: String) {
                     if (isFinishing || isDestroyed) return
-                    replyAndSpeak(text, providerLabel)
+                    replyAndSpeak(text, providerLabel, question)
                     refreshModeBanner()
                 }
 
                 override fun onError(message: String) {
                     if (isFinishing || isDestroyed) return
-                    replyAndSpeak(buildOfflineFallback(question), "Mode Lokal")
+                    replyAndSpeak(buildOfflineFallback(question), "Mode Lokal", question)
                     refreshModeBanner()
                 }
             })
@@ -762,14 +762,14 @@ open class ChatActivity : AppCompatActivity() {
         rvMessages.scrollToPosition(adapter.itemCount - 1)
     }
 
-    private fun replyAndSpeak(text: String, meta: String) {
+    private fun replyAndSpeak(text: String, meta: String, userTurn: String? = null) {
         addAiMessage(text, meta)
         // Keep one bounded local session history across online/offline provider switches.
         // Chat generation uses summarizeTextAsync(useHistory=false), so record each
         // completed Chat turn here exactly once.
-        val userTurn = adapter.lastUserMessage()
-        if (userTurn.isNotBlank() && text.isNotBlank()) {
-            LocalLlmEngine.getInstance(this).addSessionTurn(userTurn, text)
+        val sourceTurn = userTurn?.takeIf { it.isNotBlank() } ?: adapter.lastUserMessage()
+        if (sourceTurn.isNotBlank() && text.isNotBlank()) {
+            LocalLlmEngine.getInstance(this).addSessionTurn(sourceTurn, text)
         }
         speaker.speak(text)
     }
