@@ -368,7 +368,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         if (gridTap != null) {
             val point = gridCoordinate(gridTap.groupValues[1])
             if (point != null) {
-                val accepted = UnifiedAccessibilityEngine.clickAt(service, point.first, point.second)
+                val accepted = UnifiedAccessibilityEngine.clickAt(service, point.first.toFloat(), point.second.toFloat())
                 sayCallback.accept(if (accepted) "Ketukan pada koordinat " + gridTap.groupValues[1].uppercase(Locale.ROOT) + " dikirim ke Android." else "Android menolak ketukan pada koordinat tersebut.")
             } else sayCallback.accept("Koordinat suara tidak valid.")
             return true
