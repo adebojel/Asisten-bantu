@@ -162,3 +162,23 @@ This gap analysis takes precedence over aspirational feature lists in README fil
 **Batas yang tidak boleh dilanggar:** geometry kata ≠ jaminan kata itu clickable. Aksi klik tetap harus diarahkan ke node/action yang diekspos aplikasi. Jika provider hanya mengekspos satu node untuk seluruh kalimat, KOBRA tidak boleh membuat hitbox per kata dari perkiraan OCR atau membagi lebar teks secara rata.
 
 **Status validasi:** perubahan sudah tercatat pada branch PR, tetapi commit terbaru belum memiliki hasil CI terkonfirmasi dan belum diuji pada perangkat. Perangkat testing tetap ditunda sampai gate build dan pemeriksaan kode selesai.
+
+## Tambahan audit repository 16 November 2026
+
+Pencarian lanjutan menambahkan kandidat OlliteRT (Apache-2.0), Daedalus Echo (MIT), OpenClaw Droid (MIT), ARIADNE blind_navigation (MIT), Microsoft Accessibility Insights service (MIT, discontinued 2023), flutter_accessibility_service (MIT), serta beberapa prototype vision/navigation yang tidak memiliki lisensi terverifikasi. Keputusan, fitur, dan batas reuse dicatat lengkap di docs/OPEN_SOURCE_REPOSITORY_CATALOG_2026-11.md.
+
+### Dampak pada arsitektur KOBRA
+
+- OlliteRT adalah server inference, bukan modul inference embedded. Memasukkannya ke APK berisiko membuat runtime kedua dan proses latar belakang baru; tidak dipilih untuk integrasi default.
+- Daedalus Echo menambah contoh alur Whisper → ringkasan Gemma → pencarian semantik, tetapi KOBRA harus tetap punya satu pemilik mikrofon dan satu runtime LLM. Adaptasi hanya pada komponen yang tidak menggandakan capture atau engine.
+- ARIADNE dan Blind Vision Assistant berguna untuk pola peringatan hambatan konservatif. Estimasi depth relatif bukan jarak meter dan tidak membuktikan jalur aman.
+- Microsoft Accessibility Insights Android sudah dihentikan dukungannya; hanya gunakan ide checklist QA.
+- Repositori tanpa lisensi, AGPL/GPL, atau proyek usang tidak boleh di-copy ke produk tanpa keputusan lisensi eksplisit.
+
+### Pekerjaan sebelum kandidat uji perangkat
+
+- Tambahkan instrumented/unit tests untuk overlay lifecycle, provider tanpa character geometry, multi-window, orientasi, dan pembatalan voice session.
+- Verifikasi bahwa mic orb satu-satunya overlay persisten; edge-tab dan dismiss affordance hanya kode legacy tersembunyi, perlu dihapus atau dibuktikan tidak pernah attach.
+- Uji perintah kata pada provider Android yang mendukung dan yang tidak mendukung geometry; tidak boleh menebak bounds.
+- Audit README links/assets: pastikan setiap SVG/screenshot dan APK release URL benar-benar ada, workflow release berhasil mengunggah asset dengan nama yang dipakai README.
+- Baru setelah integrasi kode, test, dan release pipeline lolos, siapkan merge PR ke main. Cabang lama hanya dibersihkan setelah memastikan merge/PR state dan tag/release yang bergantung padanya.
