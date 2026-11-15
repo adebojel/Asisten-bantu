@@ -146,6 +146,14 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testWhatsAppPackageDetection() {
+        assertTrue(com.asisten.bantu.voiceaccess.NodeIndexer.isWhatsAppPackage("com.whatsapp"));
+        assertTrue(com.asisten.bantu.voiceaccess.NodeIndexer.isWhatsAppPackage("com.whatsapp.w4b"));
+        assertTrue(!com.asisten.bantu.voiceaccess.NodeIndexer.isWhatsAppPackage("com.android.messages"));
+        assertTrue(!com.asisten.bantu.voiceaccess.NodeIndexer.isWhatsAppPackage(null));
+    }
+
+    @Test
     public void testSpeechInterruptCommandParser() {
         assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("stop"));
         assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("Kobra berhenti bicara sekarang"));
