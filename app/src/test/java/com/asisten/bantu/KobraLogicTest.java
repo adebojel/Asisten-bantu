@@ -146,6 +146,15 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testVoiceAccessIndonesianNumberTargets() {
+        assertEquals(Integer.valueOf(1), OfflineBrain.firstNumber("klik nomor satu"));
+        assertEquals(Integer.valueOf(10), OfflineBrain.firstNumber("klik nomor sepuluh"));
+        assertEquals(Integer.valueOf(11), OfflineBrain.firstNumber("klik nomor sebelas"));
+        assertEquals(Integer.valueOf(32), OfflineBrain.firstNumber("klik nomor tiga puluh dua"));
+        assertEquals(Integer.valueOf(60), OfflineBrain.firstNumber("klik nomor enam puluh"));
+    }
+
+    @Test
     public void testAdaptiveTorchLuxThresholds() {
         assertTrue(VisionActivity.shouldEnableAutoTorch(0.5f));
         assertTrue(VisionActivity.shouldEnableAutoTorch(11.9f));
