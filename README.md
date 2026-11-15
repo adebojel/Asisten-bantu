@@ -58,7 +58,7 @@ Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, prov
 
 ## AI hybrid: online dan offline
 
-Kobra mempertahankan fungsi lokal untuk perintah dasar. Permintaan yang lebih kompleks dapat menggunakan AI online jika tersedia. Model lokal berjalan di perangkat dan memerlukan RAM, ruang penyimpanan, serta runtime yang sesuai.
+Kobra mempertahankan fungsi lokal untuk perintah dasar. Untuk percakapan generatif, urutan Chat adalah Gemma 3 1B jika tersedia, lalu Qwen3 0.6B LiteRT-LM jika sudah diimpor dan lolos pemeriksaan RAM, kemudian AI online jika internet tersedia. Jika semua model gagal/tidak tersedia, Kobra tetap menjalankan perintah lokal, kalkulator, memori, agenda, dan ringkasan ekstraktif. Model lokal berjalan di perangkat; setelah model berhasil dipasang dan dimuat, percakapan teks tidak membutuhkan koneksi internet. Pengenalan suara offline tetap bergantung pada dukungan dan paket bahasa offline layanan SpeechRecognizer Android.
 
 | Jalur | Format | Runtime |
 |---|---|---|
@@ -75,7 +75,7 @@ Model tidak otomatis cocok untuk setiap ponsel. Kobra menggunakan pemeriksaan me
 
 - **APK rilis:** [GitHub Releases](https://github.com/adebojel/Asisten-bantu/releases)
 - **APK debug terbaru:** [Build main #134 — unduh artifact Kobra-OS-APK](https://github.com/adebojel/Asisten-bantu/actions/runs/43637435906) → bagian Artifacts → `Kobra-OS-APK` → unzip → pasang `app-debug.apk`.
-- **Model offline:** [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0).
+- **Model offline Qwen3 0.6B:** [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0). Unduh berkas `.litertlm` dan file `.sha256`, verifikasi checksum, lalu buka Kobra → Pengaturan → AI & Model → Impor Model. Pilih berkas `.litertlm`, tunggu penyalinan selesai, kemudian tekan Muat / Uji. Pastikan ruang penyimpanan cukup (model sekitar 300–400 MB) dan RAM tersedia memadai.
 
 APK debug #134 sudah tersedia untuk pengujian perangkat. Saat ini belum ada rilis APK stabil yang dinyatakan siap untuk penggunaan rutin. APK debug ditujukan untuk pengujian. Workflow prerelease APK sudah tersedia di [Kobra OS APK Release](.github/workflows/release-apk.yml); rilis baru dianggap tersedia setelah workflow dijalankan dan aset APK muncul di halaman Releases.
 
@@ -85,6 +85,9 @@ APK debug #134 sudah tersedia untuk pengujian perangkat. Saat ini belum ada rili
 - [x] Pemisahan jalur runtime model `.task` dan `.litertlm`.
 - [x] Paket model offline tersedia terpisah.
 - [x] Pemeriksaan RAM sebelum pemuatan model lokal.
+- [x] Chat mencoba Gemma lokal, lalu Qwen3 LiteRT-LM lokal sebelum AI online.
+- [x] Callback runtime Qwen dikembalikan ke main thread untuk menjaga keamanan UI Android.
+- [x] Fallback perintah dan pengetahuan dasar tetap tersedia ketika model generatif tidak bisa dimuat.
 - [x] Fallback pengenalan objek ke Image Labeling ditambahkan pada branch pengembangan.
 - [x] Build Android `main` dan tes unit setelah integrasi fallback (GitHub Actions #134 berhasil; artifact APK tersedia).
 - [ ] Uji instalasi dan fungsi di HP Android nyata (belum dilakukan; ikuti [UJI_DI_HP.md](UJI_DI_HP.md)).
@@ -121,7 +124,7 @@ flowchart TD
 Branch utama: `main`. Perubahan pengembangan dari `kobra-os-v7` telah digabung melalui PR #1.
 
 ```bash
-git clone --branch kobra-os-v7 https://github.com/adebojel/Asisten-bantu.git
+git clone --branch main https://github.com/adebojel/Asisten-bantu.git
 cd Asisten-bantu
 ./gradlew testDebugUnitTest assembleDebug
 ```
