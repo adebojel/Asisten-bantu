@@ -12,7 +12,9 @@ class CommandRouterSafetyTest {
             "Kirim", "Send", "Bayar", "Transfer", "Beli", "Purchase",
             "Panggil", "Call", "Hapus", "Delete", "Remove", "Install",
             "Allow", "Accept", "Confirm", "Setuju", "Bagikan", "Upload",
-            "Logout", "Block", "Report", "Pesan"
+            "Logout", "Block", "Report", "Pesan", "Messages", "New message",
+            "Reply", "Compose", "Chat", "Dial", "Record", "Capture", "Start",
+            "Create", "Add"
         )
         riskyTargets.forEach { target ->
             assertTrue("Harus ditolak: $target", CommandRouter.isRiskyAgentTarget(target))
