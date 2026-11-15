@@ -39,7 +39,7 @@ public final class Perms {
             "Lokasi — navigasi dan posisi",
             "Kontak — mencari nomor kontak",
             "Telepon — melakukan/menjawab panggilan",
-            "SMS — mengirim dan membaca SMS",
+            "SMS — mengirim pesan",
             "Riwayat panggilan — membaca log telepon",
             "Kalender — membaca agenda",
             "Bluetooth — perangkat terdekat",
