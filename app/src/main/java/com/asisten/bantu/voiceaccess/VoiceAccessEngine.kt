@@ -48,6 +48,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         if (event == null) return
         val cfg = KobraConfig(service)
         when (event.eventType) {
+            android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> focusOutline.hide()
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED,
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
                 if (!cfg.isFocusOutlineEnabled()) return
