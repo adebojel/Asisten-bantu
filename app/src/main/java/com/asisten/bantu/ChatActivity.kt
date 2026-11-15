@@ -666,7 +666,7 @@ open class ChatActivity : AppCompatActivity() {
                 }
             }
         } else {
-            fallbackOfflineImageOcr(bmp)
+            fallbackOfflineImageOcr(bmp, prompt)
         }
     }
 
