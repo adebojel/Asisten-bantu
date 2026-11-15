@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -43,6 +44,7 @@ import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
@@ -376,10 +378,15 @@ public class VisionActivity extends AppCompatActivity {
                     .addOnSuccessListener(res -> {
                         String raw = res.getText() == null ? "" : res.getText().replaceAll("\\s+", " ").trim();
                         if (!raw.isEmpty() && System.currentTimeMillis() - lastLiveSpeakAt >= 2200L) {
+                            int rotation = proxy.getImageInfo().getRotationDegrees();
+                            int frameWidth = (rotation == 90 || rotation == 270) ? proxy.getHeight() : proxy.getWidth();
+                            int frameHeight = (rotation == 90 || rotation == 270) ? proxy.getWidth() : proxy.getHeight();
+                            String alignment = textFrameGuidance(res, frameWidth, frameHeight);
                             MoneyAndReceiptParser.BillResult bill = MoneyAndReceiptParser.parseRupiahBill(raw, null);
-                            String result = bill.amount > 0
+                            String result = (bill.amount > 0
                                     ? "Kemungkinan nominal uang rupiah " + MoneyAndReceiptParser.formatRupiah(bill.amount) + " terbaca. Periksa kembali angka pada uang."
-                                    : "Teks yang terlihat: " + raw.substring(0, Math.min(raw.length(), 180));
+                                    : "Teks yang terlihat: " + raw.substring(0, Math.min(raw.length(), 180)))
+                                    + " " + alignment;
                             if (!result.equals(lastLiveText)) {
                                 lastLiveText = result;
                                 lastLiveSpeakAt = System.currentTimeMillis();
@@ -450,6 +457,37 @@ public class VisionActivity extends AppCompatActivity {
         } else {
             proxy.close();
         }
+    }
+
+    /**
+     * Uses OCR text-block bounds only as framing guidance. This does not locate
+     * the banknote/object itself and must never be presented as distance sensing.
+     */
+    private String textFrameGuidance(Text result, int width, int height) {
+        Rect combined = null;
+        if (result != null) {
+            for (Text.TextBlock block : result.getTextBlocks()) {
+                Rect bounds = block.getBoundingBox();
+                if (bounds == null || bounds.isEmpty()) continue;
+                if (combined == null) combined = new Rect(bounds);
+                else combined.union(bounds);
+            }
+        }
+        if (combined == null || width <= 0 || height <= 0) {
+            return "Arahkan kamera perlahan sampai tulisan terlihat jelas.";
+        }
+        float cx = combined.centerX() / (float) width;
+        float cy = combined.centerY() / (float) height;
+        String horizontal = cx < 0.35f ? "geser HP sedikit ke kiri"
+                : cx > 0.65f ? "geser HP sedikit ke kanan" : "";
+        String vertical = cy < 0.35f ? "arahkan kamera sedikit ke atas"
+                : cy > 0.65f ? "arahkan kamera sedikit ke bawah" : "";
+        if (horizontal.isEmpty() && vertical.isEmpty()) {
+            return "Tulisan berada dekat tengah bidang kamera.";
+        }
+        String direction = horizontal.isEmpty() ? vertical
+                : vertical.isEmpty() ? horizontal : horizontal + " dan " + vertical;
+        return "Panduan posisi tulisan: " + direction + " agar lebih mendekati tengah.";
     }
 
     private void analyzeLiveObjectsThenClose(InputImage image, ImageProxy proxy) {
