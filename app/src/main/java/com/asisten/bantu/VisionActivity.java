@@ -681,10 +681,25 @@ public class VisionActivity extends AppCompatActivity {
                         ? "Jelaskan secara singkat benda utama yang terlihat di depan kamera untuk pengguna tunanetra. Jangan menebak jika tidak jelas."
                         : liveQuestion;
                 liveQuestion = "";
-                if (question.toLowerCase(Locale.ROOT).contains("uang") || question.toLowerCase(Locale.ROOT).contains("nominal")) {
+                String q = question.toLowerCase(Locale.ROOT);
+                if (q.contains("hitung uang") || q.contains("jumlah uang") || q.contains("lembar uang")) {
+                    analyzeMoneySequential(bmp);
+                } else if (q.contains("uang") || q.contains("nominal") || q.contains("duit")) {
                     detectMoneyAndColor(bmp);
-                } else if (question.toLowerCase(Locale.ROOT).contains("teks") || question.toLowerCase(Locale.ROOT).contains("tulisan")) {
+                } else if (q.contains("teks") || q.contains("tulisan") || q.contains("baca tulisan")) {
                     readInstantOcr(bmp);
+                } else if (q.contains("berapa orang") || q.contains("wajah") || q.contains("orang di depan")) {
+                    OfflineVision.countFaces(bmp, this::done);
+                } else if (q.contains("barcode") || q.contains("kode batang") || q.contains("qr")) {
+                    analyzeBarcodeAndPackage(bmp);
+                } else if (q.contains("struk") || q.contains("bukti transfer") || q.contains("transaksi")) {
+                    analyzeReceiptOrScreen(bmp, true);
+                } else if (q.contains("ktp") || q.contains("kartu identitas")) {
+                    readKtp(bmp);
+                } else if (q.contains("warna")) {
+                    done("Warna dominan yang terlihat: " + OfflineVision.detailedColorName(bmp) + ".");
+                } else if (q.contains("baju") || q.contains("pakaian") || q.contains("cocokkan")) {
+                    analyzeOutfit(bmp);
                 } else {
                     askAiWithBitmap(bmp, question);
                 }
