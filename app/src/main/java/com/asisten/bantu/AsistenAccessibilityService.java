@@ -668,6 +668,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         if (pending != null) {
+            // Keep safety-confirmation replies visible in the same Chat transcript.
+            // The pending branch intentionally bypasses normal Chat dispatch.
+            if (ChatActivity.isUnifiedConversationActive()) {
+                ChatActivity.appendGlobalUser(raw);
+            }
             Pending p = pending;
             if ("med_confirm".equals(p.kind) && stripWake(text) != null
                     && !containsWord(text, YES) && !containsWord(text, NO)
