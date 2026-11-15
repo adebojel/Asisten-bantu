@@ -693,12 +693,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (assistantSilenced) {
             if (wakeCommand == null) return; // Abaikan suara media/percakapan; hanya kata panggil yang membangunkan.
             String wakeTail = wakeCommand.trim();
-            if (wakeTail.isEmpty() || containsAnyPhrase(wakeTail,
-                    "aktif", "aktifkan", "bangun", "kembali", "nyala", "dengarkan", "saya panggil")) {
+            if (wakeTail.isEmpty() || VoiceSilenceCommandParser.isWakeActivationCommand(wakeTail)) {
                 setAssistantSilenced(false);
                 say("Saya aktif kembali. Ya, saya dengarkan.");
-                if (wakeTail.isEmpty() || containsAnyPhrase(wakeTail,
-                        "aktif", "aktifkan", "bangun", "kembali", "nyala", "dengarkan", "saya panggil")) return;
+                if (wakeTail.isEmpty() || VoiceSilenceCommandParser.isWakeActivationCommand(wakeTail)) return;
             } else {
                 setAssistantSilenced(false);
                 say("Saya aktif kembali.");
@@ -707,10 +705,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         String silenceCommand = wakeCommand == null ? "" : wakeCommand.trim();
-        if (wakeCommand != null && containsAnyPhrase(silenceCommand,
-                "diam dulu", "diam", "jangan bicara", "berhenti bicara",
-                "mode diam", "nonaktifkan asisten", "matikan asisten",
-                "istirahat dulu", "jangan merespons")) {
+        if (wakeCommand != null && VoiceSilenceCommandParser.isSilenceCommand(silenceCommand)) {
             setAssistantSilenced(true);
             if (speaker != null) speaker.stop();
             say("Baik, saya diam. Panggil saya dengan kata Kobra untuk aktif kembali.");
@@ -769,16 +764,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private String stripWake(String s) {
         return VoiceProfileManager.stripWakeWord(this, s);
-    }
-
-    private static boolean containsAnyPhrase(String text, String... phrases) {
-        if (text == null) return false;
-        for (String phrase : phrases) {
-            if (text.equals(phrase) || text.startsWith(phrase + " ") || text.endsWith(" " + phrase) || text.contains(" " + phrase + " ")) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void setAssistantSilenced(boolean silenced) {
