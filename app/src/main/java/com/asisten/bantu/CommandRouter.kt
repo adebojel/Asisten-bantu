@@ -210,6 +210,38 @@ object CommandRouter {
         val macroCache = LocalMacroCache(service)
         val fullInstruction = KobraPersona.buildFullSystemPrompt(service)
 
+        // Jawaban pengetahuan yang sudah tersedia harus tetap bisa dijawab tanpa jaringan/model.
+        OfflineKnowledgeStore.answer(service, command)?.let { knownAnswer ->
+            speaker.speak(knownAnswer)
+            return
+        }
+
+        // Qwen3 tertanam di APK menjadi otak percakapan utama, baik online maupun offline.
+        // Internet hanya dipakai jika model lokal tidak siap, gagal, atau perangkat kekurangan RAM.
+        if (LocalModelRuntimeManager.isModelAvailable(service)) {
+            if (LocalModelRegistry.canAttemptLiteRtModel(service)) {
+                LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\\n\\nPengguna: $command") { answer, error ->
+                    if (!answer.isNullOrBlank()) {
+                        speaker.speak(answer)
+                    } else if (online) {
+                        dispatchOnlineTier4(service, command, macroCache, config, speaker)
+                    } else {
+                        fallbackToMediaPipeOrSpeak(
+                            service, command, fullInstruction, speaker,
+                            error ?: "Qwen3 lokal gagal menjawab dan internet tidak tersedia."
+                        )
+                    }
+                }
+                return
+            } else if (!online) {
+                fallbackToMediaPipeOrSpeak(
+                    service, command, fullInstruction, speaker,
+                    "Memori bebas HP belum cukup untuk memuat Qwen3 dengan aman. Tutup aplikasi lain lalu coba lagi."
+                )
+                return
+            }
+        }
+
         // Prioritas 3A: Qwen3 0.6B via LiteRT-LM bila model ringan tersedia.
         if (!online) {
             if (LocalModelRuntimeManager.isModelAvailable(service)) {
