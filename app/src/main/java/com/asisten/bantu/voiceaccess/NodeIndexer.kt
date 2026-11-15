@@ -27,6 +27,11 @@ object NodeIndexer {
     )
 
     @JvmStatic
+    fun isWhatsAppPackage(packageName: String?): Boolean {
+        return packageName == "com.whatsapp" || packageName == "com.whatsapp.w4b"
+    }
+
+    @JvmStatic
     fun indexScreen(service: AccessibilityService?, maxNodes: Int = 60): List<IndexedNode> {
         if (service == null) return emptyList()
         val root = selectActiveRoot(service) ?: return emptyList()
