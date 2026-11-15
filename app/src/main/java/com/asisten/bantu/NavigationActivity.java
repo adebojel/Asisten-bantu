@@ -188,6 +188,14 @@ public class NavigationActivity extends AppCompatActivity {
 
                 provider.unbindAll();
                 provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis);
+
+                // Mode Tongkat mulai menganalisis frame segera setelah kamera siap.
+                // Tidak perlu menunggu pengguna menekan tombol Mulai Radar.
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed() && !navigating) {
+                        startNavigation();
+                    }
+                });
             } catch (Exception e) {
                 speaker.speak("Kamera tidak bisa dibuka.");
             }
