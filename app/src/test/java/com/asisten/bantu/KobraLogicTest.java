@@ -174,6 +174,15 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testVisibleBalanceExtractionRequiresBalanceLabel() {
+        assertTrue(OfflineBrain.visibleBalanceForSpeech("Saldo Anda Rp 1.250.000").contains("Rp 1.250.000"));
+        assertTrue(OfflineBrain.visibleBalanceForSpeech("Available balance: IDR 500,000").contains("IDR 500,000"));
+        assertEquals("", OfflineBrain.visibleBalanceForSpeech("OTP 123456, rekening 1234567890"));
+        assertEquals("", OfflineBrain.visibleBalanceForSpeech("Saldo sedang dimuat"));
+        assertEquals("", OfflineBrain.visibleBalanceForSpeech(null));
+    }
+
+    @Test
     public void testVoiceScreenTargetLabelMatchingDoesNotGuessAmbiguousItems() {
         java.util.List<com.asisten.bantu.voiceaccess.NodeIndexer.IndexedNode> nodes =
                 new java.util.ArrayList<>();
