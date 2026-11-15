@@ -44,9 +44,21 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
     }
 
     fun refreshFocusOutline() {
-        if (!KobraConfig(service).isFocusOutlineEnabled()) return
+        if (!KobraConfig(service).isFocusOutlineEnabled()) {
+            focusOutline.hide()
+            return
+        }
+        val wordBounds = NodeIndexer.focusedWordBounds(service)
+        if (wordBounds != null) {
+            focusOutline.show(wordBounds)
+            return
+        }
         val bounds = NodeIndexer.focusedBounds(service)
-        if (bounds != null) focusOutline.show(bounds)
+        val dm = service.resources.displayMetrics
+        // Never draw a huge rectangle around a paragraph, web page, or full-screen container.
+        if (bounds != null && bounds.width() <= dm.widthPixels * 0.82f &&
+            bounds.height() <= dm.heightPixels * 0.28f) focusOutline.show(bounds)
+        else focusOutline.hide()
     }
 
     /** Focus indicator for every app; its transparent overlay never intercepts touch. */
@@ -58,8 +70,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED,
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
                 if (!cfg.isFocusOutlineEnabled()) return
-                val bounds = NodeIndexer.focusedBounds(service)
-                if (bounds != null) focusOutline.show(bounds)
+                refreshFocusOutline()
             }
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUS_CLEARED -> focusOutline.hide()
         }
@@ -114,32 +125,23 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
     }
 
     fun refreshOverlaysIfActive() {
-        val cfg = KobraConfig(service)
-        if (numberOverlay.isShowing() && cfg.isVisualNumbersEnabled) {
-            val nodes = NodeIndexer.indexScreen(service)
-            lastIndexedNodes = nodes
-            numberOverlay.show(nodes)
-        }
+        // Kobra keeps the screen clear: legacy number/grid layers are never persistent.
+        numberOverlay.hide()
+        gridOverlay.hide()
+        refreshFocusOutline()
     }
 
     fun toggleNumberBadges(sayCallback: Consumer<String>) {
-        if (numberOverlay.isShowing()) {
-            numberOverlay.hide()
-            sayCallback.accept("Nomor layar disembunyikan.")
-            return
-        }
+        numberOverlay.hide()
+        gridOverlay.hide()
         val nodes = NodeIndexer.indexScreen(service)
         lastIndexedNodes = nodes
         if (nodes.isEmpty()) {
-            sayCallback.accept("Tidak ada elemen bernomor di layar ini.")
+            sayCallback.accept("Tidak ada elemen yang dapat dibaca pada layar ini.")
             return
         }
-        val cfg = KobraConfig(service)
-        if (!cfg.isVisualNumbersEnabled) {
-            cfg.setVisualNumbersEnabled(true)
-        }
-        numberOverlay.show(nodes)
-        sayCallback.accept("Menampilkan ${nodes.size} nomor elemen layar.")
+        // Voice-only numbered index; no visual badges are drawn over the user's app.
+        sayCallback.accept(NodeIndexer.buildAudioReadout(nodes, 30))
     }
 
     /**
@@ -209,6 +211,39 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             cfg.setFocusOutlineEnabled(false)
             focusOutline.hide()
             sayCallback.accept("Garis fokus disembunyikan.")
+            return true
+        }
+
+        if (c == "kata berikutnya" || c == "fokus kata berikutnya" || c == "baca kata berikutnya") {
+            val word = NodeIndexer.moveFocusedTextByWord(service, true)
+            refreshFocusOutline()
+            sayCallback.accept(word?.let { "Kata berikutnya: $it" }
+                ?: "Aplikasi ini tidak menyediakan navigasi kata pada elemen yang sedang difokuskan.")
+            return true
+        }
+        if (c == "kata sebelumnya" || c == "fokus kata sebelumnya" || c == "baca kata sebelumnya") {
+            val word = NodeIndexer.moveFocusedTextByWord(service, false)
+            refreshFocusOutline()
+            sayCallback.accept(word?.let { "Kata sebelumnya: $it" }
+                ?: "Aplikasi ini tidak menyediakan navigasi kata pada elemen yang sedang difokuskan.")
+            return true
+        }
+        if (c == "baca kata fokus" || c == "kata ini" || c == "baca kata sekarang") {
+            val word = NodeIndexer.focusedWordText(service)
+            sayCallback.accept(word?.let { "Kata yang difokuskan: $it" }
+                ?: "Belum ada kata yang dapat difokuskan pada elemen ini.")
+            return true
+        }
+        if (c == "klik kata ini" || c == "ketuk kata ini" || c == "pilih kata fokus") {
+            val bounds = NodeIndexer.focusedWordBounds(service)
+            if (bounds == null) {
+                sayCallback.accept("Batas kata tidak tersedia dari aplikasi ini; Kobra tidak akan menebak titik ketukan.")
+            } else {
+                val accepted = UnifiedAccessibilityEngine.clickAt(
+                    service, bounds.centerX().toFloat(), bounds.centerY().toFloat()
+                )
+                sayCallback.accept(if (accepted) "Ketukan pada kata yang difokuskan dikirim ke Android." else "Android menolak ketukan pada kata tersebut.")
+            }
             return true
         }
 
@@ -294,8 +329,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 sayCallback.accept("Overlay grid sedang dinonaktifkan di Pengaturan.")
                 return true
             }
-            gridOverlay.showFullGrid()
-            sayCallback.accept("Grid tiga kali tiga ditampilkan. Sebutkan ketuk nomor satu sampai sembilan, atau zoom nomor.")
+            gridOverlay.hide()
+            sayCallback.accept("Grid visual tetap disembunyikan agar layar bersih. Anda dapat mengucapkan ketuk area satu sampai sembilan, misalnya area tengah atau area kanan bawah.")
             return true
         }
 
