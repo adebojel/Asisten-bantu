@@ -2157,7 +2157,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void tapScreenCenter() {
         try {
             android.util.DisplayMetrics metrics = new android.util.DisplayMetrics();
-            getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+            android.view.WindowManager window = (android.view.WindowManager) getSystemService(WINDOW_SERVICE);
+            if (window == null) { say("Layar tidak dapat diakses."); return; }
+            window.getDefaultDisplay().getRealMetrics(metrics);
             float x = metrics.widthPixels / 2f;
             float y = metrics.heightPixels / 2f;
             Path path = new Path();
@@ -2287,6 +2289,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             say("Nomor tujuan " + target + " dipilih. Apa isi pesannya?");
             return;
         }
+        if (!Perms.has(this, Manifest.permission.READ_CONTACTS)) {
+            say("Izin membaca kontak belum aktif. Aktifkan izin Kontak di pengaturan Kobra terlebih dahulu.");
+            return;
+        }
         List<String[]> matches = findContacts(target, 5);
         if (matches.isEmpty()) {
             say("Kontak " + target + " tidak ditemukan di daftar kontak HP. Periksa ejaan atau izin kontak.");
@@ -2325,7 +2331,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             main.postDelayed(() -> {
                 if (!setTextInEditable(body)) { say("Kolom pesan tidak ketemu. Pesan belum terkirim."); return; }
                 main.postDelayed(() -> {
-                    if (clickExact("kirim", "send")) say("Pesan terkirim ke " + name + ".");
+                    if (clickExact("kirim", "send")) say("Tombol kirim ditekan untuk chat " + name + ". Status terkirim belum dikonfirmasi WhatsApp.");
                     else say("Tombol kirim tidak ketemu. Pesan sudah diketik, tekan kirim sendiri.");
                 }, 700);
             }, 1200);
