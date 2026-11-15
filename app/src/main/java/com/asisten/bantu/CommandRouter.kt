@@ -156,28 +156,16 @@ object CommandRouter {
             return true
         }
 
-        // Permintaan analisis visual layar (Screenshot + UI Tree -> Gemini Vision)
+        // Analisis layar dasar tanpa API berbayar: gunakan UI tree dan pembaca layar lokal.
+        // Analisis visual multimodal online akan ditambahkan hanya melalui model yang
+        // terverifikasi bertarif nol; jangan pernah mengalihkan fitur ini ke Gemini berbayar.
         if (isVisualScreenQuery(c)) {
-            if (!NetworkState.isOnline(service)) {
-                sayCallback.accept("Internet terputus. Membaca teks layar secara offline: " + service.readScreenText())
-                return true
-            }
-            val apiKey = resolveGeminiApiKey(service)
-            if (apiKey.isEmpty()) {
-                sayCallback.accept("Kunci Gemini API belum diatur. Membacakan teks layar lokal: " + service.readScreenText())
-                return true
-            }
-            analyzeScreenVisuallyAsync(service, c, apiKey, sayCallback)
+            val screenText = service.readScreenText()
+            sayCallback.accept(
+                if (screenText.isNotBlank()) "Isi layar yang dapat dibaca: $screenText"
+                else "Belum ada teks layar yang dapat diakses. Pastikan izin Aksesibilitas aktif."
+            )
             return true
-        }
-
-        // Instruksi multi-langkah lintas layar
-        if (isComplexMultiStepCommand(c) && NetworkState.isOnline(service)) {
-            val apiKey = resolveGeminiApiKey(service)
-            if (apiKey.isNotEmpty()) {
-                runMultiStepAgentAsync(service, rawCommand, apiKey, macroCache, sayCallback)
-                return true
-            }
         }
 
         return false
@@ -321,14 +309,8 @@ object CommandRouter {
         config: KobraConfig,
         speaker: Speaker
     ) {
-        val geminiKey = resolveGeminiApiKey(service)
-        if (geminiKey.isNotEmpty() && shouldUseScreenAgent(command)) {
-            runMultiStepAgentAsync(service, command, geminiKey, macroCache) { msg: String ->
-                speaker.speak(msg)
-            }
-            return
-        }
-
+        // Tidak ada jalur Gemini API otomatis: seluruh routing online melewati
+        // OnlineAiRouter yang hanya mengizinkan model dengan harga nol.
         speaker.speak("Sebentar.")
         val sysPrompt = KobraPersona.buildFullSystemPrompt(service)
         OnlineAiRouter.askAsync(service, command, sysPrompt, object : OnlineAiRouter.Callback {
