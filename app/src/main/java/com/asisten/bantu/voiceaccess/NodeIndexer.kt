@@ -113,26 +113,13 @@ object NodeIndexer {
                 id.isNotEmpty() && containsTargetWord(id, q) -> 30
                 else -> 0
             }
-            if (score >= 30) node to score else null
-        }.sortedWith(
-            compareByDescending<Pair<IndexedNode, Int>> { it.second }
-                .thenByDescending { it.first.isClickable || it.first.isEditable }
-                .thenBy {
-                    (it.first.bounds.right - it.first.bounds.left).toLong() *
-                        (it.first.bounds.bottom - it.first.bounds.top).toLong()
-                }
-        )
-        val best = ranked.firstOrNull() ?: return null
-        // If a separate target has a near-identical score, ask the user rather than guessing.
-        val ambiguous = ranked.drop(1).any { candidate ->
-            best.second - candidate.second < 10 &&
-                !overlapsBounds(best.first.bounds, candidate.first.bounds)
+            if (score > 0) node to score else null
         }
-        return if (ambiguous) null else best.first
+        val bestScore = ranked.maxOfOrNull { it.second } ?: return null
+        // Equal top-ranked candidates are ambiguous: never pick the first one by list order.
+        val bestMatches = ranked.filter { it.second == bestScore }
+        return bestMatches.singleOrNull()?.first
     }
-
-    private fun overlapsBounds(a: Rect, b: Rect): Boolean =
-        a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 
     private fun normalizeTarget(value: String): String =
         value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
