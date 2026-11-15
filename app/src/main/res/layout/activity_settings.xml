@@ -148,6 +148,20 @@
                     android:textColorHint="#64748B"
                     android:textSize="13sp" />
 
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="OpenAI API Key (Opsional • Otak ChatGPT Online)" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
+                <EditText
+                    android:id="@+id/etOpenAiApiKey"
+                    android:layout_width="match_parent"
+                    android:layout_height="46dp"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/bg_glass_input"
+                    android:hint="sk-... (API key OpenAI milik Anda)"
+                    android:inputType="textPassword|textNoSuggestions"
+                    android:padding="10dp"
+                    android:textColor="#E2E8F0"
+                    android:textColorHint="#64748B"
+                    android:textSize="13sp" />
+
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="OpenRouter API Key (Opsional • Cadangan Online)" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
                 <EditText
                     android:id="@+id/etApiKey"
