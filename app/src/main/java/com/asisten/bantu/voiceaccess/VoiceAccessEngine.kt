@@ -200,9 +200,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
 
         if (c == "tampilkan garis fokus" || c == "aktifkan garis fokus" || c == "tampilkan bingkai fokus" || c == "bingkai fokus") {
             cfg.setFocusOutlineEnabled(true)
-            val bounds = NodeIndexer.focusedBounds(service)
-            if (bounds != null) focusOutline.show(bounds)
-            sayCallback.accept("Garis fokus aksesibilitas diaktifkan. Bagian tengah tetap transparan dan lapisan tidak menghalangi sentuhan.")
+            refreshFocusOutline()
+            sayCallback.accept("Batas kata transparan diaktifkan. Batas hanya muncul jika Android menyediakan posisi kata yang nyata; jika tidak, layar tetap bersih.")
             return true
         }
         if (c == "sembunyikan garis fokus" || c == "matikan garis fokus" || c == "nonaktifkan garis fokus") {
