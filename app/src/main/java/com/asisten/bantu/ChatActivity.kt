@@ -622,6 +622,9 @@ open class ChatActivity : AppCompatActivity() {
                 if (cleanReply.isNotEmpty() && !cleanReply.contains("Gagal memproses") && !cleanReply.contains("Mode Aman")) {
                     replyAndSpeak(cleanReply, "Gemma 3 1B Offline", displayPrompt)
                     refreshModeBanner()
+                } else if (LocalModelRuntimeManager.isModelAvailable(this)
+                    && LocalModelRegistry.canAttemptLiteRtModel(this)) {
+                    routeToOfflineQwen(displayPrompt, systemPrompt)
                 } else {
                     routeToOnlineOrFallback(displayPrompt, systemPrompt)
                 }
