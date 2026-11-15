@@ -7,8 +7,8 @@ import android.view.accessibility.AccessibilityNodeInfo
 import java.util.Locale
 
 /**
- * Mengindeks seluruh elemen UI interaktif pada layar aktif menjadi daftar bernomor 1..N
- * secara spasial (atas ke bawah, kiri ke kanan) untuk fitur Google Voice Access offline.
+ * Mengindeks kontrol interaktif DAN teks/label layar yang terlihat menjadi target suara.
+ * Target teks tetap dapat diketuk lewat koordinat jika aplikasi tidak mengekspos tombol semantik.
  */
 object NodeIndexer {
 
@@ -77,7 +77,8 @@ object NodeIndexer {
                 n.isEditable -> "kolom ketik"
                 n.isCheckable -> "sakelar"
                 n.isScrollable && !n.isClickable -> "daftar gulir"
-                else -> "tombol"
+                n.isClickable -> "kontrol interaktif"
+                else -> "teks/area layar, bisa dicoba ketuk"
             }
             sb.append("Nomor ").append(n.number).append(", ").append(n.label).append(" (").append(role).append("). ")
         }
@@ -98,8 +99,11 @@ object NodeIndexer {
     fun findByLabel(nodes: List<IndexedNode>, query: String): IndexedNode? {
         val q = query.trim().lowercase(Locale.ROOT)
         if (q.isEmpty()) return null
-        return nodes.firstOrNull { it.label.lowercase(Locale.ROOT) == q }
-            ?: nodes.firstOrNull { it.label.lowercase(Locale.ROOT).contains(q) }
+        val normalized = nodes.map { it to it.label.lowercase(Locale.ROOT) }
+        normalized.firstOrNull { it.second == q }?.let { return it.first }
+        val partial = normalized.filter { it.second.contains(q) || q.contains(it.second) }
+        // Jangan menebak target pertama jika beberapa label cocok.
+        return partial.singleOrNull()?.first
     }
 
     private fun collectInteractive(
@@ -134,7 +138,11 @@ object NodeIndexer {
                 else -> ""
             }
 
-            if (isActionable && resolvedLabel.isNotEmpty()) {
+            // Jangan batasi target pada tombol. Label, teks, item daftar, judul video,
+            // dan elemen UI non-clickable juga menjadi target bernomor. Ketukan pada
+            // pusat teks akan naik ke parent clickable atau memakai gesture koordinat.
+            val isTextTarget = resolvedLabel.isNotEmpty() && !node.isScrollable
+            if ((isActionable || isTextTarget) && resolvedLabel.isNotEmpty()) {
                 out.add(
                     IndexedNode(
                         number = 0,
