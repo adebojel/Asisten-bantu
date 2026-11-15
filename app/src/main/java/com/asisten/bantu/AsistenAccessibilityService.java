@@ -2361,10 +2361,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private String readFocus() {
         AccessibilityNodeInfo root = getRootInActiveWindow();
         if (root == null) return "Layar tidak bisa dibaca.";
-        AccessibilityNodeInfo f = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
-        if (f == null) return "Tidak ada yang dipilih.";
-        CharSequence label = f.getText() != null ? f.getText() : f.getContentDescription();
-        return label == null || label.length() == 0 ? "Tidak ada yang dipilih." : label.toString();
+        try {
+            AccessibilityNodeInfo focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY);
+            if (focused == null) return "Tidak ada yang dipilih.";
+            try {
+                CharSequence label = focused.getText() != null ? focused.getText() : focused.getContentDescription();
+                return label == null || label.length() == 0 ? "Tidak ada yang dipilih." : label.toString();
+            } finally {
+                recycleAccessibilityNode(focused);
+            }
+        } finally {
+            recycleAccessibilityNode(root);
+        }
     }
 
     private void scroll(boolean down) {
@@ -2373,11 +2381,21 @@ public class AsistenAccessibilityService extends AccessibilityService {
         boolean ok = UnifiedAccessibilityEngine.scrollGlobal(this, down);
         if (!ok) {
             AccessibilityNodeInfo root = getRootInActiveWindow();
-            AccessibilityNodeInfo node = findScrollable(root);
-            if (node != null) {
-                ok = node.performAction(down
-                        ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
-                        : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+            if (root != null) {
+                try {
+                    AccessibilityNodeInfo node = findScrollable(root);
+                    if (node != null) {
+                        try {
+                            ok = node.performAction(down
+                                    ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                                    : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+                        } finally {
+                            recycleAccessibilityNode(node);
+                        }
+                    }
+                } finally {
+                    recycleAccessibilityNode(root);
+                }
             }
         }
         if (!ok) {
@@ -2389,10 +2407,17 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private AccessibilityNodeInfo findScrollable(AccessibilityNodeInfo node) {
         if (node == null) return null;
-        if (node.isScrollable()) return node;
+        if (node.isScrollable()) return AccessibilityNodeInfo.obtain(node);
         for (int i = 0; i < node.getChildCount(); i++) {
-            AccessibilityNodeInfo r = findScrollable(node.getChild(i));
-            if (r != null) return r;
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child == null) continue;
+            AccessibilityNodeInfo found;
+            try {
+                found = findScrollable(child);
+            } finally {
+                recycleAccessibilityNode(child);
+            }
+            if (found != null) return found;
         }
         return null;
     }
