@@ -164,8 +164,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 val center = gridOverlay.getCellCenter(tapGridNum)
                 if (center != null) {
                     gridOverlay.hide()
-                    UnifiedAccessibilityEngine.clickAt(service, center.first, center.second)
-                    sayCallback.accept("Mengetuk kotak grid $tapGridNum.")
+                    val accepted = UnifiedAccessibilityEngine.clickAt(service, center.first, center.second)
+                    sayCallback.accept(if (accepted) "Ketukan untuk kotak grid $tapGridNum dikirim ke sistem." else "Sistem menolak ketukan pada kotak grid $tapGridNum.")
                     return true
                 }
             }
@@ -181,8 +181,9 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             val y = dm.heightPixels * (row + 0.5f) / 3f
             numberOverlay.hide()
             gridOverlay.hide()
-            UnifiedAccessibilityEngine.clickAt(service, x, y)
-            sayCallback.accept("Mengetuk area " + positionLabel(positionCell) + ". Jika belum tepat, katakan tampilkan grid lalu zoom nomor untuk memperkecil area.")
+            val accepted = UnifiedAccessibilityEngine.clickAt(service, x, y)
+            sayCallback.accept(if (accepted) "Ketukan pada area " + positionLabel(positionCell) + " dikirim ke sistem. Untuk titik kecil, tampilkan grid lalu zoom nomor."
+                else "Sistem menolak ketukan pada area " + positionLabel(positionCell) + ".")
             return true
         }
         // 3) Klik / Tekan Lama berdasarkan Nomor Elemen
