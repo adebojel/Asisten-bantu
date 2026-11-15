@@ -227,7 +227,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 || c.startsWith("whatsapp ke ") || c.startsWith("arahkan ke ") || c.startsWith("navigasi ke ")
                 || c.startsWith("pandu ke ") || c.startsWith("tuntun ke ")
                 || has(c, "kembali", "beranda", "layar utama", "aplikasi terbaru", "pengaturan cepat",
-                "baca layar", "isi layar", "apa di layar", "baterai", "jam berapa", "tanggal",
+                "baca layar", "isi layar", "apa di layar", "putar voice note", "putar pesan suara", "mainkan voice note", "dengarkan voice note", "dengarkan pesan suara", "baterai", "jam berapa", "tanggal",
                 "nyalakan senter", "matikan senter", "senter", "volume", "bluetooth", "gps",
                 "status sinyal", "cek sinyal", "cek mikrofon", "status mikrofon", "nyalakan mikrofon",
                 "matikan mikrofon", "mode privasi", "layar hitam", "cari hp", "posisi saya",
