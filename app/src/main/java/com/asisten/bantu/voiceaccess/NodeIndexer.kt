@@ -37,7 +37,7 @@ object NodeIndexer {
         val root = selectActiveRoot(service) ?: return emptyList()
         val raw = ArrayList<IndexedNode>()
         try {
-            collectInteractive(root, raw, maxNodes * 2)
+            collectInteractive(root, raw, maxNodes * 4)
         } finally {
             safeRecycle(root)
         }
