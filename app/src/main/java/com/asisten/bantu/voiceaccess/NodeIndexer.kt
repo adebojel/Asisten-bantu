@@ -259,6 +259,24 @@ object NodeIndexer {
         return hasLabel && node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
     }
 
+    /** Current focused node label, without retaining AccessibilityNodeInfo references. */
+    @JvmStatic
+    fun focusedLabel(service: AccessibilityService?): String {
+        if (service == null) return ""
+        val root = selectActiveRoot(service) ?: return ""
+        var focused: AccessibilityNodeInfo? = null
+        return try {
+            focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY)
+            val node = focused ?: return ""
+            node.text?.toString()?.trim().orEmpty()
+                .ifEmpty { node.contentDescription?.toString()?.trim().orEmpty() }
+                .ifEmpty { node.className?.toString()?.substringAfterLast('.') ?: "" }
+        } finally {
+            safeRecycle(focused)
+            safeRecycle(root)
+        }
+    }
+
     /** Current accessibility-focused bounds, if the active app exposes a focused node. */
     @JvmStatic
     fun focusedBounds(service: AccessibilityService?): Rect? {
