@@ -75,6 +75,13 @@ public final class KobraConfig {
         prefs.edit().putString("voice_profile_id", clean).apply();
     }
 
+    /** Gemini Live voice profile shown in the app; maps to a supported Live API voice. */
+    public String getGeminiLiveVoiceId() { return prefs.getString("gemini_live_voice_id", "lyra").trim(); }
+    public void setGeminiLiveVoiceId(String id) {
+        String clean = id == null ? "lyra" : id.trim().toLowerCase(Locale.ROOT);
+        prefs.edit().putString("gemini_live_voice_id", clean).apply();
+    }
+
     public String getCustomAssistantName() { return prefs.getString("custom_assistant_name", "").trim(); }
     public void setCustomAssistantName(String name) {
         prefs.edit().putString("custom_assistant_name", name == null ? "" : name.trim()).apply();
