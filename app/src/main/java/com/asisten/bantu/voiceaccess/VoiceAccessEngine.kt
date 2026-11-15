@@ -73,6 +73,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 refreshFocusOutline()
             }
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUS_CLEARED -> focusOutline.hide()
+            android.view.accessibility.AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED,
+            android.view.accessibility.AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED -> refreshFocusOutline()
         }
     }
 
