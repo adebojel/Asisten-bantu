@@ -27,9 +27,12 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
         handler.post {
             val wm = windowManager ?: return@post
             try {
-                val pad = (3f * service.resources.displayMetrics.density).toInt().coerceAtLeast(2)
-                val width = (copy.width() + pad * 2).coerceAtLeast(4)
-                val height = (copy.height() + pad * 2).coerceAtLeast(4)
+                // Keep the visual footprint close to the real word bounds; only enough
+                // padding for the thin stroke to avoid clipping.
+                val strokePx = 0.75f * service.resources.displayMetrics.density
+                val pad = kotlin.math.ceil(strokePx / 2f).toInt().coerceAtLeast(1)
+                val width = (copy.width() + pad * 2).coerceAtLeast(2)
+                val height = (copy.height() + pad * 2).coerceAtLeast(2)
                 val target = view ?: FocusView(service).also {
                     val params = WindowManager.LayoutParams(
                         width,
@@ -82,7 +85,7 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
         private val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.argb(220, 0, 210, 235)
             style = Paint.Style.STROKE
-            strokeWidth = 1.15f * density
+            strokeWidth = 0.75f * density
         }
 
         fun setBounds(bounds: Rect) {
@@ -93,7 +96,7 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
             val bounds = focusBounds ?: return
-            val inset = 0.6f * density
+            val inset = 0.5f * density
             val rect = RectF(
                 bounds.left.toFloat() + inset,
                 bounds.top.toFloat() + inset,
