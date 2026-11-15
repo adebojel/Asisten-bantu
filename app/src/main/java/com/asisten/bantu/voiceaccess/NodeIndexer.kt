@@ -6,7 +6,6 @@ import android.graphics.RectF
 import android.os.Build
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
-import java.util.Locale
 
 /**
  * Mengindeks kontrol interaktif DAN teks/label layar yang terlihat menjadi target suara.
