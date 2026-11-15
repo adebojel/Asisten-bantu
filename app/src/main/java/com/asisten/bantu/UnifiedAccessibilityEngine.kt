@@ -251,6 +251,8 @@ object UnifiedAccessibilityEngine {
             && type != AccessibilityEvent.TYPE_VIEW_CLICKED
             && type != AccessibilityEvent.TYPE_VIEW_SELECTED
             && type != AccessibilityEvent.TYPE_VIEW_HOVER_ENTER
+            && type != AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED
+            && type != AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
             && type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
         ) {
             return
