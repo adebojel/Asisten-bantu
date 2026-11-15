@@ -18,6 +18,15 @@ public final class VoiceSilenceCommandParser {
                 "istirahat dulu", "jangan merespons");
     }
 
+    /** Stop speech immediately, including while the assistant is reading a long screen aloud. */
+    public static boolean isSpeechInterruptCommand(String input) {
+        return containsAnyPhrase(input,
+                "berhenti", "stop", "diam", "diam dulu", "cukup",
+                "berhenti bicara", "hentikan bicara", "hentikan suara",
+                "stop bicara", "stop baca", "berhenti membaca", "hentikan bacaan",
+                "jeda bicara", "pause suara", "jeda suara", "cukup bicara");
+    }
+
     private static boolean containsAnyPhrase(String input, String... phrases) {
         String text = normalize(input);
         if (text.isEmpty()) return false;
