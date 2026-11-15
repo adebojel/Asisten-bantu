@@ -2165,10 +2165,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void startCall(String target) {
         if (target.isEmpty()) { say("Panggil siapa?"); return; }
-        if (!Perms.has(this, Manifest.permission.CALL_PHONE)) {
-            say("Izin telepon belum aktif. Buka Kobra, lalu tekan Izin.");
-            return;
-        }
         if (target.matches("[0-9+ ]{6,}")) {
             String number = target.replace(" ", "");
             pending = new Pending("call", number, number);
@@ -2231,18 +2227,20 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void placeCall(String name, String number) {
-        if (!Perms.has(this, Manifest.permission.CALL_PHONE)) {
-            say("Izin telepon belum aktif. Buka Kobra, lalu tekan Izin.");
-            return;
-        }
         try {
-            Intent i = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + number));
+            // Use direct calling only when Android has explicitly granted CALL_PHONE.
+            // Otherwise open the system dialer with the selected number prefilled.
+            boolean canCall = Perms.has(this, Manifest.permission.CALL_PHONE);
+            Intent i = new Intent(canCall ? Intent.ACTION_CALL : Intent.ACTION_DIAL,
+                    Uri.parse("tel:" + number));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
-            say("Menelepon " + name + ".");
+            say(canCall
+                    ? "Menelepon " + name + "."
+                    : "Nomor " + name + " sudah disiapkan di aplikasi telepon. Tekan tombol panggil untuk melanjutkan.");
         } catch (Exception e) {
             Log.w(TAG, "Panggilan gagal", e);
-            say("Gagal menelepon " + name + ".");
+            say("Gagal membuka aplikasi telepon untuk " + name + ".");
         }
     }
 
