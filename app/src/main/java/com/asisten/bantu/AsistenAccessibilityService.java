@@ -2029,13 +2029,17 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void scroll(boolean down) {
-        boolean ok = false;
-        AccessibilityNodeInfo s = findScrollable(getRootInActiveWindow());
-        if (s != null) {
-            ok = s.performAction(down ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
-        }
+        // Use an explicitly vertical gesture first so TikTok/Reels-style feeds
+        // do not accidentally interpret ACTION_SCROLL_FORWARD as horizontal paging.
+        boolean ok = UnifiedAccessibilityEngine.scrollGlobal(this, down);
         if (!ok) {
-            ok = UnifiedAccessibilityEngine.scrollGlobal(this, down);
+            AccessibilityNodeInfo root = getRootInActiveWindow();
+            AccessibilityNodeInfo node = findScrollable(root);
+            if (node != null) {
+                ok = node.performAction(down
+                        ? AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+                        : AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);
+            }
         }
         if (!ok) {
             say("Tidak ada daftar yang bisa digulir.");
