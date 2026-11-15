@@ -24,7 +24,7 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian:** commit `57aa88f` di `main` telah melewati tes unit Android (`testDebugUnitTest`) dan kompilasi APK pada workflow rilis #171; APK dan checksum sudah dipublikasikan. Build #160 sebelumnya juga berhasil. Belum ada verifikasi menyeluruh pada perangkat Android fisik. Build berhasil tidak membuktikan mikrofon, kamera, inferensi model, panggilan, WhatsApp, atau perilaku latar belakang bekerja sempurna.
+> **Status pengujian:** build historis `57aa88f` dan APK rilis sebelumnya telah lulus. Untuk pembaruan aksesibilitas terbaru, workflow #360 sudah melewati tahap tes logika/unit; kompilasi APK masih berjalan. Belum ada verifikasi menyeluruh pada perangkat Android fisik. Build berhasil tidak membuktikan mikrofon, kamera, inferensi model, panggilan, WhatsApp, atau perilaku latar belakang bekerja sempurna.
 
 ## Tampilan aplikasi
 
