@@ -73,7 +73,8 @@ public class SettingsActivity extends AppCompatActivity {
     private View viewSwatchBg, viewSwatchCard, viewSwatchAccent, viewSwatchText;
     private LinearLayout cardThemeCyber, cardThemeHighContrast, cardThemeZamrud, cardThemeEmas;
     private LinearLayout cardThemeAmethyst, cardThemeMerah, cardThemeDaylight, cardThemeOled;
-    private LinearLayout layoutMemoryList, layoutCustomVoiceConfig, layoutGeminiLiveVoiceChoices;\n    private TextView tvGeminiLiveVoiceSummary;
+    private LinearLayout layoutMemoryList, layoutCustomVoiceConfig, layoutGeminiLiveVoiceChoices;
+    private TextView tvGeminiLiveVoiceSummary;
     private ProgressBar pbImportModel;
     private SeekBar sbSpeechRate, sbSpeechPitch, sbFloatingOrbAlpha;
     private SwitchCompat swFloatingOrb, swFloatingOrbAutoHide;
@@ -145,7 +146,10 @@ public class SettingsActivity extends AppCompatActivity {
         tvMemoryCountInfo = findViewById(R.id.tvMemoryCountInfo);
         tvActiveVoiceSummary = findViewById(R.id.tvActiveVoiceSummary);
         layoutMemoryList = findViewById(R.id.layoutMemoryList);
-        layoutCustomVoiceConfig = findViewById(R.id.layoutCustomVoiceConfig);\n        layoutGeminiLiveVoiceChoices = findViewById(R.id.layoutGeminiLiveVoiceChoices);\n        tvGeminiLiveVoiceSummary = findViewById(R.id.tvGeminiLiveVoiceSummary);\n        setupGeminiLiveVoiceChoices();
+        layoutCustomVoiceConfig = findViewById(R.id.layoutCustomVoiceConfig);
+        layoutGeminiLiveVoiceChoices = findViewById(R.id.layoutGeminiLiveVoiceChoices);
+        tvGeminiLiveVoiceSummary = findViewById(R.id.tvGeminiLiveVoiceSummary);
+        setupGeminiLiveVoiceChoices();
         etCustomAssistantName = findViewById(R.id.etCustomAssistantName);
 
         btnPresetKobra = findViewById(R.id.btnPresetKobra);
@@ -535,7 +539,8 @@ public class SettingsActivity extends AppCompatActivity {
                 "Mikrofon: " + (mic ? "Aktif" : "Belum") +
                 " • Kamera: " + (cam ? "Aktif" : "Belum") +
                 " • Aksesibilitas: " + (acc ? "Aktif" : "Mati") +
-                "\nOverlay: " + (ovl ? "Aktif" : "Belum") +
+                "
+Overlay: " + (ovl ? "Aktif" : "Belum") +
                 " • Notifikasi: " + (notif ? "Aktif" : "Belum")
         );
     }
@@ -696,7 +701,10 @@ public class SettingsActivity extends AppCompatActivity {
 
                 new AlertDialog.Builder(SettingsActivity.this)
                         .setTitle("Pembaruan Kobra OS " + info.tagName)
-                        .setMessage("Versi baru " + info.tagName + " tersedia.\n\nCatatan rilis:\n" + info.releaseNotesForSpeech)
+                        .setMessage("Versi baru " + info.tagName + " tersedia.
+
+Catatan rilis:
+" + info.releaseNotesForSpeech)
                         .setPositiveButton("Unduh & Pasang", (d, w) -> beginApkDownload(info))
                         .setNegativeButton("Nanti", null)
                         .show();
@@ -857,8 +865,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (tvGeminiLiveVoiceSummary != null) {
             tvGeminiLiveVoiceSummary.setText("Profil dipilih: " + active.getDisplayName()
                     + " • Karakter Live API: " + active.getApiVoiceName()
-                    + "
-Pilihan ini tersimpan untuk sesi Live online. TTS lokal tetap memakai suara yang tersedia di HP.");
+                    + "\nPilihan ini tersimpan untuk sesi Live online. TTS lokal tetap memakai suara yang tersedia di HP.");
         }
 
         for (int start = 0; start < VoiceProfileManager.GEMINI_LIVE_VOICES.size(); start += 2) {
@@ -871,8 +878,7 @@ Pilihan ini tersimpan untuk sesi Live online. TTS lokal tetap memakai suara yang
                 VoiceProfileManager.GeminiLiveVoiceProfile profile =
                         VoiceProfileManager.GEMINI_LIVE_VOICES.get(col);
                 Button choice = new Button(this);
-                choice.setText(profile.getDisplayName() + "
-" + profile.getCharacter());
+                choice.setText(profile.getDisplayName() + "\n" + profile.getCharacter());
                 choice.setAllCaps(false);
                 choice.setTextSize(11f);
                 choice.setMinHeight((int) (52 * getResources().getDisplayMetrics().density));
@@ -1260,7 +1266,8 @@ Pilihan ini tersimpan untuk sesi Live online. TTS lokal tetap memakai suara yang
         } else {
             status.append("Qwen3 .litertlm belum diimpor");
         }
-        status.append("\nRekomendasi perangkat: ").append(LocalModelRegistry.recommendation(this));
+        status.append("
+Rekomendasi perangkat: ").append(LocalModelRegistry.recommendation(this));
         tvModelStatus.setText(status.toString());
         tvModelStatus.setTextColor((taskExists || liteExists) ? 0xFF00E5FF : 0xFFFFD600);
     }
