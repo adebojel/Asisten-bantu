@@ -101,6 +101,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private boolean recognizerUsesOnDevice = false;
     private boolean preferSystemRecognizer = false;
     private boolean micOn = true;
+    // Mode diam tetap mempertahankan pendeteksian kata panggil agar bisa aktif kembali lewat suara.
+    private boolean assistantSilenced = false;
     private boolean warnedNoPermission = false;
     private long conversationUntil = 0L;
     private String lastSpoken = "";
@@ -270,6 +272,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         isRunning = true;
         main = new Handler(Looper.getMainLooper());
         config = new KobraConfig(this);
+        assistantSilenced = getSharedPreferences("kobra_voice_state", MODE_PRIVATE)
+                .getBoolean("assistant_silenced", false);
         speaker = Speaker.get(this);
         speaker.addListener(speechListener);
         UnifiedAccessibilityEngine.onServiceConnected(this);
@@ -684,6 +688,35 @@ public class AsistenAccessibilityService extends AccessibilityService {
         String text = raw.toLowerCase(Locale.ROOT).trim();
         if (text.isEmpty()) return;
 
+        // Perintah diam/aktif diproses sebelum Chat agar tidak tertelan oleh pipeline percakapan.
+        String wakeCommand = stripWake(text);
+        if (assistantSilenced) {
+            if (wakeCommand == null) return; // Abaikan suara media/percakapan; hanya kata panggil yang membangunkan.
+            String wakeTail = wakeCommand.trim();
+            if (wakeTail.isEmpty() || containsAnyPhrase(wakeTail,
+                    "aktif", "aktifkan", "bangun", "kembali", "nyala", "dengarkan", "saya panggil")) {
+                setAssistantSilenced(false);
+                say("Saya aktif kembali. Ya, saya dengarkan.");
+                if (wakeTail.isEmpty() || containsAnyPhrase(wakeTail,
+                        "aktif", "aktifkan", "bangun", "kembali", "nyala", "dengarkan", "saya panggil")) return;
+            } else {
+                setAssistantSilenced(false);
+                say("Saya aktif kembali.");
+                text = wakeTail;
+            }
+        }
+
+        String silenceCommand = wakeCommand == null ? "" : wakeCommand.trim();
+        if (wakeCommand != null && containsAnyPhrase(silenceCommand,
+                "diam dulu", "diam", "jangan bicara", "berhenti bicara",
+                "mode diam", "nonaktifkan asisten", "matikan asisten",
+                "istirahat dulu", "jangan merespons")) {
+            setAssistantSilenced(true);
+            if (speaker != null) speaker.stop();
+            say("Baik, saya diam. Panggil saya dengan kata Kobra untuk aktif kembali.");
+            return;
+        }
+
         // In unified chat mode, every recognized utterance is sent to the same
         // visible conversation pipeline. Explicit safety/system confirmations
         // remain handled by the command service when they are pending.
@@ -736,6 +769,30 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private String stripWake(String s) {
         return VoiceProfileManager.stripWakeWord(this, s);
+    }
+
+    private static boolean containsAnyPhrase(String text, String... phrases) {
+        if (text == null) return false;
+        for (String phrase : phrases) {
+            if (text.equals(phrase) || text.startsWith(phrase + " ") || text.contains(" " + phrase + " ")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void setAssistantSilenced(boolean silenced) {
+        assistantSilenced = silenced;
+        getSharedPreferences("kobra_voice_state", MODE_PRIVATE).edit()
+                .putBoolean("assistant_silenced", silenced).apply();
+        if (silenced) {
+            conversationUntil = 0L;
+            pending = null;
+            updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
+        } else {
+            micOn = true;
+            updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
+        }
     }
 
     private void handlePending(Pending p, String text) {
