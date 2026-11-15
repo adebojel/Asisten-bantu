@@ -876,8 +876,8 @@ public class SettingsActivity extends AppCompatActivity {
                 choice.setMinHeight((int) (52 * getResources().getDisplayMetrics().density));
                 choice.setBackgroundResource(profile.getId().equals(selected)
                         ? R.drawable.bg_persona_chip_active : R.drawable.bg_persona_chip_idle);
-                choice.setTextColor(getColor(profile.getId().equals(selected)
-                        ? R.color.cyan : R.color.white));
+                choice.setTextColor(android.graphics.Color.parseColor(profile.getId().equals(selected)
+                        ? "#00E5FF" : "#E2E8F0"));
                 LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
                         0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
                 if (col == start) buttonParams.rightMargin =
