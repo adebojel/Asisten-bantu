@@ -67,6 +67,7 @@ public class SettingsActivity extends AppCompatActivity {
     private TextView tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus, tvMemoryCountInfo, tvFloatingOrbAlpha;
     private TextView tvActiveVoiceSummary, tvActiveThemeSummary, tvAutoContrastPreview, tvAiThemeStatus;
     private Button btnImportModel, btnDeleteModel, btnLoadModel, btnTestTts;
+    private Button btnAndroidAccessibilitySettings, btnTalkBackPlayStore;
     private Button btnBackupData, btnRestoreData, btnCheckUpdate, btnViewCrashLog;
     private Button btnPresetKobra, btnPresetArka, btnPresetBima, btnPresetNala, btnPresetCakra, btnPresetTara, btnPresetKustom, btnApplyCustomVoice;
     private Button btnApplyCustomTheme, btnGenerateAiTheme;
@@ -196,6 +197,8 @@ public class SettingsActivity extends AppCompatActivity {
         tvFloatingOrbAlpha = findViewById(R.id.tvFloatingOrbAlpha);
         sbFloatingOrbAlpha = findViewById(R.id.sbFloatingOrbAlpha);
         swGlobalScreenReader = findViewById(R.id.swGlobalScreenReader);
+        btnAndroidAccessibilitySettings = findViewById(R.id.btnAndroidAccessibilitySettings);
+        btnTalkBackPlayStore = findViewById(R.id.btnTalkBackPlayStore);
         swVisualNumbers = findViewById(R.id.swVisualNumbers);
         swGridOverlay = findViewById(R.id.swGridOverlay);
         swAirGestures = findViewById(R.id.swAirGestures);
@@ -337,6 +340,31 @@ public class SettingsActivity extends AppCompatActivity {
             @Override public void onStartTrackingTouch(SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
+
+        if (btnAndroidAccessibilitySettings != null) {
+            btnAndroidAccessibilitySettings.setOnClickListener(v -> {
+                try {
+                    startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+                } catch (Exception e) {
+                    speaker.speak("Pengaturan aksesibilitas Android tidak dapat dibuka pada perangkat ini.");
+                }
+            });
+        }
+        if (btnTalkBackPlayStore != null) {
+            btnTalkBackPlayStore.setOnClickListener(v -> {
+                Uri marketUri = Uri.parse("market://details?id=com.google.android.marvin.talkback");
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, marketUri));
+                } catch (Exception marketError) {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
+                                "https://play.google.com/store/apps/details?id=com.google.android.marvin.talkback")));
+                    } catch (Exception webError) {
+                        speaker.speak("Halaman Android Accessibility Suite tidak dapat dibuka.");
+                    }
+                }
+            });
+        }
 
         swGlobalScreenReader.setOnCheckedChangeListener((b, isChecked) -> {
             if (loadingFields) return;
