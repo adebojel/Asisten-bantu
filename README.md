@@ -24,7 +24,7 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian:** commit `57aa88f` di `main` telah melewati tes unit Android (`testDebugUnitTest`) dan kompilasi APK pada workflow rilis #171; publikasi aset masih berjalan. Build #160 sebelumnya juga berhasil. Belum ada verifikasi menyeluruh pada perangkat Android fisik. Build berhasil tidak membuktikan mikrofon, kamera, inferensi model, panggilan, WhatsApp, atau perilaku latar belakang bekerja sempurna.
+> **Status pengujian:** commit `57aa88f` di `main` telah melewati tes unit Android (`testDebugUnitTest`) dan kompilasi APK pada workflow rilis #171; APK dan checksum sudah dipublikasikan. Build #160 sebelumnya juga berhasil. Belum ada verifikasi menyeluruh pada perangkat Android fisik. Build berhasil tidak membuktikan mikrofon, kamera, inferensi model, panggilan, WhatsApp, atau perilaku latar belakang bekerja sempurna.
 
 ## Tampilan aplikasi
 
@@ -96,7 +96,7 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - **Status build/publikasi otomatis:** [Kobra OS — Auto Build and Release](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml)
 - **Model offline Qwen3 0.6B:** build `main` saat ini sudah mengemas Qwen3 di dalam APK; impor manual dari [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) hanya diperlukan untuk paket model terpisah/pemulihan. Pastikan ruang penyimpanan dan RAM memadai.
 
-**Status distribusi:** Build 168 adalah rilis APK terbaru yang sudah dipublikasikan saat catatan ini diperbarui. Workflow rilis #171 untuk commit `57aa88f` telah melewati tes dan kompilasi; publikasi aset sedang berjalan. Semua APK adalah kandidat debug, bukan versi final yang sudah lulus uji perangkat.
+**Status distribusi:** Build 171 adalah rilis APK terbaru yang sudah dipublikasikan untuk commit `57aa88f`. Tes unit dan kompilasi APK lulus pada workflow rilis #171. Semua APK adalah kandidat debug, bukan versi final yang sudah lulus uji perangkat.
 
 ## Status pengembangan
 
