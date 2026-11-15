@@ -94,9 +94,23 @@ internal object TargetLabelMatcher {
     private fun strip(value: String): String =
         value.replace(Regex("[^\\p{L}\\p{N}]"), "")
 
-    private fun startsWithWord(text: String, query: String): Boolean =
-        text == query || text.startsWith("$query ") ||
-            strip(text).startsWith(strip(query))
+    private fun startsWithWord(text: String, query: String): Boolean {
+        if (text == query || text.startsWith("$query ")) return true
+        val compactQuery = strip(query)
+        if (compactQuery.isEmpty() || !strip(text).startsWith(compactQuery)) return false
+
+        // Ignore separators such as the hyphen in "Wi-Fi", but require a real
+        // letter/number boundary after the matched characters. This prevents
+        // "panggil" from matching the longer word "panggilan".
+        var consumed = 0
+        var index = 0
+        while (index < text.length && consumed < compactQuery.length) {
+            if (text[index].isLetterOrDigit()) consumed++
+            index++
+        }
+        return consumed == compactQuery.length &&
+            (index >= text.length || !text[index].isLetterOrDigit())
+    }
 
     private fun containsWord(text: String, query: String): Boolean =
         Regex("(?<![\\p{L}\\p{N}])${Regex.escape(query)}(?![\\p{L}\\p{N}])")
