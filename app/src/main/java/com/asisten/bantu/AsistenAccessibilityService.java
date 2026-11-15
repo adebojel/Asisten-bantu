@@ -221,6 +221,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (wakeStripped != null) c = wakeStripped;
         final String command = c;
         boolean deviceCommand = c.startsWith("buka ") || c.startsWith("tekan ") || c.startsWith("klik ")
+                || c.startsWith("pencet ") || c.startsWith("ketuk ") || c.startsWith("tahan ")
                 || c.startsWith("ketik ") || c.startsWith("tulis ") || c.startsWith("scroll ") || c.startsWith("matikan video") || c.startsWith("jeda video") || c.startsWith("pause video") || c.startsWith("hentikan video") || c.startsWith("stop video")
                 || c.startsWith("geser ") || c.startsWith("panggil ") || c.startsWith("telepon ")
                 || c.startsWith("telpon ") || c.startsWith("kirim pesan ") || c.startsWith("buka pesan ") || c.startsWith("buka chat ") || c.startsWith("chat ke ")
@@ -235,7 +236,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 "ringkas notifikasi", "baca ktp", "baca uang", "hitung uang", "scan qr", "scan barcode",
                 "cari benda", "apa di depan", "deteksi orang", "buka kompas", "kompas",
                 "ringkasan harian", "briefing pagi", "ingat bahwa", "simpan memori", "apa yang kamu ingat",
-                "saya aman", "konfirmasi aman", "sos", "darurat", "bantuan", "daftar perintah");
+                "saya aman", "konfirmasi aman", "sos", "darurat", "bantuan", "daftar perintah",
+                "tampilkan grid", "buka grid", "mode grid", "tutup grid", "sembunyikan grid",
+                "tampilkan nomor", "munculkan nomor", "lihat nomor", "sembunyikan nomor",
+                "klik posisi", "ketuk posisi", "klik area", "ketuk area", "zoom", "perbesar", "dekati");
         if (!deviceCommand) return false;
         service.main.post(() -> service.route(command));
         return true;
