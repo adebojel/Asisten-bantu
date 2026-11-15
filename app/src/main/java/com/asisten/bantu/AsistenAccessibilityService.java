@@ -2435,15 +2435,29 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void handleTalkback(String c) {
-        AccessibilityManager am = (AccessibilityManager) getSystemService(ACCESSIBILITY_SERVICE);
-        boolean on = am != null && am.isTouchExplorationEnabled();
+        // Jangan menyamakan touch exploration dari layanan aksesibilitas lain
+        // dengan TalkBack. Periksa komponen TalkBack yang benar-benar aktif.
+        String enabledServices = Settings.Secure.getString(
+                getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        boolean talkBackOn = false;
+        if (enabledServices != null) {
+            for (String component : enabledServices.split(":")) {
+                String normalized = component.toLowerCase(Locale.ROOT);
+                if (normalized.contains("com.google.android.marvin.talkback")
+                        || normalized.contains("com.google.android.accessibility.talkback")) {
+                    talkBackOn = true;
+                    break;
+                }
+            }
+        }
         if (has(c, "status", "cek", "aktif", "nyala")) {
-            say(on ? "TalkBack sedang aktif." : "TalkBack sedang mati.");
+            say(talkBackOn ? "TalkBack Google sedang aktif."
+                    : "TalkBack Google belum aktif. Layanan aksesibilitas lain tidak saya hitung sebagai TalkBack.");
             return;
         }
         openSettings(Settings.ACTION_ACCESSIBILITY_SETTINGS,
-                "Saya tidak bisa mengaktifkan TalkBack secara langsung karena alasan keamanan sistem. "
-                + "Saya buka pengaturan aksesibilitas. Cari TalkBack lalu aktifkan.");
+                "Saya tidak bisa mengaktifkan atau mengambil alih TalkBack secara langsung karena Android melindungi pengaturan layanan aksesibilitas. "
+                + "Saya buka pengaturan aksesibilitas. Pilih TalkBack lalu aktifkan sendiri jika Anda menginginkannya.");
     }
 
     // ----------------------------------------------------------------- aplikasi, WhatsApp, telepon
