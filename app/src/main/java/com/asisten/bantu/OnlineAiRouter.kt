@@ -10,16 +10,16 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.URLEncoder
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
  * Router AI Online 3-Lapis untuk Kobra OS (Zero Hardcoded API Keys):
- * 1) Prioritas 1 (Opsional Manual): Google Gemini API (gemini-2.5-flash -> fallback gemini-2.0-flash)
- * 2) Prioritas 2 (Opsional Manual): OpenRouter API (model pilihan -> free fallback list)
- * 3) Prioritas 3 (Default Gratis Tanpa API Key): Pollinations Text AI (POST /openai -> fallback GET)
+ * 1) OpenRouter API: hanya model yang harga input dan output-nya diverifikasi 0.0
+ * 2) Jika tidak tersedia/gagal: caller kembali ke Qwen3 lokal atau basis pengetahuan offline
+ *
+ * Tidak ada endpoint yang memerlukan saldo/kredit atau jalur API berbayar sebagai fallback.
  */
 object OnlineAiRouter {
 
@@ -27,8 +27,6 @@ object OnlineAiRouter {
     private const val GEMINI_PRIMARY_MODEL = "gemini-2.5-flash"
     private const val GEMINI_FALLBACK_MODEL = "gemini-2.0-flash"
     private const val OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-    private const val POLLINATIONS_OPENAI_ENDPOINT = "https://text.pollinations.ai/openai"
-    private const val POLLINATIONS_GET_BASE = "https://text.pollinations.ai/"
 
     data class AiResult(
         val text: String,
@@ -63,8 +61,8 @@ object OnlineAiRouter {
     @JvmStatic
     fun getActiveProviderSummary(context: Context): String {
         val cfg = KobraConfig(context.applicationContext)
-        if (cfg.hasAi()) return "OpenRouter • model harga nol saja"
-        return "AI online gratis tanpa API key • jika tersedia"
+        if (cfg.apiKey.isNotEmpty()) return "OpenRouter • model harga nol terverifikasi"
+        return "AI lokal Qwen3 • online gratis belum dikonfigurasi"
     }
 
     @JvmStatic
@@ -129,14 +127,6 @@ object OnlineAiRouter {
             val orReply = callOpenRouterWithFallback(openRouterKey, effectiveSystem, userPrompt, imageBase64)
             if (!orReply.isNullOrBlank()) {
                 return AiResult(cleanForSpeech(orReply), "OpenRouter AI")
-            }
-        }
-
-        // Lapis 3: AI Online Gratis Tanpa API Key (Pollinations OpenAI -> GET fallback)
-        if (imageBase64.isNullOrEmpty()) {
-            val freeReply = callPollinationsFree(effectiveSystem, userPrompt)
-            if (!freeReply.isNullOrBlank()) {
-                return AiResult(cleanForSpeech(freeReply), "AI Online Gratis")
             }
         }
 
@@ -382,85 +372,6 @@ object OnlineAiRouter {
             }
         } catch (t: Throwable) {
             Log.w(TAG, "Gagal menghubungi OpenRouter ($model): ${t.message}")
-            null
-        }
-    }
-
-    private fun callPollinationsFree(systemPrompt: String, userPrompt: String): String? {
-        // 1) HTTP POST OpenAI Chat Completions ke Pollinations
-        val postReply = callPollinationsPost(systemPrompt, userPrompt)
-        if (!postReply.isNullOrBlank()) return postReply
-
-        // 2) Fallback HTTP GET Pollinations bila POST terhambat
-        return callPollinationsGet(systemPrompt, userPrompt)
-    }
-
-    private fun callPollinationsPost(systemPrompt: String, userPrompt: String): String? {
-        return try {
-            val messages = JSONArray()
-            messages.put(JSONObject().put("role", "system").put("content", systemPrompt))
-            messages.put(JSONObject().put("role", "user").put("content", userPrompt))
-
-            val payload = JSONObject()
-                .put("model", "openai")
-                .put("messages", messages)
-                .put("private", true)
-
-            val req = Request.Builder()
-                .url(POLLINATIONS_OPENAI_ENDPOINT)
-                .addHeader("Accept", "application/json")
-                .addHeader("User-Agent", "KobraOS/7.2")
-                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
-
-            httpClient.newCall(req).execute().use { resp ->
-                val body = resp.body?.string().orEmpty().trim()
-                if (!resp.isSuccessful || body.isEmpty()) {
-                    Log.w(TAG, "Pollinations POST HTTP ${resp.code}")
-                    return null
-                }
-                if (body.startsWith("{")) {
-                    parseOpenAiStyleContent(body)
-                } else if (!looksLikeHtmlError(body)) {
-                    body
-                } else {
-                    null
-                }
-            }
-        } catch (t: Throwable) {
-            Log.w(TAG, "Pollinations POST gagal: ${t.message}")
-            null
-        }
-    }
-
-    private fun callPollinationsGet(systemPrompt: String, userPrompt: String): String? {
-        return try {
-            val clippedPrompt = userPrompt.trim().take(900)
-            val clippedSystem = systemPrompt.trim().take(500)
-            val encodedPrompt = URLEncoder.encode(clippedPrompt, "UTF-8").replace("+", "%20")
-            val encodedSystem = URLEncoder.encode(clippedSystem, "UTF-8")
-            val url = "${POLLINATIONS_GET_BASE}${encodedPrompt}?model=openai&private=true&system=${encodedSystem}"
-
-            val req = Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", "KobraOS/7.2")
-                .get()
-                .build()
-
-            httpClient.newCall(req).execute().use { resp ->
-                val body = resp.body?.string().orEmpty().trim()
-                if (!resp.isSuccessful || body.isEmpty() || looksLikeHtmlError(body)) {
-                    Log.w(TAG, "Pollinations GET HTTP ${resp.code}")
-                    return null
-                }
-                if (body.startsWith("{")) {
-                    parseOpenAiStyleContent(body) ?: body
-                } else {
-                    body
-                }
-            }
-        } catch (t: Throwable) {
-            Log.w(TAG, "Pollinations GET gagal: ${t.message}")
             null
         }
     }
