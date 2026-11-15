@@ -228,6 +228,56 @@ object NodeIndexer {
         return node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
     }
 
+    /** Move accessibility focus to the deepest readable node at a screen point. */
+    @JvmStatic
+    fun focusAt(service: AccessibilityService?, x: Int, y: Int): Boolean {
+        if (service == null || x < 0 || y < 0) return false
+        val root = selectActiveRoot(service) ?: return false
+        return try {
+            focusAtRecursive(root, x, y)
+        } finally {
+            safeRecycle(root)
+        }
+    }
+
+    private fun focusAtRecursive(node: AccessibilityNodeInfo?, x: Int, y: Int): Boolean {
+        if (node == null || !node.isVisibleToUser || !node.isEnabled) return false
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
+        if (!bounds.contains(x, y)) return false
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            try {
+                if (focusAtRecursive(child, x, y)) return true
+            } finally {
+                safeRecycle(child)
+            }
+        }
+        val hasLabel = !node.text.isNullOrBlank() ||
+            !node.contentDescription.isNullOrBlank() ||
+            node.isClickable || node.isEditable || node.isCheckable
+        return hasLabel && node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
+    }
+
+    /** Current accessibility-focused bounds, if the active app exposes a focused node. */
+    @JvmStatic
+    fun focusedBounds(service: AccessibilityService?): Rect? {
+        if (service == null) return null
+        val root = selectActiveRoot(service) ?: return null
+        var focused: AccessibilityNodeInfo? = null
+        return try {
+            focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY)
+            focused?.let {
+                val bounds = Rect()
+                it.getBoundsInScreen(bounds)
+                if (bounds.isEmpty) null else bounds
+            }
+        } finally {
+            safeRecycle(focused)
+            safeRecycle(root)
+        }
+    }
+
     @JvmStatic
     fun activePackageName(service: AccessibilityService?): String? {
         if (service == null) return null
