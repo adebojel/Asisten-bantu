@@ -82,7 +82,6 @@ public class VisionActivity extends AppCompatActivity {
     private Camera boundCamera;
     private SensorManager sensorManager;
     private Sensor lightSensor;
-    private boolean autoTorchChecked = false;
     private boolean autoTorchEnabled = false;
     private Speaker speaker;
     private KobraConfig config;
@@ -104,6 +103,7 @@ public class VisionActivity extends AppCompatActivity {
     private long lastLiveSpeakAt = 0L;
     private long lastLiveBeepAt = 0L;
     private String lastLiveText = "";
+    private String lastLiveObjectText = "";
 
     private final ActivityResultLauncher<String[]> imagePickerLauncher =
             registerForActivityResult(new ActivityResultContracts.OpenDocument(), uri -> {
@@ -233,7 +233,6 @@ public class VisionActivity extends AppCompatActivity {
         current = this;
         ThemeManager.applyTheme(this);
         if (!config.isPrivacyMode() && sensorManager != null && lightSensor != null) {
-            autoTorchChecked = false;
             sensorManager.registerListener(lightListener, lightSensor, SensorManager.SENSOR_DELAY_UI);
         }
     }
@@ -267,19 +266,31 @@ public class VisionActivity extends AppCompatActivity {
         super.onDestroy();
     }
 
+    static boolean shouldEnableAutoTorch(float lux) {
+        return lux >= 0f && lux < 12.0f;
+    }
+
+    static boolean shouldDisableAutoTorch(float lux) {
+        return lux > 25.0f;
+    }
+
     private final SensorEventListener lightListener = new SensorEventListener() {
         @Override public void onSensorChanged(SensorEvent event) {
-            if (event.sensor.getType() != Sensor.TYPE_LIGHT || autoTorchChecked || boundCamera == null) return;
+            if (event.sensor.getType() != Sensor.TYPE_LIGHT || boundCamera == null) return;
             float lux = event.values[0];
-            autoTorchChecked = true;
-            if (sensorManager != null) {
-                sensorManager.unregisterListener(this);
-            }
-            if (lux < 12.0f && boundCamera.getCameraInfo().hasFlashUnit()) {
-                boundCamera.getCameraControl().enableTorch(true);
-                autoTorchEnabled = true;
-                tvStatus.setText("Mode: " + modeLabel() + " (Senter otomatis nyala)");
-                speak("Tempat gelap terdeteksi, senter dinyalakan otomatis.");
+            if (!autoTorchEnabled && shouldEnableAutoTorch(lux) && boundCamera.getCameraInfo().hasFlashUnit()) {
+                try {
+                    boundCamera.getCameraControl().enableTorch(true);
+                    autoTorchEnabled = true;
+                    tvStatus.setText("Mode: " + modeLabel() + " (Senter otomatis nyala)");
+                    if (!speaker.isSpeaking()) speak("Cahaya rendah terdeteksi. Senter otomatis dinyalakan.");
+                } catch (Exception error) {
+                    tvStatus.setText("Senter otomatis tidak dapat diaktifkan.");
+                }
+            } else if (autoTorchEnabled && shouldDisableAutoTorch(lux)) {
+                disableTorch();
+                tvStatus.setText("Mode: " + modeLabel() + " (Senter otomatis mati)");
+                if (!speaker.isSpeaking()) speak("Cahaya sudah cukup. Senter otomatis dimatikan.");
             }
         }
         @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
@@ -331,7 +342,7 @@ public class VisionActivity extends AppCompatActivity {
                     if ("barcode".equals(mode) && barcodeScanner == null) {
                         barcodeScanner = BarcodeScanning.getClient();
                     }
-                    if ("find_object".equals(mode) && streamObjectDetector == null) {
+                    if (("find_object".equals(mode) || "live_companion".equals(mode)) && streamObjectDetector == null) {
                         streamObjectDetector = new SafeObjectDetector(true);
                     }
                     ImageAnalysis analysis = new ImageAnalysis.Builder()
@@ -356,16 +367,18 @@ public class VisionActivity extends AppCompatActivity {
         }
         long now = System.currentTimeMillis();
         if ("live_companion".equals(mode)) {
-            if (now - lastLiveSpeakAt < 1800L) { proxy.close(); return; }
+            if (now - lastLiveSpeakAt < 1200L) { proxy.close(); return; }
             liveProcessing = true;
             InputImage img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+            // One camera session performs OCR and offline object labelling in sequence.
+            // The ImageProxy remains open until both analyzers finish.
             ocr.process(img)
                     .addOnSuccessListener(res -> {
                         String raw = res.getText() == null ? "" : res.getText().replaceAll("\\s+", " ").trim();
-                        if (!raw.isEmpty() && now - lastLiveSpeakAt >= 2200L) {
+                        if (!raw.isEmpty() && System.currentTimeMillis() - lastLiveSpeakAt >= 2200L) {
                             MoneyAndReceiptParser.BillResult bill = MoneyAndReceiptParser.parseRupiahBill(raw, null);
                             String result = bill.amount > 0
-                                    ? "Kemungkinan uang rupiah nominal " + MoneyAndReceiptParser.formatRupiah(bill.amount) + " terdeteksi. Pastikan seluruh angka pada uang terlihat jelas."
+                                    ? "Kemungkinan nominal uang rupiah " + MoneyAndReceiptParser.formatRupiah(bill.amount) + " terbaca. Periksa kembali angka pada uang."
                                     : "Teks yang terlihat: " + raw.substring(0, Math.min(raw.length(), 180));
                             if (!result.equals(lastLiveText)) {
                                 lastLiveText = result;
@@ -378,7 +391,7 @@ public class VisionActivity extends AppCompatActivity {
                             }
                         }
                     })
-                    .addOnCompleteListener(t -> { liveProcessing = false; proxy.close(); });
+                    .addOnCompleteListener(task -> analyzeLiveObjectsThenClose(img, proxy));
         } else if ("find_object".equals(mode)) {
             if (streamObjectDetector == null) { proxy.close(); return; }
             liveProcessing = true;
@@ -439,9 +452,26 @@ public class VisionActivity extends AppCompatActivity {
         }
     }
 
+    private void analyzeLiveObjectsThenClose(InputImage image, ImageProxy proxy) {
+        if (streamObjectDetector == null) {
+            streamObjectDetector = new SafeObjectDetector(true);
+        }
+        try {
+            streamObjectDetector.process(image, (items, usedFallback) -> {
+                handleLiveLabels(items);
+                liveProcessing = false;
+                try { proxy.close(); } catch (Exception ignored) {}
+            });
+        } catch (Throwable error) {
+            liveProcessing = false;
+            try { proxy.close(); } catch (Exception ignored) {}
+            runOnUiThread(() -> tvStatus.setText("Analisis objek tidak tersedia pada frame ini."));
+        }
+    }
+
     private void handleLiveLabels(List<SafeObjectDetector.DetectedItem> items) {
         if (items == null || items.isEmpty()) {
-            runOnUiThread(() -> tvStatus.setText("Label objek belum dikenali; arah dan jarak tidak tersedia."));
+            runOnUiThread(() -> tvStatus.setText("Objek belum dikenali pada frame ini; arah dan jarak tidak tersedia."));
             return;
         }
         StringBuilder text = new StringBuilder("Kemungkinan objek: ");
@@ -452,11 +482,12 @@ public class VisionActivity extends AppCompatActivity {
         text.append(". Kamera tidak menentukan arah atau jarak.");
         String spoken = text.toString();
         runOnUiThread(() -> {
-            tvStatus.setText("Pengenalan objek cadangan aktif");
+            tvStatus.setText("Label objek offline aktif; arah dan jarak tidak tersedia");
             tvResult.setText(spoken);
         });
         long now = System.currentTimeMillis();
-        if (now - lastLiveSpeakAt >= 4000L && !speaker.isSpeaking()) {
+        if (!spoken.equals(lastLiveObjectText) && now - lastLiveSpeakAt >= 3000L && !speaker.isSpeaking()) {
+            lastLiveObjectText = spoken;
             lastLiveSpeakAt = now;
             speak(spoken);
         }
@@ -514,6 +545,7 @@ public class VisionActivity extends AppCompatActivity {
         billCount = 0;
         firstOutfitColor = null;
         lastLiveText = "";
+        lastLiveObjectText = "";
         tvResult.setText("Hitungan dan sesi pemindaian direset.");
         speak("Hitungan dan sesi pemindaian direset.");
     }
@@ -1016,7 +1048,7 @@ public class VisionActivity extends AppCompatActivity {
             case "receipt": return "Mode pemindai struk dan bukti transfer bank.";
             case "barcode": return "Mode pemindai barcode dan QR offline aktif.";
             case "find_object": return "Mode deteksi objek aktif dengan bunyi bip.";
-            case "live_companion": return "Mode Mata Kedua langsung aktif. Kamera menganalisis teks yang terlihat. Tanyakan tentang benda atau uang dengan suara. Untuk keselamatan, tetap gunakan tongkat fisik.";
+            case "live_companion": return "Mode Mata Kedua terpadu aktif. Kamera membaca teks dan mengenali label objek secara offline. Tanyakan tentang uang atau benda dengan suara. Deteksi ini tidak mengukur jarak atau memastikan jalur aman; tetap gunakan tongkat fisik.";
             case "translate_ocr": return "Mode penerjemah kamera offline.";
             default: return "Mata Kedua Kobra siap. Tersedia tombol Scan Semua Objek, Baca Teks OCR, Uang dan Warna, serta Tanya AI Kamera.";
         }
