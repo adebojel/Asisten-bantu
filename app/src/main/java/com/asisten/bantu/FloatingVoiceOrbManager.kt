@@ -35,8 +35,7 @@ import kotlin.math.roundToInt
  * - Edge-Docking / Hide-to-Side (ValueAnimator): saat digeser mentok ke tepi kiri/kanan atau setelah
  *   5 detik tidak disentuh (ketika Auto-Hide aktif), gelembung masuk 75% ke tepi layar dan menyisakan
  *   tab pegangan lengkung transparan tipis (14dp). Sentuh/geser tab untuk meluncur keluar lagi.
- * - Drag-to-Dismiss: munculkan target silang (X) di bawah tengah saat mulai diseret; lepas di atas X
- *   untuk menutup sementara (dapat dinyalakan ulang lewat aplikasi atau notifikasi).
+ * - Tidak menampilkan target silang, panel, atau kontrol tambahan saat gelembung digeser.
  * - Desain 3D Glassmorphism tanpa emoji: 44dp x 44dp; hanya ikon mikrofon yang terlihat, dengan indikator cincin sangat tipis saat aktif.
  * - Gestur Ketuk:
  *   1) 1x Ketuk -> Aktifkan / hentikan pengenalan suara (Voice Access + CommandRouter).
@@ -290,8 +289,7 @@ class FloatingVoiceOrbManager(
                                     isEdgeDocked = false
                                     updateEdgeTabVisibility(false, dockedOnLeft)
                                 }
-                                showDismissZone()
-                            }
+                                            }
                             if (dragging) {
                                 val sw = currentScreenWidth()
                                 val sh = currentScreenHeight()
@@ -305,8 +303,7 @@ class FloatingVoiceOrbManager(
                                     wm.updateViewLayout(container, params)
                                 } catch (_: Throwable) {
                                 }
-                                updateDismissHoverState(params.x + orbSizePx / 2f, params.y + orbSizePx / 2f)
-                            } else {
+                             } else {
                                 gestureDetector.onTouchEvent(event)
                             }
                             return true
@@ -314,17 +311,7 @@ class FloatingVoiceOrbManager(
 
                         MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                             if (dragging) {
-                                val overDismiss = isInsideDismissZone(
-                                    params.x + orbSizePx / 2f,
-                                    params.y + orbSizePx / 2f
-                                )
                                 hideDismissZone()
-                                if (overDismiss) {
-                                    HapticFeedback.vibrateWarning(service)
-                                    hideInternal(markDismissed = true)
-                                    listener.onDismissed()
-                                    return true
-                                }
 
                                 val sw = currentScreenWidth()
                                 val pushedLeft = params.x <= (4f * density).roundToInt()
