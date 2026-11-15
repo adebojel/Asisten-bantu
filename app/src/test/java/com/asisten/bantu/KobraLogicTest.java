@@ -146,6 +146,17 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testAdaptiveTorchLuxThresholds() {
+        assertTrue(VisionActivity.shouldEnableAutoTorch(0.5f));
+        assertTrue(VisionActivity.shouldEnableAutoTorch(11.9f));
+        assertTrue(!VisionActivity.shouldEnableAutoTorch(12.0f));
+        assertTrue(!VisionActivity.shouldEnableAutoTorch(30.0f));
+        assertTrue(!VisionActivity.shouldDisableAutoTorch(25.0f));
+        assertTrue(VisionActivity.shouldDisableAutoTorch(25.1f));
+        assertTrue(!VisionActivity.shouldDisableAutoTorch(-1.0f));
+    }
+
+    @Test
     public void testWhatsAppPackageDetection() {
         assertTrue(com.asisten.bantu.voiceaccess.NodeIndexer.isWhatsAppPackage("com.whatsapp"));
         assertTrue(com.asisten.bantu.voiceaccess.NodeIndexer.isWhatsAppPackage("com.whatsapp.w4b"));
