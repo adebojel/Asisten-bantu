@@ -37,10 +37,10 @@ import kotlin.math.roundToInt
  *   tab pegangan lengkung transparan tipis (14dp). Sentuh/geser tab untuk meluncur keluar lagi.
  * - Drag-to-Dismiss: munculkan target silang (X) di bawah tengah saat mulai diseret; lepas di atas X
  *   untuk menutup sementara (dapat dinyalakan ulang lewat aplikasi atau notifikasi).
- * - Desain 3D Glassmorphism tanpa emoji: 62dp x 62dp dengan cincin neon cyan/gold berdenyut saat aktif.
+ * - Desain 3D Glassmorphism tanpa emoji: 44dp x 44dp; hanya ikon mikrofon yang terlihat, dengan indikator cincin sangat tipis saat aktif.
  * - Gestur Ketuk:
  *   1) 1x Ketuk -> Aktifkan / hentikan pengenalan suara (Voice Access + CommandRouter).
- *   2) 2x Ketuk -> Tampilkan / sembunyikan lencana nomor elemen layar (NumberBadgeOverlay).
+ *   2) 2x Ketuk -> Bacakan indeks elemen lewat suara tanpa lencana visual.
  *   3) Tekan Lama -> Bacakan isi elemen layar saat ini lewat TTS ("Baca layar").
  */
 class FloatingVoiceOrbManager(
@@ -62,10 +62,10 @@ class FloatingVoiceOrbManager(
     private val density = service.resources.displayMetrics.density
     private val touchSlop = ViewConfiguration.get(service).scaledTouchSlop
 
-    private val orbSizePx = (62f * density).roundToInt()
-    private val tabWidthPx = (14f * density).roundToInt()
-    private val edgeMarginPx = (10f * density).roundToInt()
-    private val dismissZoneSizePx = (74f * density).roundToInt()
+    private val orbSizePx = (44f * density).roundToInt()
+    private val tabWidthPx = (8f * density).roundToInt()
+    private val edgeMarginPx = (6f * density).roundToInt()
+    private val dismissZoneSizePx = (48f * density).roundToInt()
     private val dismissBottomMarginPx = (44f * density).roundToInt()
 
     private var orbRoot: FrameLayout? = null
@@ -192,7 +192,7 @@ class FloatingVoiceOrbManager(
             val ring = PulseRingView(service)
             body.addView(ring, FrameLayout.LayoutParams(orbSizePx, orbSizePx))
 
-            val iconPad = (13f * density).roundToInt()
+            val iconPad = (8f * density).roundToInt()
             val icon = ImageView(service).apply {
                 setImageResource(R.drawable.ic_3d_mic_orb)
                 setPadding(iconPad, iconPad, iconPad, iconPad)
@@ -690,7 +690,7 @@ class FloatingVoiceOrbManager(
     }
 
     /**
-     * Tab pegangan lengkung transparan tipis (14dp) ketika gelembung bersembunyi ke pinggir layar.
+     * Tab pegangan transparan minimal (8dp) ketika gelembung bersembunyi ke pinggir layar.
      */
     private class EdgeTabView(context: Context) : View(context) {
         private var dockedOnLeft = true
