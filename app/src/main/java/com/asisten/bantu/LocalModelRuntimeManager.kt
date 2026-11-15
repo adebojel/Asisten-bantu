@@ -14,6 +14,7 @@ object LocalModelRuntimeManager {
     @Volatile private var engine: LiteRtLmEngine? = null
     private val busy = AtomicBoolean(false)
     private val idleHandler = Handler(Looper.getMainLooper())
+    private val mainHandler = Handler(Looper.getMainLooper())
     private const val QWEN_FILE = "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
     private const val IDLE_UNLOAD_MS = 120_000L
 
@@ -31,15 +32,15 @@ object LocalModelRuntimeManager {
         val appContext = context.applicationContext
         val file = modelFile(appContext)
         if (!file.isFile || file.length() <= 1024L * 1024L) {
-            callback(null, "Model Qwen3 .litertlm belum terpasang.")
+            postResult(callback, null, "Model Qwen3 .litertlm belum terpasang.")
             return
         }
         if (prompt.isBlank()) {
-            callback(null, "Pertanyaan kosong.")
+            postResult(callback, null, "Pertanyaan kosong.")
             return
         }
         if (!busy.compareAndSet(false, true)) {
-            callback(null, "Model lokal sedang memproses permintaan lain. Coba lagi sebentar.")
+            postResult(callback, null, "Model lokal sedang memproses permintaan lain. Coba lagi sebentar.")
             return
         }
 
@@ -51,7 +52,7 @@ object LocalModelRuntimeManager {
             override fun onReady(success: Boolean, message: String) {
                 if (!success) {
                     finishRequest()
-                    callback(null, message)
+                    postResult(callback, null, message)
                     return
                 }
                 active.sendMessageAsync(prompt, object : LiteRtLmEngine.Callback {
@@ -63,7 +64,7 @@ object LocalModelRuntimeManager {
                     override fun onComplete() {
                         val answer = response.toString().trim().takeIf { it.isNotEmpty() }
                         finishRequest()
-                        callback(answer, if (answer == null) "Model tidak menghasilkan jawaban." else null)
+                        postResult(callback, answer, if (answer == null) "Model tidak menghasilkan jawaban." else null)
                     }
                     override fun onError(message: String) {
                         finishRequest()
@@ -78,6 +79,10 @@ object LocalModelRuntimeManager {
                 callback(null, message)
             }
         })
+    }
+
+    private fun postResult(callback: (String?, String?) -> Unit, answer: String?, error: String?) {
+        mainHandler.post { callback(answer, error) }
     }
 
     private fun finishRequest() {
