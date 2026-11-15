@@ -187,6 +187,16 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testImmediateBargeInRequiresUnambiguousPhrase() {
+        assertTrue(VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand("Kobra berhenti bicara"));
+        assertTrue(VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand("hentikan bacaan"));
+        assertTrue(VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand("diam dulu"));
+        assertTrue(!VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand("stop"));
+        assertTrue(!VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand("stop video"));
+        assertTrue(!VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand("hentikan video"));
+    }
+
+    @Test
     public void testExplicitCancelDoesNotMatchNormalMessageText() {
         assertTrue(VoiceSilenceCommandParser.isExplicitCancelCommand("tidak"));
         assertTrue(VoiceSilenceCommandParser.isExplicitCancelCommand("jangan kirim"));
