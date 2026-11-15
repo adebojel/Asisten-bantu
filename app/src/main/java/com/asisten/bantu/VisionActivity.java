@@ -95,6 +95,7 @@ public class VisionActivity extends AppCompatActivity {
     private BarcodeScanner barcodeScanner;
     private SafeObjectDetector streamObjectDetector;
     private SafeObjectDetector singleShotObjectDetector;
+    private final ObjectDetectionStability objectDetectionStability = new ObjectDetectionStability();
     private ToneGenerator toneGenerator;
 
     private long runningCashTotal = 0L;
@@ -508,19 +509,23 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private void handleLiveLabels(List<SafeObjectDetector.DetectedItem> items) {
-        if (items == null || items.isEmpty()) {
-            runOnUiThread(() -> tvStatus.setText("Objek belum dikenali pada frame ini; arah dan jarak tidak tersedia."));
+        List<SafeObjectDetector.DetectedItem> confirmed = objectDetectionStability.filter(items);
+        if (confirmed.isEmpty()) {
+            String status = items == null || items.isEmpty()
+                    ? "Objek belum dikenali pada frame ini; arah dan jarak tidak tersedia."
+                    : "Memastikan objek tetap terlihat sebelum menyebutkannya.";
+            runOnUiThread(() -> tvStatus.setText(status));
             return;
         }
-        StringBuilder text = new StringBuilder("Kemungkinan objek: ");
-        for (int i = 0; i < Math.min(3, items.size()); i++) {
+        StringBuilder text = new StringBuilder("Kemungkinan objek yang terkonfirmasi: ");
+        for (int i = 0; i < Math.min(3, confirmed.size()); i++) {
             if (i > 0) text.append(", ");
-            text.append(items.get(i).label);
+            text.append(confirmed.get(i).label);
         }
-        text.append(". Kamera tidak menentukan arah atau jarak.");
+        text.append(". Label dikonfirmasi dari beberapa frame; kamera ini tidak menentukan arah atau jarak.");
         String spoken = text.toString();
         runOnUiThread(() -> {
-            tvStatus.setText("Label objek offline aktif; arah dan jarak tidak tersedia");
+            tvStatus.setText("Label objek stabil terkonfirmasi; arah dan jarak tidak tersedia");
             tvResult.setText(spoken);
         });
         long now = System.currentTimeMillis();
