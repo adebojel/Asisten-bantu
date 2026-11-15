@@ -303,8 +303,16 @@ public class VisionActivity extends AppCompatActivity {
         }
     }
 
+    /** Modes that require continuous CameraX ImageAnalysis rather than one-shot capture only. */
+    static boolean supportsLiveAnalysisMode(String candidateMode) {
+        return "live_companion".equals(candidateMode)
+                || "digital_screen".equals(candidateMode)
+                || "barcode".equals(candidateMode)
+                || "find_object".equals(candidateMode);
+    }
+
     private boolean isLiveStreamMode() {
-        return "digital_screen".equals(mode) || "barcode".equals(mode) || "find_object".equals(mode);
+        return supportsLiveAnalysisMode(mode);
     }
 
     private void startCamera() {
