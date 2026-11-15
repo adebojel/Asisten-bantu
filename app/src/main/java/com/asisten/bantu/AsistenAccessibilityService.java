@@ -716,20 +716,30 @@ public class AsistenAccessibilityService extends AccessibilityService {
         String text = raw.toLowerCase(Locale.ROOT).trim();
         if (text.isEmpty()) return;
 
+        // Perintah tidur/diam yang diawali wake word harus dibedakan dari STOP
+        // satu kali. STOP memotong bacaan; "Kobra diam" mengaktifkan mode diam persisten.
+        String wakeCommand = stripWake(text);
+        String interruptText = wakeCommand;
+        String interrupt = interruptText == null ? text : interruptText.trim();
+        if (wakeCommand != null && VoiceSilenceCommandParser.isSilenceCommand(wakeCommand.trim())) {
+            setAssistantSilenced(true);
+            if (speaker != null) speaker.stop();
+            if (main != null) main.removeCallbacks(micRetry);
+            updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
+            return;
+        }
+
         // Interupsi real-time harus didahulukan dari Chat/AI dan VoiceAccess.
         // Jangan memberi balasan suara setelah perintah berhenti, agar tidak mulai bicara lagi.
-        String interruptText = stripWake(text);
-        String interrupt = interruptText == null ? text : interruptText.trim();
         if (VoiceSilenceCommandParser.isSpeechInterruptCommand(interrupt)) {
             if (speaker != null) speaker.stop();
             if (main != null) main.removeCallbacks(micRetry);
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
-            if (micOn) scheduleRetry(250L);
+            if (micOn && (config == null || !config.isPrivacyMode())) scheduleRetry(250L);
             return;
         }
 
-        // Perintah diam/aktif diproses sebelum Chat agar tidak tertelan oleh pipeline percakapan.
-        String wakeCommand = stripWake(text);
+        // Perintah aktif/bangun diproses sebelum Chat agar tidak tertelan pipeline percakapan.
         if (assistantSilenced) {
             if (wakeCommand == null) return; // Abaikan suara media/percakapan; hanya kata panggil yang membangunkan.
             String wakeTail = wakeCommand.trim();
@@ -742,14 +752,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 say("Saya aktif kembali.");
                 text = wakeTail;
             }
-        }
-
-        String silenceCommand = wakeCommand == null ? "" : wakeCommand.trim();
-        if (wakeCommand != null && VoiceSilenceCommandParser.isSilenceCommand(silenceCommand)) {
-            setAssistantSilenced(true);
-            if (speaker != null) speaker.stop();
-            say("Baik, saya diam. Panggil saya dengan kata Kobra untuk aktif kembali.");
-            return;
         }
 
         // In unified chat mode, every recognized utterance is sent to the same
