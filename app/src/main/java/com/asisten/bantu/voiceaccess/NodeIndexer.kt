@@ -366,6 +366,9 @@ object NodeIndexer {
                 putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH, range.last - range.first + 1)
             }
             val node = focused ?: return null
+            // Request geometry only from providers that explicitly advertise support.
+            // This avoids treating unsupported/empty extras as a usable word location.
+            if (!node.availableExtraData.contains(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY)) return null
             if (!node.refreshWithExtraData(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY, args)) return null
             val rects = node.extras.getParcelableArray(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY)
                 ?: return null
@@ -377,7 +380,10 @@ object NodeIndexer {
                     is Rect -> RectF(item)
                     else -> continue
                 }
-                if (charRect.isEmpty || !charRect.left.isFinite() || !charRect.top.isFinite()) continue
+                // Ignore missing, off-screen, and zero-area character boxes. The requested
+                // range is already a single word, so the union remains word-sized.
+                if (charRect.isEmpty || !charRect.left.isFinite() || !charRect.top.isFinite() ||
+                    !charRect.right.isFinite() || !charRect.bottom.isFinite()) continue
                 if (!hasRect) {
                     union.set(charRect)
                     hasRect = true
