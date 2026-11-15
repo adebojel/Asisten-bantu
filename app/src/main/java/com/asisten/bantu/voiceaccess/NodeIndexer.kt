@@ -99,41 +99,24 @@ object NodeIndexer {
 
     @JvmStatic
     fun findByLabel(nodes: List<IndexedNode>, query: String): IndexedNode? {
-        val q = normalizeTarget(query)
-        if (q.isEmpty()) return null
-        val ranked = nodes.mapNotNull { node ->
-            val text = normalizeTarget(node.label)
-            val id = normalizeTarget(node.viewId.replace('_', ' '))
-            val score = when {
-                text.isNotEmpty() && text == q -> 100
-                id.isNotEmpty() && id == q -> 90
-                text.isNotEmpty() && stripTarget(text) == stripTarget(q) -> 80
-                text.isNotEmpty() && startsWithTargetWord(text, q) -> 60
-                text.isNotEmpty() && containsTargetWord(text, q) -> 40
-                id.isNotEmpty() && containsTargetWord(id, q) -> 30
-                else -> 0
-            }
-            if (score > 0) node to score else null
+        val candidates = nodes.map { node ->
+            TargetLabelMatcher.Candidate(
+                value = node,
+                label = node.label,
+                resourceId = node.viewId,
+                left = node.bounds.left,
+                top = node.bounds.top,
+                right = node.bounds.right,
+                bottom = node.bounds.bottom,
+                actionable = node.isClickable || node.isEditable || node.isCheckable
+            )
         }
-        val bestScore = ranked.maxOfOrNull { it.second } ?: return null
-        // Equal top-ranked candidates are ambiguous: never pick the first one by list order.
-        val bestMatches = ranked.filter { it.second == bestScore }
-        return bestMatches.singleOrNull()?.first
+        return when (val match = TargetLabelMatcher.resolve(query, candidates)) {
+            is TargetLabelMatcher.Result.Found -> match.candidate.value
+            is TargetLabelMatcher.Result.Ambiguous,
+            TargetLabelMatcher.Result.NotFound -> null
+        }
     }
-
-    private fun normalizeTarget(value: String): String =
-        value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
-
-    private fun stripTarget(value: String): String =
-        value.replace(Regex("[^\\p{L}\\p{N}]"), "")
-
-    private fun startsWithTargetWord(text: String, query: String): Boolean =
-        text == query || text.startsWith("$query ") ||
-            stripTarget(text).startsWith(stripTarget(query))
-
-    private fun containsTargetWord(text: String, query: String): Boolean =
-        Regex("(?<![\\p{L}\\p{N}])${Regex.escape(query)}(?![\\p{L}\\p{N}])")
-            .containsMatchIn(text)
 
     private fun collectInteractive(
         node: AccessibilityNodeInfo?,
