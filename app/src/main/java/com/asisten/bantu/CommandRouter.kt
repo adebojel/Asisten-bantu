@@ -50,6 +50,7 @@ object CommandRouter {
     private const val MAX_AGENT_STEPS = 5
     private val screenAgentRunning = AtomicBoolean(false)
     private val screenAgentCancelRequested = AtomicBoolean(false)
+    private val screenAgentLock = Any()
 
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -103,12 +104,16 @@ object CommandRouter {
         if (c.isEmpty()) return false
 
         if (c == "hentikan agen layar" || c == "batalkan agen layar" || c == "stop agen layar") {
-            if (screenAgentRunning.get()) {
-                screenAgentCancelRequested.set(true)
-                sayCallback.accept("Permintaan penghentian diterima. Saya menghentikan agen setelah langkah yang sedang berjalan.")
-            } else {
-                sayCallback.accept("Tidak ada agen layar yang sedang berjalan.")
+            val requested = synchronized(screenAgentLock) {
+                if (screenAgentRunning.get()) {
+                    screenAgentCancelRequested.set(true)
+                    true
+                } else false
             }
+            sayCallback.accept(
+                if (requested) "Permintaan penghentian diterima. Saya menghentikan agen setelah langkah yang sedang berjalan."
+                else "Tidak ada agen layar yang sedang berjalan."
+            )
             return true
         }
 
@@ -479,12 +484,19 @@ object CommandRouter {
             sayCallback.accept("Agen layar memerlukan koneksi internet dan model vision gratis yang tersedia. Perintah dasar tetap bisa digunakan secara offline.")
             return
         }
-        if (!screenAgentRunning.compareAndSet(false, true)) {
+        val started = synchronized(screenAgentLock) {
+            if (screenAgentRunning.get()) {
+                false
+            } else {
+                screenAgentCancelRequested.set(false)
+                screenAgentRunning.set(true)
+                true
+            }
+        }
+        if (!started) {
             sayCallback.accept("Agen layar sedang menjalankan tugas lain.")
             return
         }
-
-        screenAgentCancelRequested.set(false)
         sayCallback.accept("Saya akan menjalankan langkah navigasi yang aman dan memeriksa perubahan layar setelah setiap langkah.")
         UnifiedAccessibilityEngine.getScope().launch {
             val executedSteps = ArrayList<MacroStep>()
@@ -583,8 +595,10 @@ object CommandRouter {
                 Log.e(TAG, "Agen layar gagal", t)
                 sayCallback.accept("Agen layar mengalami kendala. Tidak ada klaim bahwa tugas selesai.")
             } finally {
-                screenAgentRunning.set(false)
-                screenAgentCancelRequested.set(false)
+                synchronized(screenAgentLock) {
+                    screenAgentRunning.set(false)
+                    screenAgentCancelRequested.set(false)
+                }
             }
         }
     }
@@ -617,7 +631,7 @@ object CommandRouter {
 
     internal fun isRiskyAgentTarget(target: String): Boolean {
         return Regex(
-            "(kirim|send|bayar|transfer|hapus|delete|remove|beli|purchase|pay|checkout|order|\\bpanggil\\b|\\bcall\\b|install|izin|permission|allow|accept|setuju|confirm|konfirmasi|share|bagikan|upload|download|logout|sign out|blokir|block|report|pesan|wifi|wi-fi|data seluler|mobile data|bluetooth|lokasi|location|security|keamanan|password|kata sandi|akun|account|privacy|privasi|accessibility|aksesibilitas|network|jaringan|airplane mode|mode pesawat|factory reset|reset|reboot|shutdown|restart|aktifkan|nonaktifkan|nyalakan|matikan|enable|disable|toggle|switch|clear data|hapus data|format)",
+            "(kirim|send|bayar|transfer|hapus|delete|remove|beli|purchase|pay|checkout|order|\\bpanggil\\b|\\bcall\\b|install|izin|permission|allow|accept|setuju|agree|confirm|konfirmasi|share|bagikan|upload|download|logout|sign out|blokir|block|report|pesan|wifi|wi-fi|data seluler|mobile data|bluetooth|lokasi|location|security|keamanan|password|kata sandi|akun|account|privacy|privasi|accessibility|aksesibilitas|network|jaringan|airplane mode|mode pesawat|factory reset|reset|reboot|shutdown|restart|aktifkan|nonaktifkan|nyalakan|matikan|enable|disable|toggle|switch|clear data|hapus data|format|\\bok\\b|okay|\\byes\\b|\\bya\\b|\\biya\\b|continue|lanjutkan|next|finish|done|submit|save|simpan|apply|terapkan)",
             RegexOption.IGNORE_CASE
         ).containsMatchIn(target)
     }
