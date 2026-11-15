@@ -145,6 +145,17 @@ public class KobraLogicTest {
         assertTrue(!VoiceSilenceCommandParser.isWakeActivationCommand(null));
     }
 
+    @Test
+    public void testSpeechInterruptCommandParser() {
+        assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("stop"));
+        assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("Kobra berhenti bicara sekarang"));
+        assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("hentikan bacaan"));
+        assertTrue(VoiceSilenceCommandParser.isSpeechInterruptCommand("jeda suara"));
+        assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("desktop terbuka"));
+        assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("hentikan video"));
+        assertTrue(!VoiceSilenceCommandParser.isSpeechInterruptCommand("baca layar"));
+    }
+
     private static String pick(List<AppMatcher.App> apps, String q) {
         List<AppMatcher.Match> m = AppMatcher.find(apps, q, 4);
         if (m.isEmpty()) return "-";
