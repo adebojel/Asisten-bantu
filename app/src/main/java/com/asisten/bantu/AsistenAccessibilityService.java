@@ -720,8 +720,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         // Jangan memberi balasan suara setelah perintah berhenti, agar tidak mulai bicara lagi.
         String interruptText = stripWake(text);
         String interrupt = interruptText == null ? text : interruptText.trim();
-        if (has(interrupt, "berhenti", "stop", "diam", "cukup", "hentikan bicara",
-                "berhenti bicara", "hentikan suara", "stop bicara", "pause suara", "jeda bicara")) {
+        if (VoiceSilenceCommandParser.isSpeechInterruptCommand(interrupt)) {
             if (speaker != null) speaker.stop();
             if (main != null) main.removeCallbacks(micRetry);
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
