@@ -13,14 +13,23 @@ public final class VoiceSilenceCommandParser {
 
     public static boolean isSilenceCommand(String wakeTail) {
         return containsAnyPhrase(wakeTail,
-                "diam dulu", "diam", "jangan bicara", "berhenti bicara",
+                "diam dulu", "diam", "jangan bicara",
                 "mode diam", "nonaktifkan asisten", "matikan asisten",
                 "istirahat dulu", "jangan merespons");
     }
 
     /** Stop speech immediately, including while the assistant is reading a long screen aloud. */
     public static boolean isSpeechInterruptCommand(String input) {
-        return containsAnyPhrase(input,
+        String normalized = normalize(input);
+        // Media-stop commands must continue to the media router, not be consumed
+        // as speech interruption merely because they contain the word "stop".
+        if (normalized.startsWith("stop video") || normalized.startsWith("berhenti video")
+                || normalized.startsWith("hentikan video") || normalized.startsWith("pause video")
+                || normalized.startsWith("stop musik") || normalized.startsWith("berhenti musik")
+                || normalized.startsWith("stop lagu") || normalized.startsWith("hentikan sirine")) {
+            return false;
+        }
+        return containsAnyPhrase(normalized,
                 "berhenti", "stop", "diam", "diam dulu", "cukup",
                 "berhenti bicara", "hentikan bicara", "hentikan suara",
                 "stop bicara", "stop baca", "berhenti membaca", "hentikan bacaan",
