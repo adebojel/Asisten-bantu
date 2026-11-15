@@ -542,7 +542,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         @Override public void onRmsChanged(float rmsdB) { }
         @Override public void onBufferReceived(byte[] buffer) { }
         @Override public void onEndOfSpeech() {
-            listening = false;
+            // Keep the recognizer marked busy until onResults/onError arrives.
+            // Clearing this flag here lets the watchdog start a second session
+            // while Android is still delivering the first session's result.
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
         }
         @Override public void onPartialResults(Bundle partialResults) { }
