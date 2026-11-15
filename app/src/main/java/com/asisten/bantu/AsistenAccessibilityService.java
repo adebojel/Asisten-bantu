@@ -98,6 +98,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private SpeechRecognizer recognizer;
     private Intent recognizerIntent;
     private boolean listening = false;
+    private boolean recognizerUsesOnDevice = false;
+    private boolean preferSystemRecognizer = false;
     private boolean micOn = true;
     private boolean warnedNoPermission = false;
     private long conversationUntil = 0L;
@@ -513,8 +515,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void createRecognizer() {
         // Prioritaskan pengenalan di perangkat pada Android 12+ agar perintah tetap
         // dapat diproses tanpa internet jika paket bahasa Indonesia tersedia.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                && SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+        recognizerUsesOnDevice = !preferSystemRecognizer
+                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+                && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
+        if (recognizerUsesOnDevice) {
             recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
         } else {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this);
@@ -524,7 +528,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID");
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false);
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
+        // The system recognizer may need its network service when the Indonesian
+        // offline language pack is missing; do not force it into offline-only mode.
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, recognizerUsesOnDevice);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
     }
 
@@ -552,6 +558,23 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         @Override public void onError(int error) {
             listening = false;
+            // Android can report on-device recognition as available even when the
+            // Indonesian language pack is absent. Fall back once to the system
+            // recognizer instead of retrying the same unavailable offline engine.
+            boolean canFallbackToSystem = recognizerUsesOnDevice
+                    && (error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
+                    || error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+                    || error == SpeechRecognizer.ERROR_NETWORK
+                    || error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
+                    || error == SpeechRecognizer.ERROR_SERVER
+                    || error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED);
+            if (canFallbackToSystem) {
+                preferSystemRecognizer = true;
+                destroyRecognizer();
+                updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
+                scheduleRetry(350);
+                return;
+            }
             switch (error) {
                 case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
                 case SpeechRecognizer.ERROR_CLIENT:
