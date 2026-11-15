@@ -171,6 +171,20 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             }
         }
 
+        // 2B) Ketukan berbasis posisi layar. Untuk titik kecil gunakan grid + zoom bertingkat.
+        val positionCell = resolvePositionCell(c)
+        if (positionCell != null) {
+            val dm = service.resources.displayMetrics
+            val col = (positionCell - 1) % 3
+            val row = (positionCell - 1) / 3
+            val x = dm.widthPixels * (col + 0.5f) / 3f
+            val y = dm.heightPixels * (row + 0.5f) / 3f
+            numberOverlay.hide()
+            gridOverlay.hide()
+            UnifiedAccessibilityEngine.clickAt(service, x, y)
+            sayCallback.accept("Mengetuk area " + positionLabel(positionCell) + ". Jika belum tepat, katakan tampilkan grid lalu zoom nomor untuk memperkecil area.")
+            return true
+        }
         // 3) Klik / Tekan Lama berdasarkan Nomor Elemen
         val longClickNum = extractElementNumber(c, listOf("tekan lama nomor ", "tahan nomor ", "tahan ", "tekan lama "))
         if (longClickNum != null) {
@@ -528,6 +542,29 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         }
     }
 
+    private fun resolvePositionCell(command: String): Int? {
+        val c = command.lowercase(Locale.ROOT).trim().replace(" ", "")
+            .replace("ketuk", "").replace("klik", "").replace("tekan", "")
+            .replace("posisi", "").replace("area", "")
+        return when (c) {
+            "kiriatas", "pojokkiriatas", "ataskiri" -> 1
+            "atas", "tengahatas", "tengahataslayar" -> 2
+            "kananatas", "pojokkananatas", "ataskanan" -> 3
+            "kiri", "tengahkiri", "kiribagian" -> 4
+            "tengah", "tengahlayar", "pusat" -> 5
+            "kanan", "tengahkanan", "kananbagian" -> 6
+            "kiribawah", "pojokkiribawah", "bawahkiri" -> 7
+            "bawah", "tengahbawah" -> 8
+            "kananbawah", "pojokkananbawah", "bawahkanan" -> 9
+            else -> null
+        }
+    }
+
+    private fun positionLabel(cell: Int): String = when (cell) {
+        1 -> "kiri atas"; 2 -> "atas tengah"; 3 -> "kanan atas"
+        4 -> "kiri tengah"; 5 -> "tengah"; 6 -> "kanan tengah"
+        7 -> "kiri bawah"; 8 -> "bawah tengah"; else -> "kanan bawah"
+    }
     private fun extractElementNumber(cmd: String, prefixes: List<String>): Int? {
         for (p in prefixes) {
             if (cmd.startsWith(p)) {
