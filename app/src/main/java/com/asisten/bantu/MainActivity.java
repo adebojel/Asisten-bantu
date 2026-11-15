@@ -314,15 +314,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void openStickAndCompassChooser() {
         final String[] labels = {
-                "Mode Tongkat & Sonar 3D (Deteksi Halangan)",
+                "Mata Kedua Terpadu + Tongkat Digital (satu kamera)",
                 "Kompas Suara, Lokasi GPS & Rute Pulang",
                 "Jadwal Sholat & Kiblat Offline"
         };
-        speaker.speak("Pilih mode navigasi.");
+        speaker.speak("Mata Kedua dan bantuan tongkat digital memakai satu sesi kamera terpadu. Pilih fitur navigasi tambahan jika diperlukan.");
         new AlertDialog.Builder(this)
                 .setTitle("Mode Tongkat & Navigasi")
                 .setItems(labels, (d, which) -> {
-                    if (which == 0) launchScreen(new Intent(this, NavigationActivity.class), "Gagal membuka Mode Tongkat.");
+                    if (which == 0) {
+                        Intent intent = new Intent(this, VisionActivity.class);
+                        intent.putExtra("mode", "live_companion");
+                        launchScreen(intent, "Gagal membuka Mata Kedua Terpadu.");
+                    }
                     else if (which == 1) launchScreen(new Intent(this, CompassActivity.class), "Gagal membuka Kompas Suara.");
                     else launchScreen(new Intent(this, PrayerActivity.class), "Gagal membuka Jadwal Sholat & Kiblat.");
                 })
@@ -332,6 +336,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void openSecondEyeChooser() {
         final String[] labels = {
+                "Mata Kedua Terpadu + Tongkat Digital (kamera otomatis)",
                 "Penghitung Lembar Uang Tunai (otomatis)",
                 "Baca Uang Satuan",
                 "Padu Padan Warna Pakaian",
@@ -345,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
                 "Jelaskan Sekitar"
         };
         final String[] modes = {
-                "money_count", "money", "outfit", "digital_screen",
+                "live_companion", "money_count", "money", "outfit", "digital_screen",
                 "receipt", "barcode", "find_object", "translate_ocr",
                 "ktp", "face", "describe"
         };
@@ -394,7 +399,7 @@ public class MainActivity extends AppCompatActivity {
     private void speakAppGuide() {
         String activeName = VoiceProfileManager.getActiveAssistantName(this);
         String guide = "Panduan Suara " + activeName + " OS HUD. Di layar utama terdapat Orb Suara tiga dimensi di bagian atas, "
-                + "tombol Pengaturan Terpadu di pojok kanan atas, dan empat modul utama: Mata Kedua, Mode Tongkat, Asisten AI, serta Layar Utama. "
+                + "tombol Pengaturan Terpadu di pojok kanan atas, dan modul utama Mata Kedua Terpadu yang menggabungkan kamera dan bantuan tongkat digital dalam satu sesi, Asisten AI, serta Layar Utama. "
                 + "Gunakan perintah Voice Access seperti tampilkan nomor, klik nomor, tampilkan grid, atau baca layar kapan saja. "
                 + "Usap dua jari ke bawah untuk membaca notifikasi, usap dua jari ke atas untuk menghentikan suara, atau ketuk dua kali untuk mulai bicara.";
         speaker.speak(guide);
