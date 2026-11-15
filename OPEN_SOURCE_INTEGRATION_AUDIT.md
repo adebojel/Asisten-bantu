@@ -25,6 +25,16 @@ Dokumen ini membedakan kode yang benar-benar diubah pada Kobra, pola teknis yang
 | [takeoutfm/takeout_assistant](https://github.com/takeoutfm/takeout_assistant) | Tidak ada lisensi terdeteksi pada metadata yang diperiksa | Vosk offline, wake word, perintah suara lokal | Referensi saja. Tidak menyalin kode tanpa lisensi yang mengizinkan. |
 | [rounma/mobile-agent](https://github.com/rounma/mobile-agent) | Tidak ada lisensi terdeteksi pada metadata yang diperiksa | Qwen3-ASR, Kokoro TTS, sherpa-onnx | Referensi saja. Tidak menyalin kode tanpa lisensi yang mengizinkan. |
 | [MRDarshan7/OffHand](https://github.com/MRDarshan7/OffHand) | Tidak ada lisensi terdeteksi pada metadata yang diperiksa | Vosk, Qwen, ML Kit OCR, action outbox dan konfirmasi pengguna | Referensi arsitektur saja. Tidak menyalin kode tanpa lisensi yang mengizinkan. |
+| [DrophouseLtd/SightBuddy](https://github.com/DrophouseLtd/SightBuddy) | MIT | Whisper offline via sherpa-onnx, VAD, perekaman push-to-talk, object discovery/find, OCR dan pembacaan teks yang dapat di-seek | Diperiksa pada file RecordingGate, ObjectCommandResolver dan DetectionRules. Kandidat untuk modul pencarian objek dan speech model; belum disalin karena membutuhkan model, lisensi model terpisah, ABI native dan uji perangkat. |
+| [oiv-an/VoiceBridge](https://github.com/oiv-an/VoiceBridge) | Apache-2.0 | Snapshot teks aksesibilitas, retry saat tree sementara kosong, pemilihan engine suara lokal, overlay terjemahan | Referensi untuk snapshot immutable dan retry yang memiliki deadline. Belum disalin; Kobra harus menghindari overlay terjemahan layar penuh. |
+| [SHRIMONESH/IRISAUTOAPP](https://github.com/SHRIMONESH/IRISAUTOAPP) | MIT | Action executor, workflow multi-langkah, state history, retry dan voice feedback | Kode ActionExecutor dan ScreenStateManager diperiksa. Belum disalin karena perlu adaptasi ke satu AccessibilityService Kobra dan penambahan policy/konfirmasi sebelum tindakan sensitif. |
+| [niki914/zafiro](https://github.com/niki914/zafiro) | MIT | Driver aksesibilitas stateless, displayId eksplisit, gesture/screenshot, pruning tree dan node semantics | AccessibilityDriver dan PruningRules diperiksa. Kandidat desain untuk multi-display dan ekstraksi node; belum disalin agar tidak membawa dependency dan arsitektur agent yang besar. |
+| [qpst4/XGesture](https://github.com/qpst4/XGesture) | AGPL-3.0 | Gesture engine, OCR engine service, one-hand/edge navigation, clipboard and overlay tooling | Tidak disalin. AGPL-3.0 membawa kewajiban copyleft yang perlu keputusan lisensi produk secara sadar; dipakai hanya sebagai referensi fitur dan desain. |
+| [SHWETHAA-US/VisionAssist_Android](https://github.com/SHWETHAA-US/VisionAssist_Android) | MIT | ML Kit OCR, object detection, voice control, haptic feedback | Kandidat perbandingan; Kobra sudah memiliki jalur ML Kit, jadi tidak menambahkan implementasi duplikat. |
+| [michael2505byte/SeeForMe](https://github.com/michael2505byte/SeeForMe) | Tidak ada lisensi pada metadata repo | YOLO, OCR, Vosk, multilingual TTS | Referensi fitur saja. Tidak menyalin kode sampai lisensi yang mengizinkan penggunaan ulang tersedia. |
+| [Cambric-software/c-around](https://github.com/Cambric-software/c-around) | NOASSERTION / lisensi tidak terverifikasi | Deteksi objek/bahaya, klasifikasi suara YAMNet, scene description, face recognition offline | Proyek relatif baru; audit lisensi dan ketergantungan model belum memadai. Tidak menyalin kode. |
+| [NTDuck/uet-2627i-int3011e-3-visionaid](https://github.com/NTDuck/uet-2627i-int3011e-3-visionaid) | Metadata API tidak mendeteksi lisensi; README mengklaim MIT | OCR offline, YOLO, find-object dengan haptic pulse, voice onboarding | Status lisensi belum konsisten antara metadata dan README; tidak menyalin sampai file LICENSE dan hak upstream diverifikasi. |
+| [niki914/zafiro](https://github.com/niki914/zafiro) | MIT | Agent Android, Shizuku/root optional, skills/MCP, local shell and Python | Referensi untuk kemampuan agent lanjutan. Bukan integrasi langsung: Shizuku/root bukan hak yang dapat diasumsikan oleh aplikasi biasa dan setiap aksi sistem perlu izin eksplisit. |
 
 ## Perubahan yang sudah masuk ke Kobra
 
@@ -33,6 +43,7 @@ Dokumen ini membedakan kode yang benar-benar diubah pada Kobra, pola teknis yang
    - Meminta koordinat karakter dari AccessibilityNodeInfo.refreshWithExtraData(EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY, ...).
    - Menggabungkan kotak karakter menjadi batas kata yang sedang dipilih.
    - Mengembalikan null bila aplikasi tidak menyediakan geometri teks; tidak membuat koordinat palsu.
+   - Batas kata hanya boleh muncul bila provider memberikan rentang seleksi kata yang valid; tidak memakai kursor nol atau kotak kontrol sebagai pengganti.
    - Pencocokan target suara memakai ranking exact/normalized/word-boundary dan menolak kandidat berbeda yang skornya hampir sama.
 
 2. FocusOutlineOverlay.kt
@@ -50,16 +61,17 @@ Dokumen ini membedakan kode yang benar-benar diubah pada Kobra, pola teknis yang
 
 4. FloatingVoiceOrbManager.kt
    - Gelembung mikrofon diperkecil dari 62dp menjadi 44dp.
-   - Tab tepi diperkecil menjadi 8dp.
+   - Tab tepi dan auto-hide dimatikan agar tidak ada kontrol lain selain mikrofon yang mengambang.
    - Double-tap tetap memanggil indeks elemen suara, bukan menampilkan badge visual.
 
 ## Batas teknis yang harus dipertahankan
 
 - Android API character-location hanya menyediakan geometri karakter untuk view yang mendukung permintaan extra data. Provider aplikasi, WebView, Compose, canvas, konten aman, dan beberapa komponen custom dapat tidak menyediakannya.
-- Kobra hanya menggambar batas kata bila koordinat karakter benar-benar tersedia. Jika tidak, Kobra memakai batas kontrol kecil yang valid atau menyembunyikan batas; tidak menggambar kotak besar sebagai pengganti kata.
+- Kobra hanya menggambar batas kata bila provider menyediakan rentang seleksi kata dan koordinat karakter yang valid. Jika tidak, batas disembunyikan; tidak menggambar kotak kontrol, baris, paragraf, atau koordinat tebakan sebagai pengganti kata.
 - Screenshot OCR lintas aplikasi memerlukan persetujuan MediaProjection dan indikator sistem. OCR tidak boleh berjalan diam-diam di layar aman.
 - AccessibilityService tidak menjamin kendali atas seluruh aplikasi, dialog sistem, layar pembayaran, atau konten yang sengaja tidak diekspos.
 - Hanya satu komponen Kobra yang boleh menjadi pemilik mikrofon pada satu waktu. Jangan menggabungkan service contoh yang membuat SpeechRecognizer kedua.
+- Fokus Kobra adalah overlay milik Kobra. Tampilan outline internal milik TalkBack tidak dapat diubah oleh aplikasi pihak ketiga; pengguna tetap dapat mengatur TalkBack melalui pengaturan Android.
 - Perubahan kode belum dianggap lulus sampai workflow Gradle selesai dan pengujian pada perangkat nyata dilakukan.
 
 ## Perintah suara untuk pengujian
