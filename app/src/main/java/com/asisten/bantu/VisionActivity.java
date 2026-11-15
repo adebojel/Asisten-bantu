@@ -1008,6 +1008,7 @@ public class VisionActivity extends AppCompatActivity {
             case "receipt": return "Mode pemindai struk dan bukti transfer bank.";
             case "barcode": return "Mode pemindai barcode dan QR offline aktif.";
             case "find_object": return "Mode deteksi objek aktif dengan bunyi bip.";
+            case "live_companion": return "Mode Mata Kedua langsung aktif. Kamera menganalisis teks yang terlihat. Tanyakan tentang benda atau uang dengan suara. Untuk keselamatan, tetap gunakan tongkat fisik.";
             case "translate_ocr": return "Mode penerjemah kamera offline.";
             default: return "Mata Kedua Kobra siap. Tersedia tombol Scan Semua Objek, Baca Teks OCR, Uang dan Warna, serta Tanya AI Kamera.";
         }
