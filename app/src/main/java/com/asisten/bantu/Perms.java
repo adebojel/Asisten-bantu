@@ -120,18 +120,12 @@ public final class Perms {
     }
 
     /**
-     * Legacy broad list. Do not use for onboarding or new feature flows.
-     * Kept until every older feature has a dedicated just-in-time permission request.
+     * Minimal baseline permission set for new callers.
+     * Optional capabilities must use forGroup() after the user selects that feature.
      */
     @Deprecated
     public static String[] required() {
-        List<String> p = new ArrayList<>();
-        for (int group = GROUP_MICROPHONE; group <= GROUP_SMS_READ; group++) {
-            for (String permission : forGroup(group)) {
-                if (!p.contains(permission)) p.add(permission);
-            }
-        }
-        return p.toArray(new String[0]);
+        return forGroup(GROUP_MICROPHONE);
     }
 
     public static boolean has(Context c, String permission) {
