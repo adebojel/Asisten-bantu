@@ -661,7 +661,7 @@ open class ChatActivity : AppCompatActivity() {
                             }
                         })
                     } else {
-                        fallbackOfflineImageOcr(bmp)
+                        fallbackOfflineImageOcr(bmp, prompt)
                     }
                 }
             }
@@ -720,7 +720,7 @@ open class ChatActivity : AppCompatActivity() {
             return
         }
 
-        replyAndSpeak(buildOfflineFallback(question), "Mode Lokal")
+        replyAndSpeak(buildOfflineFallback(question), "Mode Lokal", question)
         refreshModeBanner()
     }
 
