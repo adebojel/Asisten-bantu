@@ -30,6 +30,7 @@ public final class Perms {
     public static final int GROUP_ACTIVITY = 10;
     public static final int GROUP_MEDIA = 11;
     public static final int GROUP_NEARBY_WIFI = 12;
+    public static final int GROUP_SMS_READ = 13;
 
     public static String[] groupLabels() {
         return new String[] {
@@ -45,7 +46,8 @@ public final class Perms {
             "Notifikasi — status dan pengingat",
             "Aktivitas fisik — penghitung langkah",
             "Audio — memilih berkas suara",
-            "Wi-Fi sekitar — pemindaian perangkat/jaringan"
+            "Wi-Fi sekitar — pemindaian perangkat/jaringan",
+            "Baca SMS — mengakses pesan masuk"
         };
     }
 
@@ -73,7 +75,6 @@ public final class Perms {
                 break;
             case GROUP_SMS:
                 permissions.add(Manifest.permission.SEND_SMS);
-                permissions.add(Manifest.permission.READ_SMS);
                 break;
             case GROUP_CALL_HISTORY:
                 permissions.add(Manifest.permission.READ_CALL_LOG);
@@ -109,6 +110,9 @@ public final class Perms {
                     permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES);
                 }
                 break;
+            case GROUP_SMS_READ:
+                permissions.add(Manifest.permission.READ_SMS);
+                break;
             default:
                 return new String[0];
         }
@@ -122,7 +126,7 @@ public final class Perms {
     @Deprecated
     public static String[] required() {
         List<String> p = new ArrayList<>();
-        for (int group = GROUP_MICROPHONE; group <= GROUP_NEARBY_WIFI; group++) {
+        for (int group = GROUP_MICROPHONE; group <= GROUP_SMS_READ; group++) {
             for (String permission : forGroup(group)) {
                 if (!p.contains(permission)) p.add(permission);
             }
