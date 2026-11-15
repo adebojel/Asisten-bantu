@@ -48,6 +48,9 @@ public final class KobraConfig {
         this.crashGuard = appContext.getSharedPreferences(PREFS_LLM_CRASH_GUARD, Context.MODE_PRIVATE);
     }
 
+    public String getOpenAiApiKey() { return prefs.getString("openai_api_key", "").trim(); }
+    public void setOpenAiApiKey(String v) { prefs.edit().putString("openai_api_key", v == null ? "" : v.trim()).apply(); }
+
     public String getApiKey() { return prefs.getString("api_key", "").trim(); }
     public void setApiKey(String v) { prefs.edit().putString("api_key", v == null ? "" : v.trim()).apply(); }
     public boolean hasAi() { return !getApiKey().isEmpty(); }
