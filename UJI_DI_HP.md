@@ -30,11 +30,14 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 17. Uji dua label mirip, misalnya beberapa tombol "Putar". Kobra tidak boleh menebak; harus meminta nomor.
 18. "Kobra tampilkan nomor", pilih target, lalu ucapkan "Kobra klik nomor 1". Pastikan nomor diperbarui setelah layar berubah.
 19. "Kobra scroll bawah", "Kobra geser kiri", "Kobra kembali", "Kobra beranda".
+20. Ucapkan "Kobra tampilkan garis fokus". Pastikan bingkai mengikuti fokus aksesibilitas, bagian tengah transparan, dan sentuhan pada aplikasi tetap dapat diteruskan.
+21. Ucapkan "Kobra fokus pertama", "Kobra fokus berikutnya", "Kobra fokus sebelumnya", "Kobra fokus terakhir", dan "Kobra baca fokus". Pastikan item yang dibacakan sesuai bingkai.
+22. Pindah ke aplikasi lain. Garis lama harus hilang dan mengikuti fokus baru setelah aplikasi mengirim event fokus. Ucapkan "Kobra sembunyikan garis fokus" untuk menonaktifkan.
 
 ## F. Pesan masuk dan telepon
-20. Minta teman mengirim WhatsApp dan SMS. Notifikasi harus dibacakan; lalu "Kobra baca notifikasi", "Kobra baca SMS".
-21. Minta teman menelepon: Kobra harus menyebut status panggilan; coba "Kobra angkat telepon", lalu "Kobra tolak telepon" pada panggilan berikutnya.
-22. Uji WhatsApp panggilan suara dan video pada kontak uji; periksa apakah tombol yang benar dapat ditemukan dan status panggilan dilaporkan tanpa mengarang.
+23. Minta teman mengirim WhatsApp dan SMS. Notifikasi harus dibacakan; lalu "Kobra baca notifikasi", "Kobra baca SMS".
+24. Minta teman menelepon: Kobra harus menyebut status panggilan; coba "Kobra angkat telepon", lalu "Kobra tolak telepon" pada panggilan berikutnya.
+25. Uji WhatsApp panggilan suara dan video pada kontak uji; periksa apakah tombol yang benar dapat ditemukan dan status panggilan dilaporkan tanpa mengarang.
 
 ## G. Baca saldo bank/e-wallet (hanya baca)
 23. Buka aplikasi bank atau e-wallet uji, masuk sendiri, dan tampilkan halaman saldo. Ucapkan "Kobra baca saldo".
