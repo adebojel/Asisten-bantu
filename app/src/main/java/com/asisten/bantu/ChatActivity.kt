@@ -629,7 +629,15 @@ open class ChatActivity : AppCompatActivity() {
             return
         }
 
-        // 4) Online Gemini / OpenRouter / Offline Fallback (tidak berhenti di pesan error Mode Aman)
+        // 4) Model Qwen3 LiteRT-LM di perangkat: jalur percakapan generatif offline.
+        // Jalankan hanya bila model sudah diimpor dan preflight RAM menyatakan aman.
+        if (LocalModelRuntimeManager.isModelAvailable(this)
+            && LocalModelRegistry.canAttemptLiteRtModel(this)) {
+            routeToOfflineQwen(displayPrompt, systemPrompt)
+            return
+        }
+
+        // 5) Online Gemini / OpenRouter / fallback perintah lokal.
         routeToOnlineOrFallback(displayPrompt, systemPrompt)
     }
 
@@ -695,6 +703,33 @@ open class ChatActivity : AppCompatActivity() {
                 replyAndSpeak("Gagal membaca gambar secara offline.", "OCR Offline", prompt)
                 refreshModeBanner()
             }
+    }
+
+    private fun routeToOfflineQwen(question: String, systemPrompt: String) {
+        tvModelInfo.text = "Memproses dengan Qwen3 0.6B Offline..."
+        val localPrompt = "$systemPrompt\n\nPesan terbaru pengguna: $question"
+        LocalModelRuntimeManager.answerAsync(this, localPrompt) { answer, error ->
+            if (isFinishing || isDestroyed) return@answerAsync
+            val clean = answer?.trim().orEmpty()
+            if (clean.isNotEmpty()) {
+                replyAndSpeak(clean, "Qwen3 0.6B Offline", question)
+                refreshModeBanner()
+            } else {
+                // If the local model cannot initialize or runs out of memory,
+                // continue with the online router when available; otherwise keep
+                // the deterministic offline command/knowledge fallback responsive.
+                if (NetworkState.isOnline(this)) {
+                    routeToOnlineOrFallback(question, systemPrompt)
+                } else {
+                    replyAndSpeak(
+                        buildOfflineFallback(question),
+                        "Mode Lokal (fallback)",
+                        question
+                    )
+                    refreshModeBanner()
+                }
+            }
+        }
     }
 
     private fun routeToOnlineOrFallback(question: String, systemPrompt: String) {
