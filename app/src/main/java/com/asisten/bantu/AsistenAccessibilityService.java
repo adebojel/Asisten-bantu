@@ -2415,7 +2415,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         StringBuilder numbers = new StringBuilder();
         StringBuilder prompt = new StringBuilder("Saya menemukan beberapa kontak yang cocok. ");
         for (int i = 0; i < matches.size(); i++) {
-            if (i > 0) { names.append('\\n'); numbers.append('\\n'); }
+            if (i > 0) { names.append('\n'); numbers.append('\n'); }
             names.append(matches.get(i)[0]);
             numbers.append(matches.get(i)[1]);
             prompt.append("Nomor ").append(i + 1).append(", ").append(matches.get(i)[0]).append(". ");
