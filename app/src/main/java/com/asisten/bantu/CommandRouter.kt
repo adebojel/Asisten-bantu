@@ -413,7 +413,7 @@ object CommandRouter {
             val personaPrompt = KobraPersona.buildFullSystemPrompt(service)
             val localText = snapshot.formattedTree
                 .takeIf { it.isNotBlank() }
-                ?: service.readScreenText()
+                ?: (service as? AsistenAccessibilityService)?.readScreenText().orEmpty()
 
             // Tanpa gambar, jangan mengaku melakukan analisis visual. OnlineAiRouter
             // sendiri menolak model yang tidak terverifikasi gratis atau tidak mendukung gambar.
