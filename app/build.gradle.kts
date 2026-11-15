@@ -1,3 +1,5 @@
+import java.net.URL
+import java.net.URLConnection
 plugins {
     id("com.android.application")
 }
@@ -135,7 +137,7 @@ val downloadQwenModel by tasks.registering {
             for (attempt in 1..3) {
                 try {
                     logger.lifecycle("Downloading bundled Qwen3 model (attempt $attempt/3)")
-                    val connection = java.net.URL(modelUrl).openConnection().apply {
+                    val connection: URLConnection = URL(modelUrl).openConnection().apply {
                         connectTimeout = 30_000
                         readTimeout = 180_000
                         setRequestProperty("User-Agent", "KobraOS-Android-Build")
