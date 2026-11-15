@@ -43,6 +43,12 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         focusOutline.hide()
     }
 
+    fun refreshFocusOutline() {
+        if (!KobraConfig(service).isFocusOutlineEnabled()) return
+        val bounds = NodeIndexer.focusedBounds(service)
+        if (bounds != null) focusOutline.show(bounds)
+    }
+
     /** Focus indicator for every app; its transparent overlay never intercepts touch. */
     fun onAccessibilityEvent(event: android.view.accessibility.AccessibilityEvent?) {
         if (event == null) return
