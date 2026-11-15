@@ -7,7 +7,8 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Owns the optional LiteRT-LM model instance for the process.
+ * Owns the packaged LiteRT-LM model instance for the process.
+ * The APK asset is copied atomically to app-private storage on first use.
  * Requests are serialized; the model is unloaded after an idle period to return RAM.
  */
 object LocalModelRuntimeManager {
@@ -23,18 +24,15 @@ object LocalModelRuntimeManager {
     @JvmStatic fun modelFile(context: Context): File =
         File(LocalModelRegistry.directory(context), QWEN_FILE)
 
+    /** True when the private copy exists or the APK contains the model asset. */
     @JvmStatic fun isModelAvailable(context: Context): Boolean {
         val file = modelFile(context)
-        return file.isFile && file.length() > 1024L * 1024L
+        return (file.isFile && file.length() > 250L * 1024L * 1024L) ||
+            LocalModelAssetInstaller.isBundled(context)
     }
 
     @JvmStatic fun answerAsync(context: Context, prompt: String, callback: (String?, String?) -> Unit) {
         val appContext = context.applicationContext
-        val file = modelFile(appContext)
-        if (!file.isFile || file.length() <= 1024L * 1024L) {
-            postResult(callback, null, "Model Qwen3 .litertlm belum terpasang.")
-            return
-        }
         if (prompt.isBlank()) {
             postResult(callback, null, "Pertanyaan kosong.")
             return
@@ -45,6 +43,29 @@ object LocalModelRuntimeManager {
         }
 
         idleHandler.removeCallbacks(idleUnload)
+        // Model asset is copied off the main thread and atomically renamed before LiteRT-LM opens it.
+        LocalModelAssetInstaller.installIfNeeded(appContext) { installed, installError ->
+            if (!installed) {
+                finishRequest()
+                postResult(callback, null, installError ?: "Model Qwen3 gagal disiapkan.")
+                return@installIfNeeded
+            }
+            initializeAndAnswer(appContext, prompt, callback)
+        }
+    }
+
+    private fun initializeAndAnswer(
+        appContext: Context,
+        prompt: String,
+        callback: (String?, String?) -> Unit
+    ) {
+        val file = modelFile(appContext)
+        if (!file.isFile || file.length() <= 250L * 1024L * 1024L) {
+            finishRequest()
+            postResult(callback, null, "Berkas model Qwen3 tidak lengkap setelah proses pemasangan.")
+            return
+        }
+
         val active = synchronized(this) {
             engine ?: LiteRtLmEngine(appContext).also { engine = it }
         }

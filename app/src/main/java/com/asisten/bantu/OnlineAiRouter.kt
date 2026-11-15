@@ -10,16 +10,16 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.URLEncoder
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
  * Router AI Online 3-Lapis untuk Kobra OS (Zero Hardcoded API Keys):
- * 1) Prioritas 1 (Opsional Manual): Google Gemini API (gemini-2.5-flash -> fallback gemini-2.0-flash)
- * 2) Prioritas 2 (Opsional Manual): OpenRouter API (model pilihan -> free fallback list)
- * 3) Prioritas 3 (Default Gratis Tanpa API Key): Pollinations Text AI (POST /openai -> fallback GET)
+ * 1) OpenRouter API: hanya model yang harga input dan output-nya diverifikasi 0.0
+ * 2) Jika tidak tersedia/gagal: caller kembali ke Qwen3 lokal atau basis pengetahuan offline
+ *
+ * Tidak ada endpoint yang memerlukan saldo/kredit atau jalur API berbayar sebagai fallback.
  */
 object OnlineAiRouter {
 
@@ -27,8 +27,6 @@ object OnlineAiRouter {
     private const val GEMINI_PRIMARY_MODEL = "gemini-2.5-flash"
     private const val GEMINI_FALLBACK_MODEL = "gemini-2.0-flash"
     private const val OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
-    private const val POLLINATIONS_OPENAI_ENDPOINT = "https://text.pollinations.ai/openai"
-    private const val POLLINATIONS_GET_BASE = "https://text.pollinations.ai/"
 
     data class AiResult(
         val text: String,
@@ -43,13 +41,6 @@ object OnlineAiRouter {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val pool: ExecutorService = Executors.newCachedThreadPool()
 
-    // Katalog model gratis OpenRouter berubah-ubah. Cache hasil discovery agar router
-    // dapat memilih model gratis yang masih aktif tanpa bergantung pada satu ID model.
-    @Volatile private var freeModelCache: List<String> = emptyList()
-    @Volatile private var freeModelCacheAtMs: Long = 0L
-    private val freeModelCacheLock = Any()
-    private val freeModelCacheTtlMs = TimeUnit.HOURS.toMillis(6)
-
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(12, TimeUnit.SECONDS)
@@ -63,10 +54,8 @@ object OnlineAiRouter {
     @JvmStatic
     fun getActiveProviderSummary(context: Context): String {
         val cfg = KobraConfig(context.applicationContext)
-        val geminiKey = CommandRouter.resolveGeminiApiKey(context)
-        if (geminiKey.isNotEmpty()) return "Gemini AI Studio"
-        if (cfg.hasAi()) return "OpenRouter AI"
-        return "AI Online Gratis (Tanpa Key)"
+        if (cfg.apiKey.isNotEmpty()) return "OpenRouter • model harga nol terverifikasi"
+        return "AI lokal Qwen3 • online gratis belum dikonfigurasi"
     }
 
     @JvmStatic
@@ -121,30 +110,16 @@ object OnlineAiRouter {
             KobraPersona.buildFullSystemPrompt(appCtx)
         }
 
-        // Lapis 1: Gemini API Key manual (gemini-2.5-flash -> gemini-2.0-flash)
-        val geminiKey = CommandRouter.resolveGeminiApiKey(appCtx)
-        if (geminiKey.isNotEmpty()) {
-            val combinedPrompt = "$effectiveSystem\n\n$userPrompt"
-            val geminiReply = callGeminiWithFallback(geminiKey, combinedPrompt, imageBase64)
-            if (!geminiReply.isNullOrBlank()) {
-                return AiResult(cleanForSpeech(geminiReply), "Gemini AI")
-            }
-        }
-
+        // Kebijakan Kobra: Gemini API key dinonaktifkan dari failover otomatis
+        // karena akun dengan billing aktif dapat dikenai biaya. Jalur online otomatis
+        // hanya memakai model OpenRouter yang harga input/output-nya diverifikasi nol,
+        // lalu endpoint tanpa API key sebagai fallback.
         // Lapis 2: OpenRouter API Key manual
         val openRouterKey = cfg.apiKey
         if (openRouterKey.isNotEmpty()) {
-            val orReply = callOpenRouterWithFallback(openRouterKey, cfg, effectiveSystem, userPrompt, imageBase64)
+            val orReply = callOpenRouterWithFallback(openRouterKey, effectiveSystem, userPrompt, imageBase64)
             if (!orReply.isNullOrBlank()) {
                 return AiResult(cleanForSpeech(orReply), "OpenRouter AI")
-            }
-        }
-
-        // Lapis 3: AI Online Gratis Tanpa API Key (Pollinations OpenAI -> GET fallback)
-        if (imageBase64.isNullOrEmpty()) {
-            val freeReply = callPollinationsFree(effectiveSystem, userPrompt)
-            if (!freeReply.isNullOrBlank()) {
-                return AiResult(cleanForSpeech(freeReply), "AI Online Gratis")
             }
         }
 
@@ -193,7 +168,7 @@ object OnlineAiRouter {
             httpClient.newCall(req).execute().use { resp ->
                 val bodyStr = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) {
-                    Log.w(TAG, "Gemini ($model) HTTP ${resp.code}: $bodyStr")
+                    Log.w(TAG, "Gemini ($model) HTTP ${resp.code}; lanjut fallback gratis: $bodyStr")
                     return null
                 }
                 val root = JSONObject(bodyStr)
@@ -217,32 +192,32 @@ object OnlineAiRouter {
 
     private fun callOpenRouterWithFallback(
         apiKey: String,
-        cfg: KobraConfig,
         systemPrompt: String,
         userPrompt: String,
         imageBase64: String?
     ): String? {
         val candidates = ArrayList<String>()
         if (imageBase64.isNullOrEmpty()) {
-            val preferred = cfg.model
-            if (preferred.isNotEmpty()) candidates.add(preferred)
-            // Gunakan katalog live terlebih dahulu; daftar bawaan tetap menjadi
-            // fallback jika endpoint katalog sedang tidak tersedia.
-            for (m in discoverFreeTextModels(apiKey)) {
-                if (!candidates.contains(m)) candidates.add(m)
-            }
-            for (m in KobraConfig.TEXT_MODELS) {
+            // Hanya gunakan ID yang ditemukan pada katalog harga live dan memiliki
+            // tarif prompt serta completion tepat 0.0. Akhiran ":free" saja tidak
+            // cukup sebagai bukti harga; bila katalog gagal dibaca, jangan kirim request.
+            val discoveredFree = discoverFreeTextModels(apiKey)
+            for (m in discoveredFree) {
                 if (!candidates.contains(m)) candidates.add(m)
             }
         } else {
-            for (m in KobraConfig.VISION_MODELS) {
+            // Untuk gambar, jangan memakai daftar statis yang belum diverifikasi harganya.
+            // Model vision hanya dipakai jika katalog provider menyatakan kedua tarif nol.
+            for (m in discoverFreeVisionModels(apiKey)) {
                 if (!candidates.contains(m)) candidates.add(m)
             }
         }
 
-        // Avoid serially waiting on a long tail of unavailable free models.
-        // A short, bounded provider chain is more usable for a voice assistant.
-        for (model in candidates.take(3)) {
+        // Jika satu model limit/429/5xx, lanjut ke model gratis berikutnya.
+        for (model in candidates.distinct()) {
+            // Verifikasi ulang tepat sebelum request agar perubahan tarif/katalog tidak
+            // membuat Kobra mengirim prompt ke model yang sudah tidak gratis.
+            if (!isStillZeroPriced(apiKey, model, !imageBase64.isNullOrEmpty())) continue
             val reply = callOpenRouterSingle(apiKey, model, systemPrompt, userPrompt, imageBase64)
             if (!reply.isNullOrBlank()) return reply
         }
@@ -250,61 +225,106 @@ object OnlineAiRouter {
     }
 
     private fun discoverFreeTextModels(apiKey: String): List<String> {
-        val now = System.currentTimeMillis()
-        val cached = freeModelCache
-        if (cached.isNotEmpty() && now - freeModelCacheAtMs < freeModelCacheTtlMs) return cached
-
-        return synchronized(freeModelCacheLock) {
-            val secondCheck = freeModelCache
-            if (secondCheck.isNotEmpty() && now - freeModelCacheAtMs < freeModelCacheTtlMs) {
-                secondCheck
-            } else {
-                try {
-                    val request = Request.Builder()
-                        .url("https://openrouter.ai/api/v1/models")
-                        .addHeader("Authorization", "Bearer $apiKey")
-                        .addHeader("HTTP-Referer", "https://github.com/adebojel/Asisten-bantu")
-                        .addHeader("X-Title", "Kobra OS")
-                        .get()
-                        .build()
-                    httpClient.newCall(request).execute().use { response ->
-                        if (!response.isSuccessful) {
-                            secondCheck
-                        } else {
-                            val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
-                            val discovered = ArrayList<String>()
-                            if (data != null) {
-                                for (i in 0 until data.length()) {
-                                    val model = data.optJSONObject(i) ?: continue
-                                    val id = model.optString("id", "").trim()
-                                    val pricing = model.optJSONObject("pricing") ?: continue
-                                    val promptPrice = pricing.optString("prompt", "")
-                                    val completionPrice = pricing.optString("completion", "")
-                                    val isFree = promptPrice.toDoubleOrNull() == 0.0 &&
-                                            completionPrice.toDoubleOrNull() == 0.0
-                                    val modality = model.optJSONObject("architecture")
-                                        ?.optString("modality", "").orEmpty()
-                                    val isTextCapable = modality.isEmpty() || modality.contains("text")
-                                    if (id.isNotEmpty() && isFree && isTextCapable &&
-                                            !id.contains("embedding", ignoreCase = true) &&
-                                            !id.contains("audio", ignoreCase = true)) {
-                                        discovered.add(id)
-                                    }
-                                }
-                            }
-                            val result = discovered.distinct().take(3)
-                            if (result.isNotEmpty()) {
-                                freeModelCache = result
-                                freeModelCacheAtMs = now
-                            }
-                            result
-                        }
+        // Jangan memakai cache berumur panjang: tarif model dapat berubah kapan saja.
+        // Jika katalog gagal dibaca, hentikan jalur online dan biarkan caller memakai Qwen3.
+        return try {
+            val request = Request.Builder()
+                .url("https://openrouter.ai/api/v1/models")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("HTTP-Referer", "https://github.com/adebojel/Asisten-bantu")
+                .addHeader("X-Title", "Kobra OS")
+                .get()
+                .build()
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return emptyList()
+                val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
+                    ?: return emptyList()
+                val discovered = ArrayList<String>()
+                for (i in 0 until data.length()) {
+                    val model = data.optJSONObject(i) ?: continue
+                    val id = model.optString("id", "").trim()
+                    val pricing = model.optJSONObject("pricing") ?: continue
+                    val isFree = pricing.optString("prompt", "").toDoubleOrNull() == 0.0 &&
+                        pricing.optString("completion", "").toDoubleOrNull() == 0.0
+                    val modality = model.optJSONObject("architecture")
+                        ?.optString("modality", "").orEmpty()
+                    val isTextCapable = modality.isEmpty() || modality.contains("text", ignoreCase = true)
+                    if (id.isNotEmpty() && isFree && isTextCapable &&
+                        !id.contains("embedding", ignoreCase = true) &&
+                        !id.contains("audio", ignoreCase = true)) {
+                        discovered.add(id)
                     }
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Discovery model gratis OpenRouter gagal: ${t.message}")
-                    secondCheck
                 }
+                discovered.distinct().take(3)
             }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Discovery model gratis OpenRouter gagal: ${t.message}")
+            emptyList()
+        }
+    }
+
+    private fun isStillZeroPriced(apiKey: String, modelId: String, needsVision: Boolean): Boolean {
+        return try {
+            val request = Request.Builder()
+                .url("https://openrouter.ai/api/v1/models")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("HTTP-Referer", "https://github.com/adebojel/Asisten-bantu")
+                .addHeader("X-Title", "Kobra OS")
+                .get()
+                .build()
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return false
+                val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
+                    ?: return false
+                for (i in 0 until data.length()) {
+                    val item = data.optJSONObject(i) ?: continue
+                    if (item.optString("id") != modelId) continue
+                    val pricing = item.optJSONObject("pricing") ?: return false
+                    val zeroPrice = pricing.optString("prompt", "").toDoubleOrNull() == 0.0 &&
+                        pricing.optString("completion", "").toDoubleOrNull() == 0.0
+                    val modality = item.optJSONObject("architecture")
+                        ?.optString("modality", "").orEmpty()
+                    val supportsInput = if (needsVision) modality.contains("image", ignoreCase = true)
+                        else modality.isEmpty() || modality.contains("text", ignoreCase = true)
+                    return zeroPrice && supportsInput
+                }
+                false
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Verifikasi ulang harga model $modelId gagal: ${t.message}")
+            false
+        }
+    }
+
+    private fun discoverFreeVisionModels(apiKey: String): List<String> {
+        return try {
+            val request = Request.Builder()
+                .url("https://openrouter.ai/api/v1/models")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("HTTP-Referer", "https://github.com/adebojel/Asisten-bantu")
+                .addHeader("X-Title", "Kobra OS")
+                .get().build()
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return emptyList()
+                val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
+                    ?: return emptyList()
+                val result = ArrayList<String>()
+                for (i in 0 until data.length()) {
+                    val model = data.optJSONObject(i) ?: continue
+                    val id = model.optString("id", "").trim()
+                    val pricing = model.optJSONObject("pricing") ?: continue
+                    val zeroPrice = pricing.optString("prompt", "").toDoubleOrNull() == 0.0 &&
+                        pricing.optString("completion", "").toDoubleOrNull() == 0.0
+                    val modality = model.optJSONObject("architecture")
+                        ?.optString("modality", "").orEmpty()
+                    val vision = modality.contains("image", ignoreCase = true)
+                    if (id.isNotEmpty() && zeroPrice && vision) result.add(id)
+                }
+                result.distinct().take(3)
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Discovery model vision gratis gagal: ${t.message}")
+            emptyList()
         }
     }
 
@@ -350,92 +370,17 @@ object OnlineAiRouter {
             httpClient.newCall(req).execute().use { resp ->
                 val body = resp.body?.string().orEmpty()
                 if (!resp.isSuccessful) {
-                    Log.w(TAG, "OpenRouter ($model) HTTP ${resp.code}")
+                    Log.w(TAG, "OpenRouter ($model) HTTP ${resp.code}; lanjut fallback gratis")
                     return null
                 }
-                parseOpenAiStyleContent(body)
+                val parsed = parseOpenAiStyleContent(body)
+                if (parsed.isNullOrBlank()) {
+                    Log.w(TAG, "OpenRouter ($model) tidak mengembalikan teks; lanjut fallback gratis")
+                }
+                parsed
             }
         } catch (t: Throwable) {
             Log.w(TAG, "Gagal menghubungi OpenRouter ($model): ${t.message}")
-            null
-        }
-    }
-
-    private fun callPollinationsFree(systemPrompt: String, userPrompt: String): String? {
-        // 1) HTTP POST OpenAI Chat Completions ke Pollinations
-        val postReply = callPollinationsPost(systemPrompt, userPrompt)
-        if (!postReply.isNullOrBlank()) return postReply
-
-        // 2) Fallback HTTP GET Pollinations bila POST terhambat
-        return callPollinationsGet(systemPrompt, userPrompt)
-    }
-
-    private fun callPollinationsPost(systemPrompt: String, userPrompt: String): String? {
-        return try {
-            val messages = JSONArray()
-            messages.put(JSONObject().put("role", "system").put("content", systemPrompt))
-            messages.put(JSONObject().put("role", "user").put("content", userPrompt))
-
-            val payload = JSONObject()
-                .put("model", "openai")
-                .put("messages", messages)
-                .put("private", true)
-
-            val req = Request.Builder()
-                .url(POLLINATIONS_OPENAI_ENDPOINT)
-                .addHeader("Accept", "application/json")
-                .addHeader("User-Agent", "KobraOS/7.2")
-                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
-                .build()
-
-            httpClient.newCall(req).execute().use { resp ->
-                val body = resp.body?.string().orEmpty().trim()
-                if (!resp.isSuccessful || body.isEmpty()) {
-                    Log.w(TAG, "Pollinations POST HTTP ${resp.code}")
-                    return null
-                }
-                if (body.startsWith("{")) {
-                    parseOpenAiStyleContent(body)
-                } else if (!looksLikeHtmlError(body)) {
-                    body
-                } else {
-                    null
-                }
-            }
-        } catch (t: Throwable) {
-            Log.w(TAG, "Pollinations POST gagal: ${t.message}")
-            null
-        }
-    }
-
-    private fun callPollinationsGet(systemPrompt: String, userPrompt: String): String? {
-        return try {
-            val clippedPrompt = userPrompt.trim().take(900)
-            val clippedSystem = systemPrompt.trim().take(500)
-            val encodedPrompt = URLEncoder.encode(clippedPrompt, "UTF-8").replace("+", "%20")
-            val encodedSystem = URLEncoder.encode(clippedSystem, "UTF-8")
-            val url = "${POLLINATIONS_GET_BASE}${encodedPrompt}?model=openai&private=true&system=${encodedSystem}"
-
-            val req = Request.Builder()
-                .url(url)
-                .addHeader("User-Agent", "KobraOS/7.2")
-                .get()
-                .build()
-
-            httpClient.newCall(req).execute().use { resp ->
-                val body = resp.body?.string().orEmpty().trim()
-                if (!resp.isSuccessful || body.isEmpty() || looksLikeHtmlError(body)) {
-                    Log.w(TAG, "Pollinations GET HTTP ${resp.code}")
-                    return null
-                }
-                if (body.startsWith("{")) {
-                    parseOpenAiStyleContent(body) ?: body
-                } else {
-                    body
-                }
-            }
-        } catch (t: Throwable) {
-            Log.w(TAG, "Pollinations GET gagal: ${t.message}")
             null
         }
     }

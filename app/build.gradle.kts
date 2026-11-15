@@ -1,3 +1,5 @@
+import java.net.URL
+import java.net.URLConnection
 plugins {
     id("com.android.application")
 }
@@ -58,7 +60,7 @@ android {
     }
 
     androidResources {
-        noCompress += listOf("task", "tflite", "bin", "lite")
+        noCompress += listOf("task", "tflite", "bin", "lite", "litertlm")
     }
 
     compileOptions {
@@ -111,3 +113,63 @@ dependencies {
     // Pengujian
     testImplementation("junit:junit:4.13.2")
 }
+
+
+// Qwen3 is downloaded once into the Gradle build cache and packaged as an APK asset.
+// The binary is intentionally not committed to Git; release builds remain reproducible
+// against the pinned Hugging Face artifact URL and validate its expected size.
+val qwenModelFileName = "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
+val qwenAssetDirectory = layout.buildDirectory.dir("generated/qwenModelAssets")
+val downloadQwenModel by tasks.registering {
+    val outputFile = qwenAssetDirectory.map { it.file(qwenModelFileName) }
+    outputs.file(outputFile)
+    doLast {
+        val target = outputFile.get().asFile
+        target.parentFile.mkdirs()
+        if (target.isFile && target.length() in (250L * 1024L * 1024L)..(450L * 1024L * 1024L)) {
+            logger.lifecycle("Qwen3 model already cached: ${target.length()} bytes")
+        } else {
+            val temporary = File(target.parentFile, target.name + ".download")
+            temporary.delete()
+            val modelUrl = System.getenv("KOBRA_QWEN_MODEL_URL")?.takeIf { it.isNotBlank() }
+                ?: "https://huggingface.co/litert-community/Qwen3-0.6B-int4/resolve/main/qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm?download=true"
+            var lastError: Exception? = null
+            for (attempt in 1..3) {
+                try {
+                    logger.lifecycle("Downloading bundled Qwen3 model (attempt $attempt/3)")
+                    val connection: URLConnection = URL(modelUrl).openConnection().apply {
+                        connectTimeout = 30_000
+                        readTimeout = 180_000
+                        setRequestProperty("User-Agent", "KobraOS-Android-Build")
+                    }
+                    connection.getInputStream().use { input ->
+                        temporary.outputStream().buffered(1024 * 1024).use { output ->
+                            val buffer = ByteArray(1024 * 1024)
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                output.write(buffer, 0, count)
+                            }
+                        }
+                    }
+                    val size = temporary.length()
+                    require(size in (250L * 1024L * 1024L)..(450L * 1024L * 1024L)) {
+                        "Downloaded Qwen3 model has unexpected size: $size bytes"
+                    }
+                    if (target.exists()) target.delete()
+                    check(temporary.renameTo(target)) { "Could not move downloaded Qwen3 model into asset directory" }
+                    lastError = null
+                    break
+                } catch (error: Exception) {
+                    lastError = error
+                    temporary.delete()
+                    if (attempt < 3) Thread.sleep(attempt * 2_000L)
+                }
+            }
+            if (lastError != null) throw GradleException("Unable to download bundled Qwen3 model", lastError)
+        }
+    }
+}
+
+android.sourceSets.getByName("main").assets.srcDir(qwenAssetDirectory.get().asFile)
+tasks.named("preBuild").configure { dependsOn(downloadQwenModel) }

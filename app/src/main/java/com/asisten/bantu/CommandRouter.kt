@@ -156,28 +156,16 @@ object CommandRouter {
             return true
         }
 
-        // Permintaan analisis visual layar (Screenshot + UI Tree -> Gemini Vision)
+        // Analisis layar dasar tanpa API berbayar: gunakan UI tree dan pembaca layar lokal.
+        // Analisis visual multimodal online akan ditambahkan hanya melalui model yang
+        // terverifikasi bertarif nol; jangan pernah mengalihkan fitur ini ke Gemini berbayar.
         if (isVisualScreenQuery(c)) {
-            if (!NetworkState.isOnline(service)) {
-                sayCallback.accept("Internet terputus. Membaca teks layar secara offline: " + service.readScreenText())
-                return true
-            }
-            val apiKey = resolveGeminiApiKey(service)
-            if (apiKey.isEmpty()) {
-                sayCallback.accept("Kunci Gemini API belum diatur. Membacakan teks layar lokal: " + service.readScreenText())
-                return true
-            }
-            analyzeScreenVisuallyAsync(service, c, apiKey, sayCallback)
+            val screenText = service.readScreenText()
+            sayCallback.accept(
+                if (screenText.isNotBlank()) "Isi layar yang dapat dibaca: $screenText"
+                else "Belum ada teks layar yang dapat diakses. Pastikan izin Aksesibilitas aktif."
+            )
             return true
-        }
-
-        // Instruksi multi-langkah lintas layar
-        if (isComplexMultiStepCommand(c) && NetworkState.isOnline(service)) {
-            val apiKey = resolveGeminiApiKey(service)
-            if (apiKey.isNotEmpty()) {
-                runMultiStepAgentAsync(service, rawCommand, apiKey, macroCache, sayCallback)
-                return true
-            }
         }
 
         return false
@@ -209,6 +197,38 @@ object CommandRouter {
         val online = NetworkState.isOnline(service)
         val macroCache = LocalMacroCache(service)
         val fullInstruction = KobraPersona.buildFullSystemPrompt(service)
+
+        // Jawaban pengetahuan yang sudah tersedia harus tetap bisa dijawab tanpa jaringan/model.
+        OfflineKnowledgeStore.answer(service, command)?.let { knownAnswer ->
+            speaker.speak(knownAnswer)
+            return
+        }
+
+        // Qwen3 tertanam di APK menjadi otak percakapan utama, baik online maupun offline.
+        // Internet hanya dipakai jika model lokal tidak siap, gagal, atau perangkat kekurangan RAM.
+        if (LocalModelRuntimeManager.isModelAvailable(service)) {
+            if (LocalModelRegistry.canAttemptLiteRtModel(service)) {
+                LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\n\nPengguna: $command") { answer, error ->
+                    if (!answer.isNullOrBlank()) {
+                        speaker.speak(answer)
+                    } else if (online) {
+                        dispatchOnlineTier4(service, command, macroCache, config, speaker)
+                    } else {
+                        fallbackToMediaPipeOrSpeak(
+                            service, command, fullInstruction, speaker,
+                            error ?: "Qwen3 lokal gagal menjawab dan internet tidak tersedia."
+                        )
+                    }
+                }
+                return
+            } else if (!online) {
+                fallbackToMediaPipeOrSpeak(
+                    service, command, fullInstruction, speaker,
+                    "Memori bebas HP belum cukup untuk memuat Qwen3 dengan aman. Tutup aplikasi lain lalu coba lagi."
+                )
+                return
+            }
+        }
 
         // Prioritas 3A: Qwen3 0.6B via LiteRT-LM bila model ringan tersedia.
         if (!online) {
@@ -289,14 +309,8 @@ object CommandRouter {
         config: KobraConfig,
         speaker: Speaker
     ) {
-        val geminiKey = resolveGeminiApiKey(service)
-        if (geminiKey.isNotEmpty() && shouldUseScreenAgent(command)) {
-            runMultiStepAgentAsync(service, command, geminiKey, macroCache) { msg: String ->
-                speaker.speak(msg)
-            }
-            return
-        }
-
+        // Tidak ada jalur Gemini API otomatis: seluruh routing online melewati
+        // OnlineAiRouter yang hanya mengizinkan model dengan harga nol.
         speaker.speak("Sebentar.")
         val sysPrompt = KobraPersona.buildFullSystemPrompt(service)
         OnlineAiRouter.askAsync(service, command, sysPrompt, object : OnlineAiRouter.Callback {
@@ -512,10 +526,10 @@ object CommandRouter {
 
     @JvmStatic
     fun callGeminiBlocking(context: Context, prompt: String, imageBase64: String? = null): String? {
-        val key = resolveGeminiApiKey(context)
-        if (key.isEmpty()) return null
-        val fullPrompt = KobraPersona.buildFullSystemPrompt(context) + "\n\n" + prompt
-        return OnlineAiRouter.callGeminiWithFallback(key, fullPrompt, imageBase64)?.let { cleanForSpeech(it) }
+        // Gemini REST dapat memakai akun dengan billing aktif. Nonaktifkan jalur ini
+        // sampai tersedia integrasi gratis yang terverifikasi dan dipilih secara eksplisit.
+        Log.w(TAG, "Gemini REST dinonaktifkan oleh kebijakan gratis-tanpa-tagihan Kobra.")
+        return null
     }
 
     private suspend fun executeSingleStep(service: AccessibilityService, step: MacroStep): Boolean {
@@ -616,7 +630,8 @@ Balas HANYA 1 objek JSON valid tanpa markdown dengan salah satu action berikut:
     }
 
     private fun callGeminiRest(apiKey: String, prompt: String, screenshotBase64: String?): String? {
-        return OnlineAiRouter.callGeminiWithFallback(apiKey, prompt, screenshotBase64)
+        // Jangan mengirim screenshot/prompt ke endpoint Gemini REST berpotensi berbayar.
+        return null
     }
 
     private fun isVisualScreenQuery(c: String): Boolean {

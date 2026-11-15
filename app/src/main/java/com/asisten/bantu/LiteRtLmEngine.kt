@@ -17,10 +17,10 @@ import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * Separate LiteRT-LM runtime for external .litertlm files.
+ * LiteRT-LM runtime for the Qwen3 .litertlm model packaged in the APK.
  *
  * All engine/conversation operations are serialized on one owner executor.
- * Model files stay in app-private storage and are never bundled in the APK.
+ * The packaged APK asset is copied to app-private storage before initialization.
  */
 class LiteRtLmEngine(context: Context) : AutoCloseable {
     interface Callback {
