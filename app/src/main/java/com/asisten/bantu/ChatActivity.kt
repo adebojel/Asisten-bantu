@@ -320,6 +320,9 @@ open class ChatActivity : AppCompatActivity() {
         current = this
         ThemeManager.applyTheme(this)
         refreshPersonaChips()
+        // The floating microphone can append turns while ChatActivity is paused.
+        // Reload the shared transcript when the screen returns to the foreground.
+        restoreChatHistory()
         adapter.notifyDataSetChanged()
         speaker.addListener(speechListener)
         syncAssistantIdentity()
