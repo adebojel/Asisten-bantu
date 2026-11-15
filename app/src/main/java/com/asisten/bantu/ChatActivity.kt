@@ -262,9 +262,11 @@ open class ChatActivity : AppCompatActivity() {
         refreshModeBanner()
         val activeName = VoiceProfileManager.getActiveAssistantName(this)
         val activePersona = KobraPersona.fromId(config.activePersonaId)
-        val greeting = "Halo, saya $activeName (${activePersona.title}). Silakan ketik, lampirkan gambar, atau ketuk tombol mikrofon kapan saja untuk memotong suara saya."
-        addAiMessage(greeting, "$activeName • ${activePersona.title}")
-        speaker.speak(greeting)
+        if (adapter.itemCount == 0) {
+            val greeting = "Halo, saya $activeName (${activePersona.title}). Percakapan suara dan chat Kobra terhubung dalam satu riwayat."
+            addAiMessage(greeting, "$activeName • ${activePersona.title}")
+            speaker.speak(greeting)
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
