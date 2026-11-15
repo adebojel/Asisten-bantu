@@ -807,13 +807,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 String[] nums = p.b.split("\n");
                 Integer n = OfflineBrain.firstNumber(text);
                 if (n != null && n >= 1 && n <= names.length) {
-                    pending = new Pending("call", names[n - 1], nums[n - 1]);
-                    say("Telepon " + names[n - 1] + "? Bilang iya untuk melanjutkan.");
+                    boolean wa = "whatsapp".equalsIgnoreCase(p.c);
+                    pending = new Pending(wa ? "wa_call" : "call", names[n - 1], nums[n - 1]);
+                    say((wa ? "Panggilan WhatsApp ke " : "Telepon seluler ke ") + names[n - 1] + "? Bilang iya untuk melanjutkan.");
                 } else {
                     say("Pilihan tidak cocok. Panggilan dibatalkan.");
                 }
                 break;
             }
+            case "wa_call":
+                if (yes && !no) startWhatsAppVoiceCall(p.a, p.b);
+                else say("Panggilan WhatsApp dibatalkan.");
+                break;
             case "call":
                 if (yes && !no) {
                     if (config.isLayeredConfirmEnabled()) {
@@ -1241,6 +1246,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (has(c, "baca pesan", "baca chat", "isi chat")) { say(readScreenText()); return; }
         if (has(c, "panggil ", "telepon ", "telpon ")) {
             startCall(afterAny(c, "panggil ", "telepon ", "telpon "));
+            return;
+        }
+        if (has(c, "putar voice note", "putar pesan suara", "mainkan voice note", "dengarkan voice note", "dengarkan pesan suara")) {
+            playVisibleVoiceNote();
             return;
         }
 
@@ -2425,18 +2434,25 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void startCall(String target) {
         if (target.isEmpty()) { say("Panggil siapa?"); return; }
+        String rawTarget = target.trim();
+        boolean whatsappCall = rawTarget.matches("(?i).*\\b(melalui|lewat|via|pakai)\\s+(whatsapp|wa)\\b.*")
+                || rawTarget.toLowerCase(Locale.ROOT).endsWith(" whatsapp")
+                || rawTarget.toLowerCase(Locale.ROOT).endsWith(" wa");
+        target = rawTarget.replaceAll("(?i)\\s+(melalui|lewat|via|pakai)\\s+(whatsapp|wa)$", "")
+                .replaceAll("(?i)\\s+(whatsapp|wa)$", "").trim();
+        if (target.isEmpty()) { say("Nama kontak untuk panggilan WhatsApp belum disebutkan."); return; }
         if (target.matches("[0-9+ ]{6,}")) {
             String number = target.replace(" ", "");
-            pending = new Pending("call", number, number);
-            say("Telepon nomor itu? Bilang iya untuk menelepon.");
+            pending = new Pending(whatsappCall ? "wa_call" : "call", number, number);
+            say((whatsappCall ? "Panggilan WhatsApp" : "Telepon seluler") + " ke nomor itu? Bilang iya untuk melanjutkan.");
             return;
         }
         List<String[]> matches = findContacts(target, 3);
         if (matches.isEmpty()) { say("Kontak " + target + " tidak ditemukan."); return; }
         if (matches.size() == 1) {
             String[] found = matches.get(0);
-            pending = new Pending("call", found[0], found[1]);
-            say("Telepon " + found[0] + "? Bilang iya untuk melanjutkan.");
+            pending = new Pending(whatsappCall ? "wa_call" : "call", found[0], found[1]);
+            say((whatsappCall ? "Panggilan WhatsApp ke " : "Telepon seluler ke ") + found[0] + "? Bilang iya untuk melanjutkan.");
             return;
         }
         StringBuilder names = new StringBuilder();
@@ -2448,8 +2464,29 @@ public class AsistenAccessibilityService extends AccessibilityService {
             nums.append(matches.get(i)[1]);
             prompt.append("Nomor ").append(i + 1).append(", ").append(matches.get(i)[0]).append(". ");
         }
-        pending = new Pending("call_pick", names.toString(), nums.toString());
+        pending = new Pending("call_pick", names.toString(), nums.toString(), whatsappCall ? "whatsapp" : "cellular");
         say(prompt + "Sebutkan nomornya.");
+    }
+
+    private void startWhatsAppVoiceCall(String name, String number) {
+        if (!openChatDeepLink(number, "whatsapp", "")) {
+            say("WhatsApp tidak dapat membuka percakapan untuk " + name + ". Panggilan belum dimulai.");
+            return;
+        }
+        say("Percakapan WhatsApp " + name + " dibuka. Mencari tombol panggilan suara.");
+        main.postDelayed(() -> {
+            boolean pressed = clickExact("Panggilan suara", "Voice call", "Panggilan", "Voice call button");
+            say(pressed
+                    ? "Tombol panggilan WhatsApp ditekan. Status memanggil atau berdering belum dapat dipastikan dari sistem."
+                    : "Percakapan terbuka, tetapi tombol panggilan suara tidak ditemukan. Panggilan belum dimulai.");
+        }, 2200L);
+    }
+
+    private void playVisibleVoiceNote() {
+        boolean played = clickAny("Putar pesan suara") || clickAny("Play voice message")
+                || clickAny("Putar") || clickAny("Play");
+        say(played ? "Tombol putar pesan suara ditekan."
+                : "Tombol putar voice note tidak ditemukan pada layar saat ini.");
     }
 
     private String[] findContact(String name) {
