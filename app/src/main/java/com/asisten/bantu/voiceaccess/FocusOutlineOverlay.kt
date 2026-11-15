@@ -19,6 +19,7 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
     private val handler = Handler(Looper.getMainLooper())
     private val windowManager = service.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
     private var view: FocusView? = null
+    private var layoutParams: WindowManager.LayoutParams? = null
 
     fun show(bounds: Rect) {
         if (bounds.isEmpty || bounds.width() < 2 || bounds.height() < 2) return
@@ -26,20 +27,34 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
         handler.post {
             val wm = windowManager ?: return@post
             try {
+                val pad = (3f * service.resources.displayMetrics.density).toInt().coerceAtLeast(2)
+                val width = (copy.width() + pad * 2).coerceAtLeast(4)
+                val height = (copy.height() + pad * 2).coerceAtLeast(4)
                 val target = view ?: FocusView(service).also {
                     val params = WindowManager.LayoutParams(
-                        WindowManager.LayoutParams.MATCH_PARENT,
-                        WindowManager.LayoutParams.MATCH_PARENT,
+                        width,
+                        height,
                         WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                         PixelFormat.TRANSLUCENT
-                    ).apply { gravity = Gravity.TOP or Gravity.START }
+                    ).apply {
+                        gravity = Gravity.TOP or Gravity.START
+                        x = copy.left - pad
+                        y = copy.top - pad
+                    }
                     wm.addView(it, params)
                     view = it
+                    layoutParams = params
                 }
-                target.setBounds(copy)
+                val params = layoutParams ?: return@post
+                params.width = width
+                params.height = height
+                params.x = copy.left - pad
+                params.y = copy.top - pad
+                target.setBounds(Rect(pad, pad, pad + copy.width(), pad + copy.height()))
+                wm.updateViewLayout(target, params)
             } catch (_: Throwable) {
                 hideLocked()
             }
@@ -52,6 +67,7 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
         val current = view ?: return
         try { windowManager?.removeView(current) } catch (_: Throwable) {}
         view = null
+        layoutParams = null
     }
 
     private class FocusView(context: Context) : View(context) {
