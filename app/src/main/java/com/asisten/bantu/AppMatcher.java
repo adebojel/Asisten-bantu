@@ -40,6 +40,9 @@ public final class AppMatcher {
     static {
         alias("wa", "whatsapp");
         alias("w a", "whatsapp");
+        alias("wa bisnis", "whatsapp business", "wa business", "business");
+        alias("whatsapp bisnis", "whatsapp business", "wa business", "business");
+        alias("whatsapp business", "whatsapp business", "wa business", "business");
         alias("ig", "instagram");
         alias("fb", "facebook");
         alias("yt", "youtube");
@@ -119,6 +122,8 @@ public final class AppMatcher {
     private static int scoreTerm(App app, String t) {
         String l = normalize(app.label);
         if (l.isEmpty() || t.isEmpty()) return 0;
+        String pkg = app.pkg == null ? "" : app.pkg.toLowerCase(Locale.ROOT);
+        if ((t.contains("business") || t.contains("bisnis")) && pkg.equals("com.whatsapp.w4b")) return 100;
         int score = 0;
         if (l.equals(t)) score = 100;
         else if (l.startsWith(t + " ")) score = 80;
