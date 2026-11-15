@@ -117,7 +117,10 @@ object NodeIndexer {
         }.sortedWith(
             compareByDescending<Pair<IndexedNode, Int>> { it.second }
                 .thenByDescending { it.first.isClickable || it.first.isEditable }
-                .thenBy { it.first.bounds.width().toLong() * it.first.bounds.height() }
+                .thenBy {
+                    (it.first.bounds.right - it.first.bounds.left).toLong() *
+                        (it.first.bounds.bottom - it.first.bounds.top).toLong()
+                }
         )
         val best = ranked.firstOrNull() ?: return null
         // If a separate target has a near-identical score, ask the user rather than guessing.
