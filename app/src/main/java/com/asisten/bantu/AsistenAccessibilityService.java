@@ -221,7 +221,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (wakeStripped != null) c = wakeStripped;
         final String command = c;
         boolean deviceCommand = c.startsWith("buka ") || c.startsWith("tekan ") || c.startsWith("klik ")
-                || c.startsWith("ketik ") || c.startsWith("tulis ") || c.startsWith("scroll ") || c.startsWith("matikan video") || c.startsWith("jeda video") || c.startsWith("pause video")
+                || c.startsWith("ketik ") || c.startsWith("tulis ") || c.startsWith("scroll ") || c.startsWith("matikan video") || c.startsWith("jeda video") || c.startsWith("pause video") || c.startsWith("hentikan video") || c.startsWith("stop video")
                 || c.startsWith("geser ") || c.startsWith("panggil ") || c.startsWith("telepon ")
                 || c.startsWith("telpon ") || c.startsWith("kirim pesan ") || c.startsWith("chat ke ")
                 || c.startsWith("whatsapp ke ") || c.startsWith("arahkan ke ") || c.startsWith("navigasi ke ")
@@ -1175,8 +1175,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         // Perintah video dikirim sebagai media key ke sesi pemutar aktif.
-        if (has(c, "matikan video", "hentikan video", "jeda video", "pause video", "stop video")) {
-            dispatchMediaCommand(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, "Perintah jeda video dikirim ke pemutar media.");
+        if (has(c, "matikan video", "stop video")) {
+            dispatchMediaCommand(KeyEvent.KEYCODE_MEDIA_STOP, "Perintah berhenti video dikirim ke pemutar media.");
+            return;
+        }
+        if (has(c, "hentikan video", "jeda video", "pause video")) {
+            dispatchMediaCommand(KeyEvent.KEYCODE_MEDIA_PAUSE, "Perintah jeda video dikirim ke pemutar media.");
             return;
         }
 
