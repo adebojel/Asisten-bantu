@@ -47,6 +47,10 @@ import java.util.concurrent.Executors
 open class ChatActivity : AppCompatActivity() {
 
     companion object {
+        private const val CHAT_HISTORY_PREFS = "kobra_chat_history_v1"
+        private const val CHAT_HISTORY_KEY = "messages"
+        private const val MAX_PERSISTED_CHAT_MESSAGES = 120
+
         @JvmField
         var current: ChatActivity? = null
 
@@ -113,11 +117,6 @@ open class ChatActivity : AppCompatActivity() {
     private var recognitionRetryCount = 0
     private lateinit var btnHandsFreeConversation: Button
 
-    companion object {
-        private const val CHAT_HISTORY_PREFS = "kobra_chat_history_v1"
-        private const val CHAT_HISTORY_KEY = "messages"
-        private const val MAX_PERSISTED_CHAT_MESSAGES = 120
-    }
     private var attachedImageB64: String? = null
     private var attachedBitmap: Bitmap? = null
 
