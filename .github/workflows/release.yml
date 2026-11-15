@@ -2,6 +2,10 @@ name: Auto Build and Release
 on:
   push:
     branches: [ "main" ]
+
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -10,15 +14,43 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 9.3.1
-      - run: |
+      - name: Build debug APK
+        run: |
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          cp app/build/outputs/apk/debug/app-debug.apk release/Kobra-OS-${GITHUB_SHA::7}.apk
+          cd release
+          sha256sum Kobra-OS-${GITHUB_SHA::7}.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: Kobra-OS-V6-APK-FIXED
-          path: app/build/outputs/apk/debug/app-debug.apk
-          
+          name: Kobra-OS-APK
+          path: release/*
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish APK in GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: kobra-os-build-${{ github.run_number }}
+          name: Kobra OS — Build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          generate_release_notes: true
+          body: |
+            APK Kobra OS untuk pengujian.
+
+            Commit sumber: ${{ github.sha }}
+            Branch: main
+
+            **Catatan:** ini adalah debug APK. Uji di perangkat dengan pendamping jika menggunakan fitur navigasi atau bantuan mobilitas. Fitur AI online gratis bergantung pada ketersediaan dan kuota provider; model lokal memerlukan perangkat yang kompatibel.
+          files: |
+            release/*.apk
+            release/SHA256SUMS.txt
+          fail_on_unmatched_files: true
