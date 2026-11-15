@@ -55,6 +55,12 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
     }
 
     private class FocusView(context: Context) : View(context) {
+        init {
+            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+            isFocusable = false
+            isClickable = false
+        }
+
         private val density = context.resources.displayMetrics.density
         private var focusBounds: Rect? = null
         private val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
