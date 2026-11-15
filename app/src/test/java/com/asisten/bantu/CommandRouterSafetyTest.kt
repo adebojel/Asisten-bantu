@@ -13,7 +13,7 @@ class CommandRouterSafetyTest {
             "Panggil", "Call", "Hapus", "Delete", "Remove", "Install",
             "Allow", "Accept", "Confirm", "Setuju", "Bagikan", "Upload",
             "Logout", "Block", "Report", "Pesan", "Messages", "New message",
-            "Reply", "Compose", "Chat", "Dial", "Record", "Capture", "Start",
+            "Reply", "Compose", "Chat", "Dial", "Record", "Capture", "Start", "Open message",
             "Create", "Add"
         )
         riskyTargets.forEach { target ->
