@@ -53,13 +53,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             focusOutline.show(wordBounds)
             return
         }
-        val label = NodeIndexer.focusedLabel(service)
-        val bounds = NodeIndexer.focusedBounds(service)
-        val dm = service.resources.displayMetrics
-        // Fallback is only for short controls. Never outline a whole paragraph or text container.
-        if (label.length <= 32 && bounds != null && bounds.width() <= dm.widthPixels * 0.82f &&
-            bounds.height() <= dm.heightPixels * 0.18f) focusOutline.show(bounds)
-        else focusOutline.hide()
+        // Word geometry is mandatory: never substitute a line, paragraph, or control rectangle.
+        focusOutline.hide()
     }
 
     /** Focus indicator for every app; its transparent overlay never intercepts touch. */
@@ -286,10 +281,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 sayCallback.accept("Tidak ditemukan tombol interaktif untuk dinomori pada layar ini.")
                 return true
             }
-            if (cfg.isVisualNumbersEnabled) {
-                numberOverlay.show(nodes)
-            }
-            sayCallback.accept("Menampilkan ${nodes.size} nomor layar. Sebutkan klik nomor untuk memilih.")
+            numberOverlay.hide()
+            sayCallback.accept(NodeIndexer.buildAudioReadout(nodes, 30))
             return true
         }
 
@@ -302,9 +295,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         if (c == "baca layar" || c == "bacakan layar" || c == "baca elemen" || c == "ada tombol apa") {
             val nodes = NodeIndexer.indexScreen(service)
             lastIndexedNodes = nodes
-            if (cfg.isVisualNumbersEnabled && numberOverlay.isShowing()) {
-                numberOverlay.show(nodes)
-            }
+            numberOverlay.hide()
             // The service applies app-specific privacy rules (for example, names only
             // in the WhatsApp conversation list) before returning visible screen text.
             val screenText = if (service is com.asisten.bantu.AsistenAccessibilityService) {
@@ -317,7 +308,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 NodeIndexer.buildAudioReadout(nodes)
             } else {
                 val targetHint = if (nodes.isNotEmpty()) {
-                    " Ada ${nodes.size} target suara pada layar. Ucapkan tampilkan nomor untuk memilih elemen tertentu."
+                    " Ada ${nodes.size} target suara pada layar. Kobra dapat memilih target dengan nama atau label yang dibacakan."
                 } else {
                     " Tidak ada target yang dapat diindeks dari layar ini."
                 }
