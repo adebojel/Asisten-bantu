@@ -100,7 +100,8 @@ object NodeIndexer {
         val q = query.trim().lowercase(Locale.ROOT)
         if (q.isEmpty()) return null
         val normalized = nodes.map { it to it.label.lowercase(Locale.ROOT) }
-        normalized.firstOrNull { it.second == q }?.let { return it.first }
+        val exact = normalized.filter { it.second == q }
+        if (exact.isNotEmpty()) return exact.singleOrNull()?.first
         val partial = normalized.filter { it.second.contains(q) || q.contains(it.second) }
         // Jangan menebak target pertama jika beberapa label cocok.
         return partial.singleOrNull()?.first
