@@ -32,10 +32,7 @@ import kotlin.math.roundToInt
  * Fitur lengkap:
  * - Berjalan secara global di atas seluruh aplikasi via WindowManager (TYPE_ACCESSIBILITY_OVERLAY).
  * - Free Dragging bebas ke posisi mana pun di layar (atas, tengah, bawah, kiri, kanan).
- * - Edge-Docking / Hide-to-Side (ValueAnimator): saat digeser mentok ke tepi kiri/kanan atau setelah
- *   5 detik tidak disentuh (ketika Auto-Hide aktif), gelembung masuk 75% ke tepi layar dan menyisakan
- *   tab pegangan lengkung transparan tipis (14dp). Sentuh/geser tab untuk meluncur keluar lagi.
- * - Tidak menampilkan target silang, panel, atau kontrol tambahan saat gelembung digeser.
+ * - Ikon mikrofon tetap satu-satunya kontrol mengambang; tidak ada tab tepi, auto-hide, atau target tutup.
  * - Desain 3D Glassmorphism tanpa emoji: 44dp x 44dp; hanya ikon mikrofon yang terlihat, dengan indikator cincin sangat tipis saat aktif.
  * - Gestur Ketuk:
  *   1) 1x Ketuk -> Aktifkan / hentikan pengenalan suara (Voice Access + CommandRouter).
@@ -181,7 +178,7 @@ class FloatingVoiceOrbManager(
             val container = FrameLayout(service).apply {
                 clipChildren = false
                 clipToPadding = false
-                contentDescription = "Gelembung Mikrofon Kobra OS. Ketuk satu kali untuk bicara, dua kali untuk nomor layar, tekan lama untuk baca layar, geser ke tepi untuk menyembunyikan."
+                contentDescription = "Mikrofon Kobra. Ketuk untuk bicara, ketuk dua kali untuk membaca indeks target dengan suara, tekan lama untuk membaca layar, geser untuk memindahkan mikrofon."
             }
 
             val body = FrameLayout(service).apply {
@@ -196,7 +193,7 @@ class FloatingVoiceOrbManager(
                 setImageResource(R.drawable.ic_3d_mic_orb)
                 setPadding(iconPad, iconPad, iconPad, iconPad)
                 scaleType = ImageView.ScaleType.FIT_CENTER
-                contentDescription = "Ikon Mikrofon 3D"
+                contentDescription = "Mikrofon Kobra"
             }
             body.addView(icon, FrameLayout.LayoutParams(orbSizePx, orbSizePx))
 
@@ -314,20 +311,10 @@ class FloatingVoiceOrbManager(
                                 hideDismissZone()
 
                                 val sw = currentScreenWidth()
-                                val pushedLeft = params.x <= (4f * density).roundToInt()
-                                val pushedRight = params.x + orbSizePx >= sw - (4f * density).roundToInt()
-                                if (pushedLeft || pushedRight) {
-                                    dockedOnLeft = pushedLeft
-                                    dockToEdge(dockedOnLeft, animate = true)
-                                } else {
-                                    isEdgeDocked = false
-                                    updateEdgeTabVisibility(false, dockedOnLeft)
-                                    val clampedX = params.x.coerceIn(edgeMarginPx, max(edgeMarginPx, sw - orbSizePx - edgeMarginPx))
-                                    if (clampedX != params.x) {
-                                        animateOrbX(clampedX)
-                                    }
-                                    scheduleAutoHideIfEnabled()
-                                }
+                                isEdgeDocked = false
+                                updateEdgeTabVisibility(false, dockedOnLeft)
+                                val clampedX = params.x.coerceIn(edgeMarginPx, max(edgeMarginPx, sw - orbSizePx - edgeMarginPx))
+                                if (clampedX != params.x) animateOrbX(clampedX)
                             } else {
                                 gestureDetector.onTouchEvent(event)
                                 scheduleAutoHideIfEnabled()
@@ -508,12 +495,8 @@ class FloatingVoiceOrbManager(
     }
 
     private fun scheduleAutoHideIfEnabled() {
+        // Keep the sole microphone control visible; never replace it with an edge tab.
         cancelAutoHide()
-        val cfg = KobraConfig(service)
-        if (!cfg.isFloatingOrbEnabled() || !cfg.isFloatingOrbAutoHide()) return
-        if (isEdgeDocked || orbRoot == null) return
-        if (currentState == OrbState.LISTENING || currentState == OrbState.SPEAKING) return
-        mainHandler.postDelayed(autoHideRunnable, 5000L)
     }
 
     private fun cancelAutoHide() {
