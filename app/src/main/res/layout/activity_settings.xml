@@ -967,6 +967,34 @@
                 <SeekBar android:id="@+id/sbFloatingOrbAlpha" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="75" />
 
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swGlobalScreenReader" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="Pembaca Layar Global (Aplikasi Lain)" android:textColor="#E2E8F0" android:textSize="13sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Mode suara Kobra membaca elemen layar dan memilih teks/area melalui suara. TalkBack tetap merupakan layanan Android terpisah; Kobra tidak mengaktifkan atau menggantikannya secara diam-diam."
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp"
+                    android:importantForAccessibility="yes" />
+                <Button
+                    android:id="@+id/btnAndroidAccessibilitySettings"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_glass_button_secondary"
+                    android:text="Buka Pengaturan Aksesibilitas Android"
+                    android:textAllCaps="false"
+                    android:textColor="#00E5FF"
+                    android:textSize="13sp" />
+                <Button
+                    android:id="@+id/btnTalkBackPlayStore"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="6dp"
+                    android:background="@drawable/bg_glass_button_secondary"
+                    android:text="Android Accessibility Suite di Play Store"
+                    android:textAllCaps="false"
+                    android:textColor="#00E5FF"
+                    android:textSize="13sp" />
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swVisualNumbers" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Nomor Layar Visual (Voice Access)" android:textColor="#E2E8F0" android:textSize="13sp" />
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swGridOverlay" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Grid Koordinat Presisi 3x3" android:textColor="#E2E8F0" android:textSize="13sp" />
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/swAirGestures" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Air Gestures Sensor Jarak (Lambaian Tangan)" android:textColor="#E2E8F0" android:textSize="13sp" />
