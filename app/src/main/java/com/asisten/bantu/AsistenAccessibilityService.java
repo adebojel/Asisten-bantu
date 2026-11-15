@@ -1310,6 +1310,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (has(c, "scroll atas", "geser atas", "geser ke atas")) { scroll(false); return; }
         if (c.startsWith("tekan ") || c.startsWith("klik ")) { clickByName(after(c, " ")); return; }
         if (c.startsWith("ketik ") || c.startsWith("tulis ")) { typeText(afterAny(c, "ketik ", "tulis ")); return; }
+        if (has(c, "baca saldo", "cek saldo", "berapa saldo", "saldo rekening", "saldo dana", "saldo ovo", "saldo gopay")) {
+            String visibleBalance = OfflineBrain.visibleBalanceForSpeech(readScreenText());
+            say(visibleBalance.isEmpty()
+                    ? "Saya belum menemukan nominal saldo yang jelas pada teks layar. Buka halaman saldo dan pastikan nominalnya tampil. Saya tidak dapat membaca PIN, kata sandi, atau OTP."
+                    : visibleBalance + " Saya hanya membacakan informasi yang ditampilkan aplikasi.");
+            return;
+        }
         if (has(c, "baca layar", "isi layar", "apa di layar")) { say(readScreenText()); return; }
         if (has(c, "yang dipilih", "fokus")) { say(readFocus()); return; }
 
