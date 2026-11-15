@@ -209,7 +209,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             return true
         }
 
-        if (c.contains("tampilkan nomor") || c.contains("munculkan nomor") || c.contains("lihat nomor")) {
+        if (c.contains("tampilkan nomor") || c.contains("munculkan nomor") || c.contains("lihat nomor") || c.contains("tampilkan label") || c.contains("show numbers") || c.contains("show labels")) {
             val nodes = NodeIndexer.indexScreen(service)
             lastIndexedNodes = nodes
             if (nodes.isEmpty()) {
@@ -223,7 +223,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             return true
         }
 
-        if (c.contains("sembunyikan nomor") || c.contains("tutup nomor") || c.contains("matikan nomor")) {
+        if (c.contains("sembunyikan nomor") || c.contains("tutup nomor") || c.contains("matikan nomor") || c.contains("sembunyikan label") || c.contains("hide numbers") || c.contains("hide labels")) {
             numberOverlay.hide()
             sayCallback.accept("Nomor layar disembunyikan.")
             return true
@@ -308,6 +308,26 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 else "Sistem menolak ketukan pada area " + positionLabel(positionCell) + ".")
             return true
         }
+        // Drag antar elemen bernomor: "seret nomor 3 ke nomor 8".
+        if (c.startsWith("seret nomor ") || c.startsWith("drag nomor ")) {
+            val match = Regex("^(?:seret|drag) nomor (.+?) ke nomor (.+)$").find(c)
+            val fromNumber = match?.groupValues?.getOrNull(1)?.let { parsePositiveInt(it) }
+            val toNumber = match?.groupValues?.getOrNull(2)?.let { parsePositiveInt(it) }
+            val nodes = currentOrRefreshNodes()
+            val from = fromNumber?.let { NodeIndexer.findByNumber(nodes, it) }
+            val to = toNumber?.let { NodeIndexer.findByNumber(nodes, it) }
+            if (from != null && to != null) {
+                val accepted = UnifiedAccessibilityEngine.swipe(
+                    service, from.centerX.toFloat(), from.centerY.toFloat(),
+                    to.centerX.toFloat(), to.centerY.toFloat(), 850L
+                )
+                sayCallback.accept(if (accepted) "Gestur seret dari " + from.label + " ke " + to.label + " dikirim ke Android." else "Android menolak gestur seret tersebut.")
+            } else {
+                sayCallback.accept("Titik awal atau tujuan tidak ditemukan. Ucapkan tampilkan nomor lalu ulangi.")
+            }
+            return true
+        }
+
         // 3) Klik / Tekan Lama berdasarkan Nomor Elemen
         val longClickNum = extractElementNumber(c, listOf("tekan lama nomor ", "tahan nomor ", "tahan ", "tekan lama "))
         if (longClickNum != null) {
@@ -324,7 +344,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             return true
         }
 
-        val clickNum = extractElementNumber(c, listOf("klik nomor ", "tekan nomor ", "pilih nomor ", "klik ", "tekan ", "pilih "))
+        val clickNum = extractElementNumber(c, listOf("klik nomor ", "tekan nomor ", "ketuk nomor ", "pilih nomor ", "tap ", "klik ", "tekan ", "ketuk ", "pilih "))
             ?: if (numberOverlay.isShowing()) parsePositiveInt(c) else null
         if (clickNum != null) {
             val nodes = currentOrRefreshNodes()
@@ -346,8 +366,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
 
         // 4) Klik berdasarkan label layar: tombol, teks, judul, item daftar,
         // dan area visual yang tidak diekspos sebagai tombol semantik.
-        if (c.startsWith("klik ") || c.startsWith("tekan ") || c.startsWith("pencet ") || c.startsWith("pilih ")) {
-            val label = raw.replaceFirst(Regex("^(klik|tekan|pencet|pilih)\\s+", RegexOption.IGNORE_CASE), "").trim()
+        if (c.startsWith("klik ") || c.startsWith("tekan ") || c.startsWith("ketuk ") || c.startsWith("pencet ") || c.startsWith("pilih ")) {
+            val label = raw.replaceFirst(Regex("^(klik|tekan|ketuk|pencet|pilih)\\s+", RegexOption.IGNORE_CASE), "").trim()
             if (label.isNotEmpty() && !label.startsWith("layar")) {
                 val freshNodes = NodeIndexer.indexScreen(service)
                 lastIndexedNodes = freshNodes
@@ -373,6 +393,17 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 }
                 return true
             }
+        }
+
+        if (c == "zoom in" || c == "perbesar" || c == "perbesar layar" || c == "zoom masuk") {
+            val accepted = UnifiedAccessibilityEngine.pinch(service, true)
+            sayCallback.accept(if (accepted) "Gestur perbesar dikirim." else "Android menolak gestur perbesar.")
+            return true
+        }
+        if (c == "zoom out" || c == "perkecil" || c == "perkecil layar" || c == "zoom keluar") {
+            val accepted = UnifiedAccessibilityEngine.pinch(service, false)
+            sayCallback.accept(if (accepted) "Gestur perkecil dikirim." else "Android menolak gestur perkecil.")
+            return true
         }
 
         // 5) Navigasi Sistem & Gulir/Geser
