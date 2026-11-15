@@ -182,3 +182,16 @@ Pencarian lanjutan menambahkan kandidat OlliteRT (Apache-2.0), Daedalus Echo (MI
 - Uji perintah kata pada provider Android yang mendukung dan yang tidak mendukung geometry; tidak boleh menebak bounds.
 - Audit README links/assets: pastikan setiap SVG/screenshot dan APK release URL benar-benar ada, workflow release berhasil mengunggah asset dengan nama yang dipakai README.
 - Baru setelah integrasi kode, test, dan release pipeline lolos, siapkan merge PR ke main. Cabang lama hanya dibersihkan setelah memastikan merge/PR state dan tag/release yang bergantung padanya.
+
+## 16 November 2026 — visual screen query path
+
+A real integration was added to the active `CommandRouter.tryRouteFastOrVisual()` path for explicit screen-analysis commands:
+
+- It captures the current accessibility snapshot and screenshot.
+- It passes the image and grounded UI context to `OnlineAiRouter.askBlocking()`, the existing provider gateway.
+- That gateway is the single place that enforces the configured key, online availability, live zero-price input/output checks, and image-capable model filtering.
+- It does not call Gemini REST or silently route to a paid model.
+- If screenshot/provider/model is unavailable, it returns an honest local accessibility-text fallback, or states that neither screenshot nor readable text is available.
+- It does not take screen actions. This change is analysis-only; autonomous screen-agent execution remains blocked until action confirmation and post-action verification are implemented.
+
+The first CI run exposed a Kotlin compile error: the service was typed as the base `AccessibilityService`, so `readScreenText()` was not available. The fallback was corrected to use a safe cast to `AsistenAccessibilityService`. The next workflow run must verify the correction before the PR is considered build-clean.
