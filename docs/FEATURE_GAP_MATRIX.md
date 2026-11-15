@@ -18,24 +18,25 @@ This matrix is based on source inspection of the current `main` tree, not README
 | Navigation | GPS/location helper, compass and navigation activity. | Implemented; real route/obstacle reliability needs device testing. |
 | Haptics and sensors | `HapticFeedback`, `SensorManager`, proximity/accelerometer and fall/pocket logic. | Implemented. |
 | Contacts | `ContactsContract` phone lookup by name. | Partial: lookup found; full contact CRUD not established. |
-| SMS | `SmsManager` send flow with explicit multi-step confirmation. | Partial: sending found; SMS read/search not found. |
-| Calls | Answer/end call paths and call-state parser. | Partial: call controls found; call-log query not found. |
+| SMS | `SmsManager` send flow with explicit multi-step confirmation. | Partial: sending found; SMS database read/search not found in audited paths. |
+| Calls | Answer/end call paths and call-state parser. | Partial: call controls found; call-log query not found in audited paths. |
+| Calendar | `ProductivityManager.readTodayAgenda()` queries `CalendarContract.Instances` for today's agenda. | Partial: read-today agenda exists; arbitrary date-range search and create/update/delete not found. |
 | Alarms/timers | `AlarmClock` intents, timer scheduling and receiver. | Implemented for common create flows. |
 | Notifications | `KobraNotificationService`, notification read/reply flows. | Implemented; preserve single notification listener. |
 | Bluetooth | State receiver and permission declarations found. | Partial: state monitoring exists; direct toggle/tool coverage not established. |
 | Wi-Fi | Connectivity/network monitoring and permissions found. | Partial: state/network awareness exists; direct toggle tool not established. |
-| Document reading | `DocumentReaderActivity` exists. | Present; audit SAF URI lifecycle and supported formats before expanding. |
+| Document reading | `DocumentReaderActivity` uses Android `OpenDocument` picker for TXT/PDF, then text parsing/PDF rendering/OCR. | Present for user-selected documents; general file search/list/write/delete tools are not established. |
 
 ## Gaps confirmed by source search
 
 These API integrations were not found in the current Java/Kotlin service paths during this audit:
 
-1. Calendar event query/search/create/update via `CalendarContract` (manifest already declares `READ_CALENDAR`).
-2. Call-log read/search via `CallLog.Calls` (manifest already declares `READ_CALL_LOG`).
-3. SMS read/search via `Telephony.Sms` (manifest already declares `READ_SMS`).
+1. Calendar create/update/delete and arbitrary date-range search; today's agenda read via `ProductivityManager.readTodayAgenda()` already exists.
+2. Call-log read/search via `CallLog.Calls` (manifest declares `READ_CALL_LOG`, but a query path was not found in the audited source).
+3. SMS database read/search via `Telephony.Sms` (manifest declares `READ_SMS`; SMS sending already exists with confirmation).
 4. Full contacts create/update/delete; current evidence is phone-number lookup.
-5. General file list/search/copy/move/write/delete tool surface; use Storage Access Framework rather than broad storage access where possible.
-6. Explicit clipboard read/write tools beyond text entry/paste plumbing.
+5. General file list/search/copy/move/write/delete tool surface; selected TXT/PDF reading through SAF already exists.
+6. Explicit clipboard read/write tools beyond text-entry/paste plumbing.
 7. NFC, Do Not Disturb, and dedicated brightness/system-setting tool APIs.
 8. A structured, permission-scoped tool registry that local Qwen can call and that can be audited/revoked per capability.
 
@@ -43,8 +44,9 @@ These API integrations were not found in the current Java/Kotlin service paths d
 
 - The current manifest declares sensitive permissions for contacts, SMS, call log, calendar, phone calls, location, camera, microphone, Bluetooth, storage and more.
 - `Perms.required()` currently returns many of these together, and `SettingsActivity` requests that combined list.
+- `READ_CALENDAR` is used by today's agenda reader. `READ_CONTACTS` and `SEND_SMS` are used by existing flows. `READ_SMS` and `READ_CALL_LOG` are declared/requested, but database-read features were not found in the audited paths.
 - This is broader than the least-privilege model used by droid-mcp, where each tool/module declares its own required permissions.
-- Next security/UX improvement: request only core microphone permission at onboarding; request camera, location, contacts, SMS, call log, calendar, media and Bluetooth permissions only when the user enables or invokes the corresponding feature. Explain each use and provide a revoke/disable route.
+- Next security/UX improvement: request only core microphone permission at onboarding; request camera, location, contacts, SMS, call log, calendar, media and Bluetooth permissions only when the user enables or invokes the corresponding feature. Remove or defer unused sensitive permissions until their feature exists. Explain each use and provide a revoke/disable route.
 - Do not silently expand permissions just because a repository offers a tool.
 
 ## Integration priority
@@ -52,9 +54,9 @@ These API integrations were not found in the current Java/Kotlin service paths d
 | Priority | Feature | Why | Safety gate |
 |---|---|---|---|
 | P0 | Permission-scoped capability registry | Prevents the app requesting SMS/call-log/calendar/location permissions all at once. | Per-feature explanation, just-in-time grant, disable and revoke path. |
-| P1 | Calendar read/search | Clear gap; useful to a voice-first assistant. | Explicit READ_CALENDAR opt-in; no write permission for read-only mode. |
-| P1 | Call-log read and SMS read/search | droid-mcp has mature contracts, but these are highly sensitive. | Separate explicit opt-in; never read aloud in public by default; respect caller/contact privacy. |
-| P1 | File/document tools via SAF | Useful for reading documents and user-selected files. | User-picked URIs, no broad file crawl, writes/deletes require confirmation. |
+| P1 | Calendar create/update and date-range search | Today's agenda read already exists; expand the current CalendarContract implementation. | READ_CALENDAR for read; WRITE_CALENDAR only when a user enables write actions; confirm changes. |
+| P1 | Call-log read and SMS read/search | droid-mcp has mature contracts, but these are highly sensitive. | Separate explicit opt-in; remove unused permissions until built; never read aloud in public by default. |
+| P1 | File tools via SAF | TXT/PDF reading already exists; add selected-file search/metadata if needed. | User-picked URIs, no broad file crawl, writes/deletes require confirmation. |
 | P2 | Clipboard and app/device context tools | Improve contextual assistance. | Only read clipboard on explicit request; mask secrets and password fields. |
 | P2 | DND, NFC, brightness, Wi-Fi/Bluetooth controls | Extend device control. | Android API restrictions and explicit confirmation for state changes. |
 | P3 | Optional Indonesian Sherpa ASR | Strong offline speech fallback. | One mic owner; model download consent; verify model license/size and benchmark. |
