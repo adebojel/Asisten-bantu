@@ -86,4 +86,12 @@ class TargetLabelMatcherTest {
         )
         assertTrue(result is TargetLabelMatcher.Result.NotFound)
     }
+    @Test
+    fun punctuationSeparatedPrefixMatchesAtARealWordBoundary() {
+        val wifi = candidate("Wi-Fi settings", 0, 0, 240, 60, actionable = true)
+        val result = TargetLabelMatcher.resolve("wifi", listOf(wifi))
+        assertTrue(result is TargetLabelMatcher.Result.Found)
+        assertEquals(wifi, (result as TargetLabelMatcher.Result.Found).candidate)
+    }
+
 }
