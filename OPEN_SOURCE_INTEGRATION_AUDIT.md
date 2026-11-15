@@ -17,6 +17,14 @@ Dokumen ini membedakan kode yang benar-benar diubah pada Kobra, pola teknis yang
 | [abdallahnatsheh/AssistiveDotApp](https://github.com/abdallahnatsheh/AssistiveDotApp) | Apache-2.0 | Tombol mengambang kecil, Back/Home/Lock, drag, ukuran minimal | Prinsip tampilan minimal diadaptasi: kontrol mengambang Kobra diperkecil menjadi ikon mikrofon 44dp. |
 | [alphacep/vosk-api](https://github.com/alphacep/vosk-api) | Apache-2.0 | Speech-to-text offline Android | Kandidat engine offline. Belum ditambahkan sebagai runtime kedua karena model bahasa, ukuran, konsumsi RAM, dan lifecycle harus diuji sebelum dipaketkan. |
 | [Aniketsingh2104/NOVA](https://github.com/Aniketsingh2104/NOVA) | Tidak ada lisensi yang terdeteksi pada metadata repository yang diperiksa | Voice assistant offline dan kontrol perangkat | Referensi desain saja. Tidak menyalin kode sampai lisensi yang mengizinkan penggunaan ulang tersedia. |
+| [NITISH-R-G/ScreenSaathi](https://github.com/NITISH-R-G/ScreenSaathi) | MIT | Resolusi target natural-language, deteksi ambiguitas, overlay penunjuk, policy gate tindakan | Pola ranking target dan penolakan ambiguitas diadaptasi ke NodeIndexer. Kebijakan keselamatan dipakai sebagai acuan; tidak menyalin service/overlay layar penuh. |
+| [tech-master33/baosp](https://github.com/tech-master33/baosp) | Apache-2.0 | Screen reader, TTS, launcher aksesibel berbasis AOSP | Referensi desain sistem tingkat OS. Tidak menggabungkan ROM, launcher, atau service terpisah ke aplikasi biasa. |
+| [k2-fsa/sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0 | ASR streaming, keyword spotting/wake word, VAD, TTS offline Android | Kandidat runtime audio offline dan wake-word. Belum dipaketkan karena memerlukan model bahasa, ABI/native library, dan pengukuran RAM/baterai sebelum mengganti recognizer yang ada. |
+| [serrebidev/BlindPilot-Android](https://github.com/serrebidev/BlindPilot-Android) | MIT | Screen snapshot, action approval, stale-target checks, cancel/stop, device actions | Referensi pengamanan agent. Prinsip snapshot yang kedaluwarsa dan verifikasi setelah tindakan akan menjadi standar pada pengembangan agent Kobra. |
+| [Tensorlong/screen-trans](https://github.com/Tensorlong/screen-trans) | Tidak ada lisensi terdeteksi pada metadata/tree yang diperiksa | OCR kata-per-kata, pengelompokan kata/baris, MediaProjection, overlay terjemahan | Referensi teknis untuk OCR word-box. Tidak menyalin kode karena lisensi tidak ditemukan pada pemeriksaan ini; Kobra memakai API koordinat karakter Android bila tersedia. |
+| [takeoutfm/takeout_assistant](https://github.com/takeoutfm/takeout_assistant) | Tidak ada lisensi terdeteksi pada metadata yang diperiksa | Vosk offline, wake word, perintah suara lokal | Referensi saja. Tidak menyalin kode tanpa lisensi yang mengizinkan. |
+| [rounma/mobile-agent](https://github.com/rounma/mobile-agent) | Tidak ada lisensi terdeteksi pada metadata yang diperiksa | Qwen3-ASR, Kokoro TTS, sherpa-onnx | Referensi saja. Tidak menyalin kode tanpa lisensi yang mengizinkan. |
+| [MRDarshan7/OffHand](https://github.com/MRDarshan7/OffHand) | Tidak ada lisensi terdeteksi pada metadata yang diperiksa | Vosk, Qwen, ML Kit OCR, action outbox dan konfirmasi pengguna | Referensi arsitektur saja. Tidak menyalin kode tanpa lisensi yang mengizinkan. |
 
 ## Perubahan yang sudah masuk ke Kobra
 
@@ -25,6 +33,7 @@ Dokumen ini membedakan kode yang benar-benar diubah pada Kobra, pola teknis yang
    - Meminta koordinat karakter dari AccessibilityNodeInfo.refreshWithExtraData(EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY, ...).
    - Menggabungkan kotak karakter menjadi batas kata yang sedang dipilih.
    - Mengembalikan null bila aplikasi tidak menyediakan geometri teks; tidak membuat koordinat palsu.
+   - Pencocokan target suara memakai ranking exact/normalized/word-boundary dan menolak kandidat berbeda yang skornya hampir sama.
 
 2. FocusOutlineOverlay.kt
    - Overlay sekarang hanya sebesar area kata/elemen yang sedang difokuskan, bukan jendela layar penuh.
@@ -36,6 +45,7 @@ Dokumen ini membedakan kode yang benar-benar diubah pada Kobra, pola teknis yang
    - Menambahkan perintah kata berikutnya, kata sebelumnya, baca kata fokus, dan klik kata ini.
    - Nomor dan grid visual tidak lagi ditampilkan; indeks elemen dibacakan melalui suara.
    - Menambahkan koordinat suara 10×10, contoh ketuk B3 dan geser A1 ke C5.
+   - Resolusi target berbasis ranking dan ambiguitas diadaptasi dari desain ScreenSaathi MIT.
    - Memperbarui fokus kata ketika event seleksi atau teks berubah.
 
 4. FloatingVoiceOrbManager.kt
