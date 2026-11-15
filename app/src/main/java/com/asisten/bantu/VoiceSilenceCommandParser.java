@@ -18,6 +18,16 @@ public final class VoiceSilenceCommandParser {
                 "istirahat dulu", "jangan merespons");
     }
 
+    /** Exact cancellation phrases for free-form message bodies; do not cancel because body contains "tidak". */
+    public static boolean isExplicitCancelCommand(String input) {
+        String normalized = normalize(input);
+        return "tidak".equals(normalized) || "tidak jadi".equals(normalized)
+                || "batal".equals(normalized) || "batalkan".equals(normalized)
+                || "cancel".equals(normalized) || "jangan kirim".equals(normalized)
+                || "gak jadi".equals(normalized) || "nggak jadi".equals(normalized)
+                || "enggak jadi".equals(normalized) || "urungkan".equals(normalized);
+    }
+
     /** Stop speech immediately, including while the assistant is reading a long screen aloud. */
     public static boolean isSpeechInterruptCommand(String input) {
         String normalized = normalize(input);
