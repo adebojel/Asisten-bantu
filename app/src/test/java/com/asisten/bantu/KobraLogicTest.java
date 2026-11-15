@@ -120,6 +120,21 @@ public class KobraLogicTest {
         assertEquals("-", pick(list, "  "));
     }
 
+    @Test
+    public void testVoiceSilenceCommandParser() {
+        assertTrue(VoiceSilenceCommandParser.isSilenceCommand("diam dulu"));
+        assertTrue(VoiceSilenceCommandParser.isSilenceCommand("tolong jangan bicara"));
+        assertTrue(VoiceSilenceCommandParser.isSilenceCommand("MODE DIAM!"));
+        assertTrue(VoiceSilenceCommandParser.isSilenceCommand("matikan asisten sekarang"));
+        assertTrue(VoiceSilenceCommandParser.isWakeActivationCommand("aktifkan"));
+        assertTrue(VoiceSilenceCommandParser.isWakeActivationCommand("bangun dan dengarkan"));
+        assertTrue(VoiceSilenceCommandParser.isWakeActivationCommand("saya panggil"));
+        assertTrue(!VoiceSilenceCommandParser.isSilenceCommand("diameter benda ini"));
+        assertTrue(!VoiceSilenceCommandParser.isSilenceCommand("putar musik"));
+        assertTrue(!VoiceSilenceCommandParser.isWakeActivationCommand("aktifitas harian"));
+        assertTrue(!VoiceSilenceCommandParser.isWakeActivationCommand(null));
+    }
+
     private static String pick(List<AppMatcher.App> apps, String q) {
         List<AppMatcher.Match> m = AppMatcher.find(apps, q, 4);
         if (m.isEmpty()) return "-";
