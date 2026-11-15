@@ -187,6 +187,17 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testCallStatusParserDoesNotGuess() {
+        assertEquals(CallStatusParser.Status.RINGING, CallStatusParser.parse("Memanggil..."));
+        assertEquals(CallStatusParser.Status.RINGING, CallStatusParser.parse("Ringing"));
+        assertEquals(CallStatusParser.Status.CONNECTED, CallStatusParser.parse("Panggilan terhubung"));
+        assertEquals(CallStatusParser.Status.ENDED, CallStatusParser.parse("Panggilan berakhir"));
+        assertEquals(CallStatusParser.Status.ENDED, CallStatusParser.parse("No answer"));
+        assertEquals(CallStatusParser.Status.UNKNOWN, CallStatusParser.parse("Nomor sudah dipilih"));
+        assertEquals(CallStatusParser.Status.UNKNOWN, CallStatusParser.parse(null));
+    }
+
+    @Test
     public void testImmediateBargeInRequiresUnambiguousPhrase() {
         assertTrue(VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand("Kobra berhenti bicara"));
         assertTrue(VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand("hentikan bacaan"));
