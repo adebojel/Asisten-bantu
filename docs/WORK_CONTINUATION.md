@@ -8,49 +8,63 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Main branch: `main`
 - Active PR: https://github.com/adebojel/Asisten-bantu/pull/16
 - Branch: `research/open-source-expansion-2026-11-15`
-- Current documented head at handoff creation: `025838d3ca2a1a84368c22d7a65b9a0683ba758e`
-- The PR is intentionally not merged yet; more implementation and final verification are pending.
+- Current head: `2752ecfd1ce5139d9d64a378f3cc3f5e385f3d6a`
+- PR state: open, mergeable; deliberately not merged while more integration and final verification remain.
 
-## Completed in the active branch
+## Implemented in this branch
 
-1. Expanded open-source repository research catalog with license status and explicit integration decisions.
-2. Added transparent minimal-overlay and word-level targeting requirements.
-3. Tightened word focus geometry: only request per-character bounds if the provider advertises support; no full-line/paragraph substitute.
-4. Reduced focus outline stroke/padding; overlay remains transparent and non-touchable.
-5. Connected explicit visual-screen questions in the active `CommandRouter.tryRouteFastOrVisual()` path to `OnlineAiRouter.askBlocking()` with screenshot and accessibility context.
-6. Visual analysis is allowed only through the existing provider router, which checks configured credentials, network, zero-price model availability and image support. If unavailable, the app uses local accessibility text and states that visual AI is unavailable.
-7. No autonomous tap/type action was connected to this visual-analysis path.
+1. Expanded open-source repository catalog with verified license status and integration decisions.
+2. Added minimal-overlay contract: only the 44dp microphone orb is persistent; other visual surfaces stay hidden unless explicitly requested.
+3. Tightened transparent word-focus overlay: no fill, no dim layer, no touch interception, thinner stroke and smaller padding.
+4. Added strict `FocusedWordRangeResolver`: only one real selected word or the word touching a real caret can be outlined. Multi-word selections, absent selection metadata and guessed character-zero fallback are rejected.
+5. Added per-character geometry guard: only request `EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY` when the active accessibility provider advertises it. No whole-line/paragraph substitute.
+6. Added `TargetLabelMatcher` adapted from ScreenSaathi's MIT target-ranking design. It ranks exact/normalized/word-boundary matches, prefers smaller actionable targets, and rejects near-tied controls at different screen locations.
+7. Added unit tests for word-range selection, missing caret, paragraph rejection, Unicode boundaries, ambiguous labels, overlapping controls and risky agent targets.
+8. Connected explicit screen-analysis requests to `OnlineAiRouter.askBlocking()` using the current screenshot plus accessibility context. The router is restricted to configured, live-verified, zero-price, image-capable models. If unavailable, KOBRA honestly falls back to local accessibility text.
+9. Added a bounded screen-navigation agent for multi-step, low-risk navigation only: open app, uniquely resolved safe click, scroll, Back and Home. No typing, Enter, message sending, calls, payment, purchase, delete, permission grant, upload, settings toggle or generic confirmation action.
+10. The agent checks a fresh screen snapshot after each action, stops if the screen does not change, supports `hentikan agen layar` / `batalkan agen layar` / `stop agen layar`, and does not claim the user's goal succeeded merely because the model says `done`. It does not save unverified macros.
+11. Added `docs/THIRD_PARTY_NOTICES.md` for the ScreenSaathi MIT design reference.
+12. Added ADRs for offline Indonesian Sherpa ASR and droid-mcp tool integration boundaries.
 
-## CI findings
+## CI status
 
-- Earlier commit `45b559df57ef872c48fa0c332bc6c4677fcf1c75` passed the APK workflow.
-- New screen-analysis integration initially failed compilation because the base `AccessibilityService` type does not expose `readScreenText()`.
-- Corrected fallback to safe-cast to `AsistenAccessibilityService` in commit `6e12860088ff63b9b46b425ffd08dbc9b48331a6`.
-- Latest documentation commit `025838d3ca2a1a84368c22d7a65b9a0683ba758e` includes that correction.
-- The workflow was still running when this handoff was written. Re-check GitHub Actions for the latest branch commit before merging.
+- Build and unit tests passed for commit `543c8ffdac2431e7a5a91321a444249dfe5d5955`: https://github.com/adebojel/Asisten-bantu/actions/runs/43740565298
+- Build passed for commit `687faec03594bf69ee7cf84c847167548728d6fd`: https://github.com/adebojel/Asisten-bantu/actions/runs/43740555011
+- Latest commits `70cf95ee...` and `2752ecfd...` add documentation/decision records only; their Actions runs were still in progress at handoff time.
+- Earlier intermediate commits failed due missing not-yet-added files and one test that correctly caught the `panggil` / `panggilan` prefix bug. These were fixed; the later code+test commit `543c8ff...` passed.
+- Device-level behavior remains unverified; physical-device testing is still deferred.
 
-## Repository/branch audit
+## Open-source audit decisions
 
-- Main already contains the primary KOBRA runtime files, Qwen model manager/installer, offline knowledge store, camera/vision modules, accessibility service, voice-access engine, mic orb, and 3D SVG documentation art.
-- Legacy branches `feat/bundle-qwen3-in-apk`, `feat/gemini-live-voice-catalog`, `feat/openai-brain-provider`, `feat/unified-auto-vision-start`, `feat/voice-silence-wakeword`, `fix/voice-recognition-language-fallback`, `kobra-os-v7`, and `testable-voice-silence-parser` have no unique file paths compared with main, but some are divergent and contain file modifications. Do not merge whole branches blindly; compare relevant diffs and preserve only missing functionality.
-- The current GitHub connector exposes branch creation/update but no branch-delete operation. Do not claim branches were deleted; branch cleanup must be done through a supported GitHub UI/API route after safe merge.
+- High-value sources studied: ScreenSaathi (MIT), droid-mcp (Apache-2.0), Sherpa-ONNX (Apache-2.0), LiveSub offline ASR (MIT code; model license separate), MantiClaw-Agent (MIT), Handy AI (MIT), SIGHT (Apache-2.0), SightBuddy (MIT), OpenDroid (Apache-2.0 license text), OnScreen-Agent (MIT), MobileAgent-Android (MIT), NeuralBridge MCP (Apache-2.0 license text), and others listed in the repository catalog.
+- Do not copy AGPL/GPL/BSL or unlicensed code into KOBRA without an explicit license decision.
+- droid-mcp has 160+ tools and minSdk 28, but its `droid-mcp-all` aggregator includes duplicate service owners; `droid-mcp-core` also brings Ktor/Netty dependencies. ADR requires a measured, curated read-only SDK subset, no upstream AccessibilityService/camera/overlay/listener, and no HTTP server by default. No droid-mcp runtime dependency has been added yet.
+- LiveSub lists a 247MB multilingual Sherpa model including Indonesian. Model license and provenance are separate from MIT app code. Do not start a second AudioRecord/microphone owner; first define a single PCM capture contract and benchmark on-device.
+- Qwen3/LiteRT-LM remains KOBRA's only local LLM runtime. Do not add GHOST/Gemma or a second local inference engine without measured benefits.
 
-## README and release work still pending
+## Legacy branches
 
-- Main README already links to latest APK, all releases, Actions, source and issues.
-- Main already has `docs/kobra-hero-3d.svg` and `docs/kobra-overview.svg`.
-- The only PNG found under `public/assets/aistudio/` is a screenshot of a failed CI log, not an app screenshot. Do not present it as product UI.
-- Before final test stage: rewrite README comprehensively, show the existing 3D concept art and architecture diagram, add only genuine app screenshots supplied/verified, explain actual vs experimental features, permissions, online/offline behavior, model sizes/licensing, install steps, troubleshooting, privacy, support, releases and checksum.
-- Release workflow on main already builds debug APK and publishes `Kobra-OS-main.apk` plus `SHA256SUMS.txt` on each main push. Verify signing and release artifacts before calling a build production-ready.
+- Legacy branches have no unique file paths compared with main, but several are divergent and modify existing files.
+- Do not merge them wholesale. Inspect each meaningful diff and port only missing, tested functionality.
+- The connected GitHub tools currently expose no branch-delete operation. Do not claim branch cleanup is complete; after all reviewed work is safely on main, delete obsolete branches through a supported GitHub UI/API path. Preserve main and any required release branch.
+
+## README and release work pending
+
+- Main README already has 3D concept SVGs: `docs/kobra-hero-3d.svg` and `docs/kobra-overview.svg`.
+- Main README already links latest APK, releases, Actions and source.
+- The only PNG found under `public/assets/aistudio/` is a CI-failure screenshot, not a product screenshot. Do not use it as app UI.
+- At final pre-test stage, rewrite README comprehensively, embed the existing 3D concept art and architecture diagram, add only genuine app screenshots supplied/verified, and clearly distinguish implemented, experimental and planned functions.
+- Document architecture, permissions, online/offline behavior, model download sizes/licenses, privacy, install/troubleshooting, release links and checksums.
+- The main release workflow builds a debug APK and attaches `Kobra-OS-main.apk` plus `SHA256SUMS.txt` on main pushes. Label it a testing/debug build unless proper release signing is configured.
 
 ## Next actions
 
-1. Re-check CI for commit `025838d3ca2a1a84368c22d7a65b9a0683ba758e`; inspect full logs if it fails and fix.
-2. Add tests for screen-analysis provider unavailable, missing screenshot, and local fallback where practical.
-3. Continue the bounded screen-agent work only after implementing confirmation gates for risky actions and fresh post-action verification. Never let a text-entry action press Enter automatically.
-4. Review legacy branch diffs and port only changes missing from main.
-5. Audit mic-only overlay behavior and exact word-target fallback paths; no second mic/camera/AccessibilityService owner.
-6. Once implementation and CI are stable, merge the active PR and any remaining reviewed PRs into main.
-7. Rewrite README and verify the latest release/APK/checksum.
-8. Only then clean up obsolete branches. Preserve main and any explicitly retained release branches.
-9. Device testing remains deferred until the user says implementation is ready.
+1. Re-check CI for latest head `2752ecfd...`; inspect logs and fix any failure before proceeding.
+2. Continue source-level review of droid-mcp's selected read-only modules and assess dependency footprint before adding runtime dependencies.
+3. Review the bounded agent code and tests for any remaining side-effect paths; keep no typing/submit or dangerous controls.
+4. Verify word bounds only use provider-supplied per-character geometry and that the overlay is mic-only at rest.
+5. Review legacy branch diffs and port only missing tested functionality.
+6. Once implementation and CI are stable, merge PR #16 and any remaining reviewed changes into main.
+7. Update README, verify main build/release artifacts and checksum.
+8. Clean obsolete branches only after merge and after confirming no unique work remains.
+9. Device testing remains deferred until implementation is ready and the user authorizes the test phase.
