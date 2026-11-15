@@ -63,7 +63,6 @@ object OnlineAiRouter {
     @JvmStatic
     fun getActiveProviderSummary(context: Context): String {
         val cfg = KobraConfig(context.applicationContext)
-        val cfg = KobraConfig(context.applicationContext)
         if (cfg.getOpenAiApiKey().isNotEmpty()) return "OpenAI GPT"
         val geminiKey = CommandRouter.resolveGeminiApiKey(context)
         if (geminiKey.isNotEmpty()) return "Gemini AI Studio"
