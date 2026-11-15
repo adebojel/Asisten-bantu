@@ -79,7 +79,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private static final String HELP =
             "Daftar perintah suara Kobra OS berdasarkan kategori. "
-            + "Pertama, Darurat dan Keselamatan: bilang tolong atau SOS, latihan SOS, bunyikan sirine bahaya, kartu medis, atau HP di mana. "
+            + "Pertama, Darurat dan Keselamatan: bilang tolong atau SOS, bunyikan sirine bahaya, kartu medis, atau HP di mana. "
             + "Kedua, Mata Kedua dan Dokumen: baca KTP, baca uang, hitung lembar uang, cocokkan baju, baca layar digital, pindai struk transfer, scan barcode, cari kursi atau benda, terjemahkan kamera, baca dokumen PDF, atau mode tongkat. "
             + "Ketiga, Navigasi dan Jaringan: kompas, saya di mana, simpan lokasi, arahkan pulang, jadwal sholat, arah kiblat, atau cek sinyal. "
             + "Keempat, Komunikasi dan Keuangan: panggil atau telepon nama, kirim pesan atau SMS, baca dan balas notifikasi, angkat atau tolak telepon, atau cek transaksi terakhir. "
@@ -896,6 +896,55 @@ public class AsistenAccessibilityService extends AccessibilityService {
                     say("Pesan untuk " + p.a + ": " + text + ". Bilang iya untuk membuka WhatsApp dan mengirim.");
                 }
                 break;
+            case "chat_reply_choice":
+                if (no) {
+                    pending = null;
+                    say("Tidak jadi membalas percakapan " + p.a + ".");
+                } else if (yes) {
+                    pending = new Pending("chat_reply_type", p.a, "");
+                    say("Mau membalas dengan pesan teks atau pesan suara?");
+                } else {
+                    say("Jawab iya untuk membalas atau tidak untuk membatalkan.");
+                }
+                break;
+            case "chat_reply_type":
+                if (has(text, "teks", "pesan teks", "ketik")) {
+                    pending = new Pending("chat_reply_body", p.a, "");
+                    say("Silakan ucapkan isi balasan teks.");
+                } else if (has(text, "suara", "voice note", "pesan suara", "rekaman")) {
+                    pending = null;
+                    say("Perekaman dan pengiriman voice note native belum tersedia dengan aman. Saya tidak akan membuat rekaman palsu. Anda dapat merekam langsung di WhatsApp menggunakan Voice Access, atau memilih balasan teks.");
+                } else if (no) {
+                    pending = null;
+                    say("Balasan dibatalkan.");
+                } else {
+                    say("Pilih pesan teks, atau pesan suara. Untuk saat ini pengiriman otomatis hanya tersedia untuk teks.");
+                }
+                break;
+            case "chat_reply_body":
+                if (no) {
+                    pending = null;
+                    say("Balasan dibatalkan.");
+                } else {
+                    pending = new Pending("chat_reply_confirm", p.a, text);
+                    say("Balasan teks untuk " + p.a + ": " + text + ". Bilang iya untuk mengetik dan mengirim.");
+                }
+                break;
+            case "chat_reply_confirm":
+                if (yes && !no) {
+                    pending = null;
+                    if (!setTextInEditable(p.b)) {
+                        say("Kolom balasan tidak ditemukan. Pesan belum dikirim.");
+                    } else {
+                        main.postDelayed(() -> say(clickExact("kirim", "send")
+                                ? "Tombol kirim ditekan untuk percakapan " + p.a + ". Status terkirim belum dikonfirmasi WhatsApp."
+                                : "Balasan sudah diketik, tetapi tombol kirim tidak ditemukan. Pesan belum dikirim."), 500L);
+                    }
+                } else {
+                    pending = null;
+                    say("Balasan dibatalkan.");
+                }
+                break;
             case "msg_confirm":
                 if (yes && !no) {
                     if (config.isLayeredConfirmEnabled()) {
@@ -1083,14 +1132,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
 
-        // Keselamatan darurat: Sirine bahaya, Latihan SOS, Kartu Medis, Kompas, Lokasi, Rute Pulang
+        // Keselamatan darurat: Sirine bahaya, Kartu Medis, Kompas, Lokasi, Rute Pulang
         if (has(c, "sirine bahaya", "bunyikan sirine", "nyalakan sirine")) {
             say("Menyalakan sirine bahaya, senter Morse SOS, dan siaran darurat Bluetooth.");
             main.postDelayed(() -> EmergencyBeacon.startDangerSiren(this, torchId), 2000L);
-            return;
-        }
-        if (has(c, "latihan sos", "simulasi sos", "tes sos", "uji sos")) {
-            triggerSosSimulation();
             return;
         }
         if (has(c, "kartu medis", "identitas medis", "data medis", "baca kartu medis")) {
@@ -2411,6 +2456,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void openVisibleConversation(String name) {
+        String activePackage = com.asisten.bantu.voiceaccess.NodeIndexer.activePackageName(this);
+        if (!com.asisten.bantu.voiceaccess.NodeIndexer.isWhatsAppPackage(activePackage)) {
+            if (openChatDeepLink(name, "whatsapp", "")) {
+                say("Membuka WhatsApp untuk " + name + ". Saya belum dapat memastikan percakapan terbuka atau membaca pesannya. Buka layar chat terlebih dahulu, lalu perintahkan baca pesan.");
+            } else {
+                say("WhatsApp tidak dapat membuka percakapan " + name + ". Pesan belum dibuka.");
+            }
+            return;
+        }
         if (clickAny(name)) {
             main.postDelayed(() -> {
                 String visible = readScreenText();
@@ -2420,12 +2474,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
                     say("Percakapan " + name + " dibuka, tetapi teks pesannya tidak tersedia untuk dibaca dari layar saat ini.");
                 } else {
                     say("Teks yang terlihat pada layar percakapan " + name + ": " + visible);
+                    pending = new Pending("chat_reply_choice", name, "");
+                    say("Apakah Anda ingin membalas percakapan " + name + "? Bilang iya atau tidak.");
                 }
             }, 800);
-        } else if (openChatDeepLink(name, "whatsapp", "")) {
-            say("Membuka WhatsApp untuk " + name + ". Saya belum bisa memastikan percakapannya terbuka.");
         } else {
-            say("Nama " + name + " tidak ditemukan pada daftar yang terlihat atau kontak HP. Pesan belum dibuka.");
+            say("Nama " + name + " tidak ditemukan pada daftar percakapan WhatsApp yang terlihat. Pesan belum dibuka.");
         }
     }
 
@@ -2682,16 +2736,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 + (loc != null ? "Lokasi terkirim." : "Lokasi belum tersedia, nyalakan GPS.")
                 + " Saya telepon " + who + ".");
         placeCall(who, p1.isEmpty() ? p2 : p1);
-    }
-
-    public void triggerSosSimulation() {
-        HapticFeedback.vibrateSosMorse(this, false);
-        String target = config.hasSosContact()
-                ? (config.getSos("name1").isEmpty() ? config.getSos("phone1") : config.getSos("name1"))
-                : "112";
-        say("Mode Latihan SOS aktif. Ini hanya simulasi tanpa SMS atau panggilan asli. "
-                + "Saat darurat nyata, Kobra mengirim SMS koordinat Google Maps ke " + target
-                + ", menyalakan getaran Morse SOS, lalu menelepon kontak darurat.");
     }
 
     private void openMedicalCardAndRead() {
