@@ -136,10 +136,21 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             // names and suppress message previews. The service owns that app-specific
             // extraction; other apps use the general numbered Voice Access readout.
             val activePackage = NodeIndexer.activePackageName(service)
-            val readout = if (NodeIndexer.isWhatsAppPackage(activePackage) && service is com.asisten.bantu.AsistenAccessibilityService) {
+            val screenText = if (service is com.asisten.bantu.AsistenAccessibilityService) {
                 service.readScreenText()
             } else {
                 NodeIndexer.buildAudioReadout(nodes)
+            }
+            val readout = if (screenText.contains("tidak punya teks yang bisa dibaca", ignoreCase = true)
+                && nodes.isNotEmpty()) {
+                NodeIndexer.buildAudioReadout(nodes)
+            } else {
+                val targetHint = if (nodes.isNotEmpty()) {
+                    " Ada ${nodes.size} target suara pada layar. Ucapkan tampilkan nomor untuk memilih elemen tertentu."
+                } else {
+                    " Tidak ada target yang dapat diindeks dari layar ini."
+                }
+                screenText + targetHint
             }
             sayCallback.accept(readout)
             return true
