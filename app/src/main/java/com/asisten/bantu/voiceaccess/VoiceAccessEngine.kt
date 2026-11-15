@@ -442,6 +442,17 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 sayCallback.accept("Pengaturan cepat dibuka.")
                 return true
             }
+            c == "menu aksesibilitas" || c == "buka menu aksesibilitas" || c == "tombol aksesibilitas" -> {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    val opened = UnifiedAccessibilityEngine.performGlobalNavAction(
+                        service, AccessibilityService.GLOBAL_ACTION_ACCESSIBILITY_BUTTON
+                    )
+                    sayCallback.accept(if (opened) "Aksi tombol aksesibilitas dikirim ke Android." else "Tombol aksesibilitas belum tersedia atau belum dikonfigurasi di Android.")
+                } else {
+                    sayCallback.accept("Tombol aksesibilitas memerlukan Android 9 atau lebih baru.")
+                }
+                return true
+            }
             c == "gulir bawah" || c == "scroll bawah" || c == "gulir ke bawah" || c == "geser ke bawah" -> {
                 UnifiedAccessibilityEngine.scrollGlobal(service, forward = true)
                 refreshOverlaysIfActive()
