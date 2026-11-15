@@ -222,8 +222,8 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
                 val clicked = NodeIndexer.performClickAt(service, target.centerX, target.centerY)
                 val accepted = clicked || UnifiedAccessibilityEngine.clickAt(service, target.centerX.toFloat(), target.centerY.toFloat())
                 sayCallback.accept(
-                    if (clicked) "Tombol ${target.label} menerima aksi klik."
-                    else if (accepted) "Gestur ketuk untuk ${target.label} dikirim. Perubahan layar belum diverifikasi."
+                    if (clicked) "Elemen ${target.label} menerima aksi aksesibilitas."
+                    else if (accepted) "Ketukan pada ${target.label} dikirim ke Android. Perubahan layar belum diverifikasi."
                     else "Sistem menolak klik pada ${target.label}. Layar mungkin berubah; sebutkan baca layar lalu coba lagi."
                 )
                 return true
@@ -232,22 +232,34 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             return true
         }
 
-        // 4) Klik berdasarkan Nama/Label
-        if (c.startsWith("klik ") || c.startsWith("tekan ") || c.startsWith("pencet ")) {
-            val label = raw.replaceFirst(Regex("^(klik|tekan|pencet)\\s+", RegexOption.IGNORE_CASE), "").trim()
+        // 4) Klik berdasarkan label layar: tombol, teks, judul, item daftar,
+        // dan area visual yang tidak diekspos sebagai tombol semantik.
+        if (c.startsWith("klik ") || c.startsWith("tekan ") || c.startsWith("pencet ") || c.startsWith("pilih ")) {
+            val label = raw.replaceFirst(Regex("^(klik|tekan|pencet|pilih)\\s+", RegexOption.IGNORE_CASE), "").trim()
             if (label.isNotEmpty() && !label.startsWith("layar")) {
-                if (UnifiedAccessibilityEngine.clickByNameGlobal(service, label)) {
-                    numberOverlay.hide()
-                    sayCallback.accept("Mengetuk $label.")
-                    return true
-                }
-                val indexed = NodeIndexer.findByLabel(NodeIndexer.indexScreen(service), label)
+                val freshNodes = NodeIndexer.indexScreen(service)
+                lastIndexedNodes = freshNodes
+                val indexed = NodeIndexer.findByLabel(freshNodes, label)
                 if (indexed != null) {
                     numberOverlay.hide()
-                    UnifiedAccessibilityEngine.clickAt(service, indexed.centerX.toFloat(), indexed.centerY.toFloat())
-                    sayCallback.accept("Mengetuk ${indexed.label}.")
+                    val semanticClick = NodeIndexer.performClickAt(service, indexed.centerX, indexed.centerY)
+                    val gestureAccepted = semanticClick || UnifiedAccessibilityEngine.clickAt(
+                        service, indexed.centerX.toFloat(), indexed.centerY.toFloat()
+                    )
+                    sayCallback.accept(
+                        if (semanticClick) "Elemen ${indexed.label} menerima aksi aksesibilitas."
+                        else if (gestureAccepted) "Ketukan pada area ${indexed.label} dikirim ke Android. Hasil perubahan layar belum diverifikasi."
+                        else "Android menolak ketukan pada ${indexed.label}. Layar mungkin berubah; ucapkan baca layar untuk memperbarui target."
+                    )
                     return true
                 }
+                // Tidak memilih kecocokan parsial pertama jika ada beberapa nama mirip.
+                if (freshNodes.any { it.label.contains(label, ignoreCase = true) }) {
+                    sayCallback.accept("Ada beberapa elemen yang mirip dengan $label. Ucapkan baca layar, lalu pilih nomor yang tepat.")
+                } else {
+                    sayCallback.accept("Saya belum menemukan elemen bernama $label pada pohon aksesibilitas layar ini. Coba tampilkan nomor atau grid layar.")
+                }
+                return true
             }
         }
 
