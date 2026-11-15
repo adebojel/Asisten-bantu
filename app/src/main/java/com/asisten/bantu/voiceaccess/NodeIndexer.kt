@@ -340,8 +340,8 @@ object NodeIndexer {
             if (text.isEmpty()) return null
             val start = focused?.textSelectionStart ?: -1
             val end = focused?.textSelectionEnd ?: -1
-            // Do not assume cursor zero or draw a fake first-word rectangle.
-            if (start < 0 || end <= start) return null
+            // Accept only an exposed selection/caret; never assume cursor zero.
+            if (start < 0 || end < 0) return null
             val range = FocusedWordRangeResolver.resolve(text, start, end) ?: return null
             val args = Bundle().apply {
                 putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, range.first)
