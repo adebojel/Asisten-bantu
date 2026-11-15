@@ -1144,6 +1144,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (NavigationActivity.current != null && has(c, "mulai")) { NavigationActivity.current.startNavigation(); return; }
         if (NavigationActivity.current != null && has(c, "berhenti", "stop")) { NavigationActivity.current.stopNavigation(); return; }
 
+        // Percakapan langsung dengan kamera yang sedang aktif: pertanyaan diarahkan ke frame terbaru.
+        if (VisionActivity.current != null && has(c, "ini apa", "uang apa", "nominalnya berapa", "apa yang saya pegang", "apa di depan saya", "baca tulisan ini", "jelaskan benda")) {
+            VisionActivity.askCurrentFrame(c);
+            return;
+        }
+
+        // Satu sesi kamera untuk Mata Kedua + Tongkat digital + percakapan.
+        if (has(c, "aktifkan mata kedua", "nyalakan mata kedua", "mode mata kedua", "mata kedua live", "aktifkan kamera pendamping", "mode tongkat", "aktifkan tongkat")) {
+            launch(VisionActivity.class, "live_companion");
+            say("Mata Kedua langsung aktif. Arahkan kamera ke objek di depan. Tanyakan apa saja dengan menyebut Kobra.");
+            return;
+        }
+
         // Mata Kedua: KTP, penghitung uang, padu padan baju, layar digital, struk, barcode, cari benda, terjemahan kamera, warna, orang, deskripsi
         if (has(c, "baca ktp", "baca kk", "ktp saya")) { launch(VisionActivity.class, "ktp"); return; }
         if (has(c, "hitung uang", "hitung lembar uang", "penghitung uang", "jumlahkan uang")) { launch(VisionActivity.class, "money_count"); return; }
@@ -1159,8 +1172,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (has(c, "ada orang", "deteksi orang", "berapa orang")) { launch(VisionActivity.class, "face"); return; }
         if (has(c, "apa di depan", "lihat apa", "deskripsikan", "ada apa di depan")) { launch(VisionActivity.class, "describe"); return; }
 
-        // Tongkat dan teman ngobrol
-        if (has(c, "tongkat", "halangan")) { launch(NavigationActivity.class, null); say("Mode tongkat dibuka. Arahkan kamera ke depan."); return; }
+        // Teman bicara terpisah tetap tersedia; perintah tongkat kini memakai sesi kamera Mata Kedua terpadu.
+        if (has(c, "tongkat", "halangan")) { launch(VisionActivity.class, "live_companion"); say("Mode kamera pendamping aktif. Perhatikan peringatan suara dan getaran; deteksi kamera bukan pengganti tongkat fisik."); return; }
         if (has(c, "ngobrol", "curhat", "teman bicara")) { launch(AiChatActivity.class, null); return; }
 
         // Darurat: hanya kalau benar-benar diminta
