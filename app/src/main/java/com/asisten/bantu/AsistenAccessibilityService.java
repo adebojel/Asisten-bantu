@@ -889,7 +889,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 break;
             }
             case "msg_body":
-                if (no) {
+                if (VoiceSilenceCommandParser.isExplicitCancelCommand(text)) {
                     say("Pesan dibatalkan.");
                 } else {
                     pending = new Pending("msg_confirm", p.a, text, p.c);
@@ -922,7 +922,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 }
                 break;
             case "chat_reply_body":
-                if (no) {
+                if (VoiceSilenceCommandParser.isExplicitCancelCommand(text)) {
                     pending = null;
                     say("Balasan dibatalkan.");
                 } else {
@@ -965,7 +965,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 pickApp(p, text);
                 break;
             case "sms_body":
-                if (no) {
+                if (VoiceSilenceCommandParser.isExplicitCancelCommand(text)) {
                     say("Pesan dibatalkan.");
                 } else {
                     pending = new Pending("sms_confirm", p.a, text, p.b);
@@ -989,7 +989,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 else say("Pesan dibatalkan.");
                 break;
             case "notif_reply_body":
-                if (no) {
+                if (VoiceSilenceCommandParser.isExplicitCancelCommand(text)) {
                     say("Balasan dibatalkan.");
                 } else {
                     pending = new Pending("notif_reply_confirm", p.a, text);
