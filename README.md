@@ -7,7 +7,7 @@
 
 **Akses ponsel dengan suara. Baca informasi di sekitar. Tetap gunakan fungsi inti saat offline.**
 
-[**Unduh APK**](https://github.com/adebojel/Asisten-bantu/releases) · [Build APK](https://github.com/adebojel/Asisten-bantu/actions) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/kobra-os-v7) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
+[**Unduh APK**](https://github.com/adebojel/Asisten-bantu/releases) · [Build APK](https://github.com/adebojel/Asisten-bantu/actions) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/main) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
 
 ![Android](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
@@ -54,11 +54,11 @@ Artwork 3D di bagian atas adalah ilustrasi identitas produk. Screenshot aplikasi
 | AI online | Router provider ketika internet dan konfigurasi tersedia |
 | AI lokal | Runtime MediaPipe dan LiteRT-LM untuk model yang kompatibel |
 
-Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, provider, dan model yang terpasang.
+Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, provider, dan model yang terpasang. Chat, input suara dari chat, dan perintah global dirancang masuk ke jalur percakapan yang sama; riwayat chat kini disimpan lokal dan dipulihkan saat layar chat dibuka kembali.
 
 ## AI hybrid: online dan offline
 
-Kobra mempertahankan fungsi lokal untuk perintah dasar. Untuk percakapan generatif, urutan Chat adalah Gemma 3 1B jika tersedia, lalu Qwen3 0.6B LiteRT-LM jika sudah diimpor dan lolos pemeriksaan RAM, kemudian AI online jika internet tersedia. Jika semua model gagal/tidak tersedia, Kobra tetap menjalankan perintah lokal, kalkulator, memori, agenda, dan ringkasan ekstraktif. Model lokal berjalan di perangkat; setelah model berhasil dipasang dan dimuat, percakapan teks tidak membutuhkan koneksi internet. Pengenalan suara offline tetap bergantung pada dukungan dan paket bahasa offline layanan SpeechRecognizer Android.
+Paket APK sudah menyertakan **otak offline dasar Kobra** (mesin aturan, kalkulator, dan basis pengetahuan `kobra_kb.txt`) sehingga fungsi bantuan dasar tidak memerlukan unduhan model tambahan. Ini bukan LLM generatif penuh. Untuk percakapan generatif lokal, urutan Chat adalah Gemma 3 1B jika tersedia, lalu Qwen3 0.6B LiteRT-LM jika sudah diimpor dan lolos pemeriksaan RAM, kemudian AI online jika internet tersedia. Jika semua model gagal/tidak tersedia, Kobra tetap menjalankan perintah lokal, kalkulator, memori, agenda, dan pengetahuan dasar. Model LLM besar tetap dipisah dari APK agar ukuran instalasi dan kebutuhan RAM tidak membengkak; Qwen3 sekitar 300–400 MB. Pengenalan suara offline tetap bergantung pada dukungan dan paket bahasa offline layanan SpeechRecognizer Android.
 
 | Jalur | Format | Runtime |
 |---|---|---|
@@ -87,6 +87,7 @@ APK debug #134 sudah tersedia untuk pengujian perangkat. Saat ini belum ada rili
 - [x] Pemeriksaan RAM sebelum pemuatan model lokal.
 - [x] Chat mencoba Gemma lokal, lalu Qwen3 LiteRT-LM lokal sebelum AI online.
 - [x] Callback runtime Qwen dikembalikan ke main thread untuk menjaga keamanan UI Android.
+- [x] Riwayat chat terpadu (suara/teks dan respons lokal/online) disimpan lokal dan dipulihkan saat chat dibuka kembali.
 - [x] Fallback perintah dan pengetahuan dasar tetap tersedia ketika model generatif tidak bisa dimuat.
 - [x] Fallback pengenalan objek ke Image Labeling ditambahkan pada branch pengembangan.
 - [x] Build Android `main` dan tes unit setelah integrasi fallback (GitHub Actions #134 berhasil; artifact APK tersedia).
