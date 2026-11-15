@@ -179,6 +179,41 @@ object NodeIndexer {
         return sb.toString().trim()
     }
 
+    /**
+     * Re-resolves the current accessibility tree and performs ACTION_CLICK on the
+     * smallest actionable node containing the indexed screen point. This avoids
+     * acting on stale AccessibilityNodeInfo instances after a screen transition.
+     */
+    @JvmStatic
+    fun performClickAt(service: AccessibilityService?, x: Int, y: Int): Boolean {
+        if (service == null || x < 0 || y < 0) return false
+        val root = selectActiveRoot(service) ?: return false
+        return try {
+            performClickAtRecursive(root, x, y)
+        } finally {
+            safeRecycle(root)
+        }
+    }
+
+    private fun performClickAtRecursive(node: AccessibilityNodeInfo?, x: Int, y: Int): Boolean {
+        if (node == null || !node.isVisibleToUser || !node.isEnabled) return false
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
+        if (!bounds.contains(x, y)) return false
+
+        // Prefer the deepest clickable child so nested rows do not swallow a
+        // command intended for a smaller button inside the row.
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            try {
+                if (performClickAtRecursive(child, x, y)) return true
+            } finally {
+                safeRecycle(child)
+            }
+        }
+        return node.isClickable && node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+    }
+
     private fun selectActiveRoot(service: AccessibilityService): AccessibilityNodeInfo? {
         return try {
             service.rootInActiveWindow
