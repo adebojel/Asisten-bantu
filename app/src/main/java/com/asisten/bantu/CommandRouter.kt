@@ -32,9 +32,13 @@ import java.util.function.Consumer
  * Prioritas 3 — Offline Gemma 3 1B + Memori Lokal + Persona:
  *   Memproses tanya-jawab offline memakai LocalLlmEngine dengan injeksi LocalMemoryStore & KobraPersona.
  *
- * Prioritas 4 — Online Gemini Vision/Text API (atau OpenRouter fallback):
- *   Mengambil tangkapan layar Android 11+ (Eyes) dan pohon UI AccessibilityNodeInfo, lalu
- *   menjalankan analisis visual atau loop agen multi-langkah dengan Anti-Stuck & Pop-up Recovery.
+ * Prioritas 4 — OnlineAiRouter (OpenRouter, hanya model multimodal berharga nol terverifikasi):
+ *   Analisis visual layar eksplisit memakai screenshot + konteks pohon UI; jika provider gratis,
+ *   model gambar, atau screenshot tidak tersedia, kembali ke teks aksesibilitas lokal.
+ *
+ * Catatan keselamatan:
+ *   Loop agen multi-langkah tetap nonaktif/tidak dirutekan sampai konfirmasi aksi berisiko,
+ *   verifikasi perubahan layar setelah setiap aksi, dan penghentian aman tersedia.
  */
 object CommandRouter {
 
