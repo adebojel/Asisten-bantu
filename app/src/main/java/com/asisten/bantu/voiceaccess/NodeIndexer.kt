@@ -99,15 +99,48 @@ object NodeIndexer {
 
     @JvmStatic
     fun findByLabel(nodes: List<IndexedNode>, query: String): IndexedNode? {
-        val q = query.trim().lowercase(Locale.ROOT)
+        val q = normalizeTarget(query)
         if (q.isEmpty()) return null
-        val normalized = nodes.map { it to it.label.lowercase(Locale.ROOT) }
-        val exact = normalized.filter { it.second == q }
-        if (exact.isNotEmpty()) return exact.singleOrNull()?.first
-        val partial = normalized.filter { it.second.contains(q) || q.contains(it.second) }
-        // Jangan menebak target pertama jika beberapa label cocok.
-        return partial.singleOrNull()?.first
+        val ranked = nodes.mapNotNull { node ->
+            val text = normalizeTarget(node.label)
+            val id = normalizeTarget(node.viewId.replace('_', ' '))
+            val score = when {
+                text.isNotEmpty() && text == q -> 100
+                id.isNotEmpty() && id == q -> 90
+                text.isNotEmpty() && stripTarget(text) == stripTarget(q) -> 80
+                text.isNotEmpty() && startsWithTargetWord(text, q) -> 60
+                text.isNotEmpty() && containsTargetWord(text, q) -> 40
+                id.isNotEmpty() && containsTargetWord(id, q) -> 30
+                else -> 0
+            }
+            if (score >= 30) node to score else null
+        }.sortedWith(
+            compareByDescending<Pair<IndexedNode, Int>> { it.second }
+                .thenByDescending { it.first.isClickable || it.first.isEditable }
+                .thenBy { it.first.bounds.width().toLong() * it.first.bounds.height() }
+        )
+        val best = ranked.firstOrNull() ?: return null
+        // If a separate target has a near-identical score, ask the user rather than guessing.
+        val ambiguous = ranked.drop(1).any { candidate ->
+            best.second - candidate.second < 10 &&
+                !Rect.intersects(best.first.bounds, candidate.first.bounds)
+        }
+        return if (ambiguous) null else best.first
     }
+
+    private fun normalizeTarget(value: String): String =
+        value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
+
+    private fun stripTarget(value: String): String =
+        value.replace(Regex("[^\\p{L}\\p{N}]"), "")
+
+    private fun startsWithTargetWord(text: String, query: String): Boolean =
+        text == query || text.startsWith("$query ") ||
+            stripTarget(text).startsWith(stripTarget(query))
+
+    private fun containsTargetWord(text: String, query: String): Boolean =
+        Regex("(?<![\\p{L}\\p{N}])${Regex.escape(query)}(?![\\p{L}\\p{N}])")
+            .containsMatchIn(text)
 
     private fun collectInteractive(
         node: AccessibilityNodeInfo?,
