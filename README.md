@@ -7,7 +7,7 @@
 
 **Akses ponsel dengan suara. Baca informasi di sekitar. Tetap gunakan fungsi inti saat offline.**
 
-[**Unduh APK**](https://github.com/adebojel/Asisten-bantu/releases) · [Build APK](https://github.com/adebojel/Asisten-bantu/actions) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/main) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
+[**Unduh APK — Releases**](https://github.com/adebojel/Asisten-bantu/releases/latest) · [Semua versi](https://github.com/adebojel/Asisten-bantu/releases) · [Status build APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/main) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
 
 ![Android](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
@@ -73,11 +73,26 @@ Model tidak otomatis cocok untuk setiap ponsel. Kobra menggunakan pemeriksaan me
 
 ## Unduh dan instalasi
 
-- **APK rilis:** [GitHub Releases](https://github.com/adebojel/Asisten-bantu/releases)
-- **APK debug terbaru:** [Build main #134 — unduh artifact Kobra-OS-APK](https://github.com/adebojel/Asisten-bantu/actions/runs/43637435906) → bagian Artifacts → `Kobra-OS-APK` → unzip → pasang `app-debug.apk`.
-- **Model offline Qwen3 0.6B:** [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0). Unduh berkas `.litertlm` dan file `.sha256`, verifikasi checksum, lalu buka Kobra → Pengaturan → AI & Model → Impor Model. Pilih berkas `.litertlm`, tunggu penyalinan selesai, kemudian tekan Muat / Uji. Pastikan ruang penyimpanan cukup (model sekitar 300–400 MB) dan RAM tersedia memadai.
+<details>
+<summary><strong>Unduh aplikasi Kobra OS (APK)</strong></summary>
 
-APK debug #134 sudah tersedia untuk pengujian perangkat. Saat ini belum ada rilis APK stabil yang dinyatakan siap untuk penggunaan rutin. APK debug ditujukan untuk pengujian. Workflow prerelease APK sudah tersedia di [Kobra OS APK Release](.github/workflows/release-apk.yml); rilis baru dianggap tersedia setelah workflow dijalankan dan aset APK muncul di halaman Releases.
+**[BUKA HALAMAN UNDUHAN KOBRA OS — GITHUB RELEASES](https://github.com/adebojel/Asisten-bantu/releases/latest)**
+
+Di halaman Releases:
+1. Buka rilis terbaru bertanda **Pre-release**.
+2. Pada bagian **Assets**, pilih berkas `.apk` untuk mengunduh aplikasi.
+3. Unduh `SHA256SUMS.txt` bila ingin memeriksa integritas file.
+4. Setelah unduhan selesai, buka APK dan ikuti konfirmasi instalasi Android. Android mungkin meminta izin instalasi dari sumber ini.
+
+Jika belum ada berkas APK pada bagian Assets, proses build/publikasi belum selesai. Periksa [status workflow rilis APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml).
+
+</details>
+
+- **Semua versi dan catatan rilis:** [GitHub Releases](https://github.com/adebojel/Asisten-bantu/releases)
+- **Status build/publikasi otomatis:** [Kobra OS — Auto Build and Release](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml)
+- **Model offline Qwen3 0.6B:** [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0). Unduh berkas `.litertlm` dan file `.sha256`, verifikasi checksum, lalu buka Kobra → Pengaturan → AI & Model → Impor Model. Ikuti petunjuk di aplikasi dan pastikan ruang penyimpanan serta RAM memadai.
+
+**Status distribusi:** workflow pada branch `main` kini dikonfigurasi untuk membangun APK debug, membuat checksum SHA-256, dan menerbitkan keduanya sebagai GitHub Pre-release setiap kali perubahan masuk ke `main`. Rilis hanya dapat diunduh setelah workflow selesai sukses dan aset APK benar-benar tampil pada halaman Releases. Build debug ditujukan untuk pengujian, bukan dinyatakan sebagai rilis stabil.
 
 ## Status pengembangan
 
