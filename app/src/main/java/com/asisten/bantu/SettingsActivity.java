@@ -859,9 +859,9 @@ public class SettingsActivity extends AppCompatActivity {
         VoiceProfileManager.GeminiLiveVoiceProfile active =
                 VoiceProfileManager.getGeminiLiveVoice(selected);
         if (tvGeminiLiveVoiceSummary != null) {
-            tvGeminiLiveVoiceSummary.setText("Profil dipilih: " + active.getDisplayName()
-                    + " • Karakter Live API: " + active.getApiVoiceName()
-                    + "\nPilihan ini tersimpan untuk sesi Live online. TTS lokal tetap memakai suara yang tersedia di HP.");
+            tvGeminiLiveVoiceSummary.setText("Gaya aktif: " + active.getDisplayName()
+                    + " • Referensi karakter: " + active.getApiVoiceName()
+                    + "\nTTS lokal memakai mesin suara Android yang tersedia di HP; ini bukan salinan suara Gemini.");
         }
 
         for (int start = 0; start < VoiceProfileManager.GEMINI_LIVE_VOICES.size(); start += 2) {
@@ -889,9 +889,12 @@ public class SettingsActivity extends AppCompatActivity {
                 row.addView(choice, buttonParams);
                 choice.setOnClickListener(v -> {
                     config.setGeminiLiveVoiceId(profile.getId());
+                    config.setSpeechPitch(profile.getPitch());
+                    config.setSpeechRate(profile.getRate());
+                    VoiceProfileManager.syncAllTts(SettingsActivity.this);
                     setupGeminiLiveVoiceChoices();
-                    speaker.speak("Profil suara " + profile.getDisplayName()
-                            + " dipilih untuk sesi Live online.");
+                    speaker.speak("Gaya suara " + profile.getDisplayName()
+                            + " diterapkan ke suara lokal perangkat.");
                 });
             }
             layoutGeminiLiveVoiceChoices.addView(row, rowParams);
