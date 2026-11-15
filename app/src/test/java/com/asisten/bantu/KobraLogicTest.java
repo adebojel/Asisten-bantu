@@ -60,6 +60,16 @@ public class KobraLogicTest {
     }
 
     @Test
+    public void testLiveCameraAnalysisModes() {
+        assertTrue(VisionActivity.supportsLiveAnalysisMode("live_companion"));
+        assertTrue(VisionActivity.supportsLiveAnalysisMode("digital_screen"));
+        assertTrue(VisionActivity.supportsLiveAnalysisMode("barcode"));
+        assertTrue(VisionActivity.supportsLiveAnalysisMode("find_object"));
+        assertEquals(false, VisionActivity.supportsLiveAnalysisMode("describe"));
+        assertEquals(false, VisionActivity.supportsLiveAnalysisMode(""));
+    }
+
+    @Test
     public void testPhoneFormat() {
         assertEquals("6281234567890", PhoneFormat.toInternational("0812-3456-7890"));
         assertEquals("6281234567890", PhoneFormat.toInternational("+62 812 3456 7890"));
