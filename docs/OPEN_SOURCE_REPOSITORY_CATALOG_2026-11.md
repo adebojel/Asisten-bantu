@@ -174,3 +174,15 @@ KOBRA sekarang memakai resolver murni yang:
 - Tetap menggunakan accessibility node aktual; tidak membentuk hitbox buatan per kata dari teks OCR.
 
 Implementasi berada di `voiceaccess/TargetLabelMatcher.kt`, dipanggil oleh `NodeIndexer.findByLabel()`, dengan unit test untuk exact match, ambiguitas, overlap, resource ID dan batas kata Unicode.
+
+
+## Tambahan riset perangkat dan MCP tools — 16 November 2026
+
+| Repository | Lisensi | Sistem/fungsi | Keputusan KOBRA |
+|---|---|---|---|
+| [stixez/droid-mcp](https://github.com/stixez/droid-mcp) | Apache-2.0 | SDK Android dengan 160+ tools dalam 50+ modul: kalender, kontak, SMS, file, media, notifikasi, status perangkat, lokasi, sensor, aplikasi, alarm, kamera, TTS, dan aksesibilitas. minSdk 28. Mendukung pemanggilan in-process oleh model lokal, output schema, read-only mode, dan approval untuk tool berisiko. | Prioritas integrasi bertahap tertinggi. Pilih modul yang tidak menambah service pemilik kamera/mikrofon/AccessibilityService. Mulai dari read-only device/calendar/contacts/app metadata; tindakan tulis, SMS, kontak, penghapusan dan setting wajib melalui confirmation gate. Gunakan SDK lokal, bukan HTTP server terbuka secara default. |
+| [dondetir/NeuralBridge_mcp](https://github.com/dondetir/NeuralBridge_mcp) | LICENSE Apache-2.0 (metadata GitHub NOASSERTION) | MCP Android automation via AccessibilityService, screen query ranking, tap/swipe/type, screenshots dan 32 tools. | Referensi action/tool contracts dan ranking saja. Tidak menambahkan AccessibilityService kedua; adaptasi hanya bila kompatibel dengan service tunggal KOBRA. |
+| [vNeeL-code/GHOST](https://github.com/vNeeL-code/GHOST) | MIT badge; root LICENSE tidak ditemukan saat audit | Agentic Gemma inference untuk Android, LiteRT-LM, system intelligence dan tool routing. README menargetkan Android 14+ dan Gemma 4. | Referensi orkestrasi model lokal. Jangan menambahkan engine kedua atau menaikkan minSdk; KOBRA mempertahankan Qwen3/LiteRT-LM sampai benchmark membuktikan penggantian lebih baik. |
+| [eggbrid2/mobileClaw](https://github.com/eggbrid2/mobileClaw) | LICENSE MIT tersedia; metadata NOASSERTION | Android AI arena multi-model; README build saat ini berfokus pada group-play/game room, bukan bukti produksi penuh phone-control. | Bukan prioritas integrasi kontrol ponsel. Riset hanya untuk multi-model orchestration bila ada use case yang jelas. |
+| [qpst4/XGesture](https://github.com/qpst4/XGesture) | AGPL-3.0 | 50+ gesture/one-hand actions, offline OCR, edge panels, Shizuku/Root/LSPosed. Android 12+. | Tidak menyalin kode; lisensi copyleft dan overlay tambahan bertentangan dengan desain mic-only KOBRA. |
+| [chayanforyou/QuickBall](https://github.com/chayanforyou/QuickBall) | GPL-3.0 | Floating action ball untuk volume, brightness dan lock, draggable dan edge-snap. | Tidak diintegrasikan: GPL-3.0 dan KOBRA hanya menginginkan orb mic persisten. |
