@@ -672,9 +672,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (pending != null) {
             // Keep safety-confirmation replies visible in the same Chat transcript.
             // The pending branch intentionally bypasses normal Chat dispatch.
-            if (ChatActivity.isUnifiedConversationActive()) {
-                ChatActivity.appendGlobalUser(raw);
-            }
+            ChatActivity.appendGlobalUser(this, raw);
             Pending p = pending;
             if ("med_confirm".equals(p.kind) && stripWake(text) != null
                     && !containsWord(text, YES) && !containsWord(text, NO)
@@ -706,8 +704,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
             }
             if (System.currentTimeMillis() > conversationUntil) return;
             cmd = text;
-        } else if (ChatActivity.isUnifiedConversationActive()) {
-            ChatActivity.appendGlobalUser(raw);
+        } else {
+            ChatActivity.appendGlobalUser(this, raw);
         }
         conversationUntil = System.currentTimeMillis() + CONVERSATION_WINDOW_MS;
         route(cmd);
@@ -1954,9 +1952,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void say(String text) {
         if (text == null || text.isEmpty()) return;
         lastSpoken = text;
+        boolean belongsToVoiceTurn = ChatActivity.isUnifiedConversationActive()
+                || System.currentTimeMillis() <= conversationUntil;
         conversationUntil = System.currentTimeMillis() + CONVERSATION_WINDOW_MS;
         if (ChatActivity.isUnifiedConversationActive()) {
             ChatActivity.appendGlobalAssistant(text, "Kontrol Kobra");
+        } else if (belongsToVoiceTurn) {
+            ChatActivity.appendGlobalAssistant(this, text, "Kontrol Kobra");
         }
         speaker.speak(text);
     }
