@@ -186,3 +186,17 @@ Implementasi berada di `voiceaccess/TargetLabelMatcher.kt`, dipanggil oleh `Node
 | [eggbrid2/mobileClaw](https://github.com/eggbrid2/mobileClaw) | LICENSE MIT tersedia; metadata NOASSERTION | Android AI arena multi-model; README build saat ini berfokus pada group-play/game room, bukan bukti produksi penuh phone-control. | Bukan prioritas integrasi kontrol ponsel. Riset hanya untuk multi-model orchestration bila ada use case yang jelas. |
 | [qpst4/XGesture](https://github.com/qpst4/XGesture) | AGPL-3.0 | 50+ gesture/one-hand actions, offline OCR, edge panels, Shizuku/Root/LSPosed. Android 12+. | Tidak menyalin kode; lisensi copyleft dan overlay tambahan bertentangan dengan desain mic-only KOBRA. |
 | [chayanforyou/QuickBall](https://github.com/chayanforyou/QuickBall) | GPL-3.0 | Floating action ball untuk volume, brightness dan lock, draggable dan edge-snap. | Tidak diintegrasikan: GPL-3.0 dan KOBRA hanya menginginkan orb mic persisten. |
+
+
+## Tambahan audit resolusi target layar — ScreenSaathi
+
+| Repository | Lisensi | Sistem/fungsi yang diteliti | Keputusan |
+|---|---|---|---|
+| [NITISH-R-G/ScreenSaathi](https://github.com/NITISH-R-G/ScreenSaathi) | MIT (LICENSE diperiksa) | Kotlin Accessibility API, target resolver berperingkat (teks/ID), ambiguitas antar elemen spasial, penolakan jika target tidak terlihat, highlight target yang nyata, deteksi perubahan layar, dan pendekatan tanpa aksi otomatis (pengguna sendiri yang mengetuk). | Referensi prioritas tinggi. KOBRA telah membuat `TargetLabelMatcher` sendiri dengan batas kata Unicode yang lebih ketat untuk menghindari kecocokan substring seperti "call" pada "Recall". KOBRA tidak menyalin Sarvam STT, planner, cursor animation, overlay ring persisten, atau task service ScreenSaathi. Pertahankan kebijakan orb mic sebagai satu-satunya overlay persisten dan fokus sementara hanya pada geometri teks yang benar-benar disediakan Android. |
+
+### Perbedaan kebijakan interaksi
+
+- ScreenSaathi memilih model *show the target, user taps* dan tidak bertindak atas nama pengguna.
+- KOBRA memiliki agen navigasi terbatas yang dapat membuka aplikasi, memilih kontrol navigasi aman, scroll, back, dan home. Aksi pesan, panggilan, transaksi, penghapusan, perubahan keamanan, izin, upload, dan sejenisnya ditolak oleh guard.
+- Jangan memperluas agen ke input teks atau aksi eksternal sebelum ada konfirmasi eksplisit per aksi dan verifikasi hasil pasca-aksi.
+- Jangan menyamakan keberhasilan API klik dengan keberhasilan tugas; fingerprint layar harus berubah dan tujuan tetap perlu diverifikasi.
