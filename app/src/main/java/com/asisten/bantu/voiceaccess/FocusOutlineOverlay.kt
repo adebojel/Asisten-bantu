@@ -63,15 +63,10 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
 
         private val density = context.resources.displayMetrics.density
         private var focusBounds: Rect? = null
-        private val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(65, 0, 229, 255)
-            style = Paint.Style.STROKE
-            strokeWidth = 7f * density
-        }
         private val outline = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(0, 229, 255)
+            color = Color.argb(220, 0, 210, 235)
             style = Paint.Style.STROKE
-            strokeWidth = 2.2f * density
+            strokeWidth = 1.15f * density
         }
 
         fun setBounds(bounds: Rect) {
@@ -82,7 +77,7 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
             val bounds = focusBounds ?: return
-            val inset = 2f * density
+            val inset = 0.6f * density
             val rect = RectF(
                 bounds.left.toFloat() + inset,
                 bounds.top.toFloat() + inset,
@@ -90,8 +85,8 @@ class FocusOutlineOverlay(private val service: AccessibilityService) {
                 bounds.bottom.toFloat() - inset
             )
             if (rect.width() <= 0f || rect.height() <= 0f) return
-            val radius = 7f * density
-            canvas.drawRoundRect(rect, radius, radius, glow)
+            // Tight word/element boundary: no glow, fill, shade, or screen-wide dim layer.
+            val radius = 2f * density
             canvas.drawRoundRect(rect, radius, radius, outline)
         }
     }
