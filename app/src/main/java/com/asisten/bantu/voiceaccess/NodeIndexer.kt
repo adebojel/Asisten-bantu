@@ -123,10 +123,13 @@ object NodeIndexer {
         // If a separate target has a near-identical score, ask the user rather than guessing.
         val ambiguous = ranked.drop(1).any { candidate ->
             best.second - candidate.second < 10 &&
-                !Rect.intersects(best.first.bounds, candidate.first.bounds)
+                !overlapsBounds(best.first.bounds, candidate.first.bounds)
         }
         return if (ambiguous) null else best.first
     }
+
+    private fun overlapsBounds(a: Rect, b: Rect): Boolean =
+        a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 
     private fun normalizeTarget(value: String): String =
         value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
