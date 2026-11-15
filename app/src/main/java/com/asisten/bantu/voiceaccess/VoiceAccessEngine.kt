@@ -131,7 +131,20 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             if (cfg.isVisualNumbersEnabled && numberOverlay.isShowing()) {
                 numberOverlay.show(nodes)
             }
-            sayCallback.accept(NodeIndexer.buildAudioReadout(nodes))
+            // WhatsApp conversation-list readout must prioritize visible contact/group
+            // names and suppress message previews. The service owns that app-specific
+            // extraction; other apps use the general numbered Voice Access readout.
+            val activePackage = try {
+                service.rootInActiveWindow?.packageName?.toString()
+            } catch (_: Throwable) {
+                null
+            }
+            val readout = if (NodeIndexer.isWhatsAppPackage(activePackage) && service is com.asisten.bantu.AsistenAccessibilityService) {
+                service.readScreenText()
+            } else {
+                NodeIndexer.buildAudioReadout(nodes)
+            }
+            sayCallback.accept(readout)
             return true
         }
 
