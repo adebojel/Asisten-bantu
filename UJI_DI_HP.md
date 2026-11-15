@@ -25,22 +25,32 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 14. "Kobra buka" lalu nama yang mirip beberapa aplikasi (misalnya "Google"): Kobra harus menyebut nomor; jawab "dua".
 
 ## E. Layar
-15. Buka aplikasi apa saja, ucapkan "Kobra baca layar", lalu "Kobra sebutkan tombol", lalu "Kobra tekan nomor 1".
-16. "Kobra scroll bawah", "Kobra geser kiri", "Kobra kembali", "Kobra beranda".
+15. Buka aplikasi apa saja, ucapkan "Kobra baca layar". Pastikan Kobra membacakan teks/label dan kontrol, bukan hanya tombol.
+16. Pilih elemen teks yang tidak memiliki tombol aksesibilitas: "Kobra klik [teks yang terlihat]". Pastikan Kobra mengetuk area teks yang benar atau jujur menyatakan target tidak tersedia.
+17. Uji dua label mirip, misalnya beberapa tombol "Putar". Kobra tidak boleh menebak; harus meminta nomor.
+18. "Kobra tampilkan nomor", pilih target, lalu ucapkan "Kobra klik nomor 1". Pastikan nomor diperbarui setelah layar berubah.
+19. "Kobra scroll bawah", "Kobra geser kiri", "Kobra kembali", "Kobra beranda".
 
 ## F. Pesan masuk dan telepon
-17. Minta teman mengirim WhatsApp dan SMS. Notifikasi harus dibacakan; lalu "Kobra baca notifikasi", "Kobra baca SMS".
-18. Minta teman menelepon: Kobra harus menyebut "Panggilan"; coba "Kobra angkat telepon", lalu "Kobra tolak telepon" pada panggilan berikutnya.
+20. Minta teman mengirim WhatsApp dan SMS. Notifikasi harus dibacakan; lalu "Kobra baca notifikasi", "Kobra baca SMS".
+21. Minta teman menelepon: Kobra harus menyebut status panggilan; coba "Kobra angkat telepon", lalu "Kobra tolak telepon" pada panggilan berikutnya.
+22. Uji WhatsApp panggilan suara dan video pada kontak uji; periksa apakah tombol yang benar dapat ditemukan dan status panggilan dilaporkan tanpa mengarang.
 
-## G. Keselamatan
+## G. TalkBack dan Android Accessibility Suite
+23. Buka Pengaturan Kobra > Kontrol Suara, lalu pilih "Buka Pengaturan Aksesibilitas Android".
+24. Periksa TalkBack, Select to Speak, Accessibility Menu, pengaturan suara, gestur, dan fokus. Aktifkan TalkBack secara manual bila ingin menggunakannya.
+25. Uji "Kobra status TalkBack" ketika TalkBack mati dan aktif. Pastikan Kobra tidak salah menganggap layanan aksesibilitas lain sebagai TalkBack.
+26. Uji apakah suara TalkBack dan Kobra bertumpuk. Catat konfigurasi layanan yang aktif; jangan menonaktifkan layanan yang diperlukan pengguna tanpa persetujuan.
+
+## H. Keselamatan
 19. "Kobra tolong" lalu "iya": SMS berisi tautan lokasi harus sampai ke kontak uji dan Kobra menelepon. Coba dengan GPS menyala dan mati.
 20. "Kobra mode tongkat", "mulai", arahkan ke dinding atau kursi.
 
-## H. Offline
+## I. Offline
 21. Matikan WiFi dan data (lewat pengaturan HP, bukan Kobra). Ucapkan "Kobra hitung dua puluh lima kali empat" (harus 100), "Kobra tersedak", "Kobra warna apa" lalu scan, "Kobra baca KTP".
 22. "Kobra cari resep" harus dijawab butuh internet.
 
-## I. AI online
+## J. AI online
 23. Isi API key OpenRouter di Pengaturan AI, tekan Tes AI. Lalu tanyakan sesuatu yang tidak ada di perintah, misalnya "Kobra ceritakan tentang Candi Borobudur".
 
 ## Melaporkan masalah
