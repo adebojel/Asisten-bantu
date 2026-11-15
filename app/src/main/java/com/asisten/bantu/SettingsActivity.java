@@ -108,6 +108,38 @@ public class SettingsActivity extends AppCompatActivity {
                 if (uri != null) importBackupFromUri(uri);
             });
 
+    /**
+     * Ask for permissions by feature, never as one large unrelated bundle.
+     * The user chooses the capability first; already-granted permissions are omitted.
+     */
+    private void showFeaturePermissionPicker() {
+        new AlertDialog.Builder(this)
+                .setTitle("Pilih izin berdasarkan fitur")
+                .setMessage("KOBRA hanya meminta izin untuk fitur yang Anda pilih. Izin lain tidak diminta bersamaan.")
+                .setItems(Perms.groupLabels(), (dialog, which) -> {
+                    try {
+                        String[] group = Perms.forGroup(which);
+                        java.util.ArrayList<String> missing = new java.util.ArrayList<>();
+                        for (String permission : group) {
+                            if (!Perms.has(this, permission)) missing.add(permission);
+                        }
+                        if (missing.isEmpty()) {
+                            Toast.makeText(this, "Izin fitur ini sudah tersedia atau tidak diperlukan pada versi Android ini.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        ActivityCompat.requestPermissions(
+                                this,
+                                missing.toArray(new String[0]),
+                                100 + which
+                        );
+                    } catch (Throwable t) {
+                        Toast.makeText(this, "Gagal meminta izin: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Batal", null)
+                .show();
+    }
+
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
@@ -230,11 +262,7 @@ public class SettingsActivity extends AppCompatActivity {
         // Card 1: System Permissions & Default Digital Assistant
         findViewById(R.id.btnSettingsPermissions).setOnClickListener(v -> {
             HapticFeedback.vibrateAction(this);
-            try {
-                ActivityCompat.requestPermissions(this, Perms.required(), 100);
-            } catch (Throwable t) {
-                Toast.makeText(this, "Gagal meminta izin: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-            }
+            showFeaturePermissionPicker();
         });
         findViewById(R.id.btnSettingsAccessibility).setOnClickListener(v -> {
             HapticFeedback.vibrateAction(this);
