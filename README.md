@@ -46,7 +46,8 @@ Artwork 3D di bagian atas adalah ilustrasi identitas produk. Screenshot aplikasi
 | Modul | Fungsi |
 |---|---|
 | Kontrol suara | Membuka aplikasi, navigasi layar, dan menjalankan perintah yang diizinkan Android |
-| Aksesibilitas | Membaca teks layar dan berinteraksi dengan elemen antarmuka melalui Accessibility Service |
+| Aksesibilitas suara | Membaca teks, label, kontrol, dan target teks layar; memilih kontrol semantik atau mengetuk area teks melalui Accessibility Service dan gestur |
+| Interoperabilitas TalkBack | Membuka pengaturan TalkBack/Accessibility Suite Android, membaca status layanan TalkBack yang benar, dan menerima event fokus aksesibilitas |
 | Mata Kedua Terpadu | Satu sesi kamera: OCR langsung, label objek offline, panduan posisi teks, senter adaptif, dan perintah analisis sesuai pertanyaan |
 | Tongkat Digital | Terintegrasi ke Mata Kedua Terpadu; deteksi label tidak mengukur jarak/arah dan bukan pengganti tongkat putih |
 | Komunikasi | Alur panggilan, SMS, notifikasi, dan aplikasi pesan dengan izin serta konfirmasi |
@@ -54,7 +55,7 @@ Artwork 3D di bagian atas adalah ilustrasi identitas produk. Screenshot aplikasi
 | AI online | Router provider ketika internet dan konfigurasi tersedia |
 | AI lokal | Runtime MediaPipe dan LiteRT-LM untuk model yang kompatibel |
 
-Ketersediaan fitur bergantung pada versi Android, izin, perangkat, koneksi, provider, dan model. Voice Access menyediakan indeks elemen layar, klik nomor 1–60, grid 3×3 dengan zoom bertingkat, ketik, gulir, dan gestur yang diizinkan Android. Interupsi ucapan memakai partial speech results untuk frasa berhenti yang jelas; perintah diam persisten dibedakan dari STOP satu kali. Chat, input suara, dan perintah global diarahkan ke jalur percakapan yang sama; riwayat chat disimpan lokal. Mode hands-free masih bergiliran melalui SpeechRecognizer/TTS, bukan streaming full-duplex.
+Voice Access Kobra mengindeks kontrol interaktif serta label/teks layar yang diekspos pohon aksesibilitas; target teks yang tidak memiliki aksi klik dicoba melalui gestur ketuk pada koordinat teks. Pencocokan nama menghindari memilih kecocokan parsial pertama ketika ada beberapa target mirip. Untuk aplikasi yang menggambar antarmuka di canvas, menyembunyikan teks dari AccessibilityNodeInfo, memakai jendela aman, atau memblokir screenshot/gestur, target dapat tetap tidak tersedia dan Kobra harus mengatakannya dengan jujur. Voice Access menyediakan indeks elemen layar, klik nomor 1–60, grid 3×3 dengan zoom bertingkat, ketik, gulir, dan gestur yang diizinkan Android. Interupsi ucapan memakai partial speech results untuk frasa berhenti yang jelas; perintah diam persisten dibedakan dari STOP satu kali. Chat, input suara, dan perintah global diarahkan ke jalur percakapan yang sama; riwayat chat disimpan lokal. Mode hands-free masih bergiliran melalui SpeechRecognizer/TTS, bukan streaming full-duplex.
 
 ## AI hybrid: online dan offline
 
@@ -172,7 +173,10 @@ APK debug, jika build berhasil, berada di `app/build/outputs/apk/debug/app-debug
 - API key provider AI harus disimpan sebagai rahasia dan tidak boleh di-commit.
 - Jalur AI online otomatis saat ini memerlukan API key OpenRouter yang dimasukkan pengguna. Router hanya memilih model yang harga input dan output-nya terdeteksi nol pada katalog provider dan memverifikasi ulang sebelum request; tidak ada jaminan model gratis selalu tersedia. Tanpa key/provider gratis yang tersedia, Kobra kembali ke model lokal dan pengetahuan offline.
 - Aplikasi biasa tidak dapat bebas mengaktifkan atau menonaktifkan Wi-Fi/data seluler.
-- TalkBack tetap dikendalikan oleh pengguna melalui pengaturan Android.
+- TalkBack/Android Accessibility Suite adalah layanan Google terpisah. Kobra tidak menyalin APK/kode proprietary Google, tidak mengaktifkan TalkBack diam-diam, dan tidak menggantikan layanan sistem. Pengguna mengaktifkannya sendiri dari Pengaturan Aksesibilitas Android.
+- Kobra dapat membaca event fokus aksesibilitas dan menyediakan navigasi/aksi suara sendiri. Bila TalkBack dan pembaca layar global Kobra sama-sama berbicara, keluaran dapat tumpang tindih; gunakan pengaturan pembaca layar Kobra secara sadar.
+- Android membatasi aplikasi biasa: Kobra tidak dapat menjamin kendali mutlak pada layar aman, dialog izin sistem, UI yang tidak diekspos, atau aplikasi yang memblokir aksesibilitas. Fitur telepon/pesan/video call bergantung pada izin dan kontrol yang diekspos aplikasi tujuan.
+- Saldo bank/e-wallet hanya boleh dibacakan dari informasi yang benar-benar tampil dan dapat diakses. Kobra tidak boleh meminta, menyimpan, atau membacakan PIN, kata sandi, CVV, maupun OTP; transfer/pembayaran tidak boleh dieksekusi tanpa konfirmasi eksplisit.
 - Pembacaan notifikasi dan SMS dapat membacakan informasi pribadi; aktifkan hanya jika diperlukan.
 - Panggilan, pesan, dan SOS harus melalui konfirmasi pengguna.
 - Kobra OS adalah alat bantu eksperimental, bukan pengganti tongkat putih, pendamping, atau layanan darurat.
