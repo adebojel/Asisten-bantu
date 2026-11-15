@@ -61,7 +61,7 @@ import java.util.concurrent.Executors;
  */
 public class SettingsActivity extends AppCompatActivity {
 
-    private EditText etGeminiKey, etKey, etModel, etN8n, etNotes, etCustomAssistantName;
+    private EditText etGeminiKey, etOpenAiKey, etKey, etModel, etN8n, etNotes, etCustomAssistantName;
     private EditText etThemeBgHex, etThemeCardHex, etThemeAccentHex, etThemeTextHex, etAiThemePrompt;
     private TextView tvStatus, tvSystemPermSummary, tvModelStatus, tvImportProgress;
     private TextView tvSpeechRate, tvSpeechPitch, tvBackupStatus, tvUpdateStatus, tvMemoryCountInfo, tvFloatingOrbAlpha;
@@ -129,7 +129,7 @@ public class SettingsActivity extends AppCompatActivity {
         }
 
         // Bind views
-        etGeminiKey = findViewById(R.id.etGeminiApiKey);
+        etGeminiKey = findViewById(R.id.etGeminiApiKey);\n        etOpenAiKey = findViewById(R.id.etOpenAiApiKey);
         etKey = findViewById(R.id.etApiKey);
         etModel = findViewById(R.id.etModel);
         etN8n = findViewById(R.id.etN8nUrl);
@@ -788,7 +788,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void loadFieldsFromConfig() {
         loadingFields = true;
-        etGeminiKey.setText(config.getGeminiApiKey());
+        etGeminiKey.setText(config.getGeminiApiKey());\n        etOpenAiKey.setText(config.getOpenAiApiKey());
         etKey.setText(config.getApiKey());
         etModel.setText(config.getModel());
         etN8n.setText(config.getN8nUrl());
@@ -1555,7 +1555,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     private void saveFields() {
         String gKey = etGeminiKey.getText().toString().trim();
-        config.setGeminiApiKey(gKey);
+        config.setGeminiApiKey(gKey);\n        config.setOpenAiApiKey(etOpenAiKey.getText().toString());
         CommandRouter.setUserGeminiApiKey(this, gKey);
         config.setApiKey(etKey.getText().toString());
         config.setModel(etModel.getText().toString());
