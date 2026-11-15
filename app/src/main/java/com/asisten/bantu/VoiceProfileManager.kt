@@ -37,6 +37,40 @@ object VoiceProfileManager {
     const val PRESET_TARA = "tara"
     const val PRESET_KUSTOM = "kustom"
 
+    /**
+     * Nama suara pada Gemini Android picker. Gemini Live API memakai katalog HD
+     * berbeda; apiVoiceName adalah padanan karakter, bukan salinan suara proprietary.
+     */
+    data class GeminiLiveVoiceProfile(
+        val id: String,
+        val displayName: String,
+        val character: String,
+        val apiVoiceName: String,
+        val pitch: Float,
+        val rate: Float
+    )
+
+    @JvmField
+    val GEMINI_LIVE_VOICES: List<GeminiLiveVoiceProfile> = listOf(
+        GeminiLiveVoiceProfile("ursa", "Ursa", "Engaged • Mid-range", "Gacrux", 0.96f, 0.98f),
+        GeminiLiveVoiceProfile("nova", "Nova", "Calm • Mid-range", "Callirrhoe", 1.00f, 0.94f),
+        GeminiLiveVoiceProfile("pegasus", "Pegasus", "Engaged • Deeper", "Charon", 0.82f, 0.96f),
+        GeminiLiveVoiceProfile("vega", "Vega", "Bright • Higher", "Zephyr", 1.18f, 1.02f),
+        GeminiLiveVoiceProfile("capella", "Capella", "British accent • Higher", "Aoede", 1.14f, 0.98f),
+        GeminiLiveVoiceProfile("dipper", "Dipper", "Engaged • Deeper", "Alnilam", 0.84f, 0.94f),
+        GeminiLiveVoiceProfile("orbit", "Orbit", "Energetic • Deeper", "Puck", 0.90f, 1.12f),
+        GeminiLiveVoiceProfile("orion", "Orion", "Bright • Deeper", "Algieba", 0.88f, 1.04f),
+        GeminiLiveVoiceProfile("lyra", "Lyra", "Bright • Higher", "Achernar", 1.16f, 1.02f),
+        GeminiLiveVoiceProfile("eclipse", "Eclipse", "Energetic • Mid-range", "Laomedeia", 1.04f, 1.12f)
+    )
+
+    @JvmStatic
+    fun getGeminiLiveVoice(id: String?): GeminiLiveVoiceProfile {
+        val clean = id?.trim()?.lowercase(Locale.ROOT).orEmpty()
+        return GEMINI_LIVE_VOICES.firstOrNull { it.id == clean }
+            ?: GEMINI_LIVE_VOICES.first { it.id == "lyra" }
+    }
+
     @JvmField
     val PRESETS: List<VoicePreset> = listOf(
         VoicePreset(

@@ -73,7 +73,8 @@ public class SettingsActivity extends AppCompatActivity {
     private View viewSwatchBg, viewSwatchCard, viewSwatchAccent, viewSwatchText;
     private LinearLayout cardThemeCyber, cardThemeHighContrast, cardThemeZamrud, cardThemeEmas;
     private LinearLayout cardThemeAmethyst, cardThemeMerah, cardThemeDaylight, cardThemeOled;
-    private LinearLayout layoutMemoryList, layoutCustomVoiceConfig;
+    private LinearLayout layoutMemoryList, layoutCustomVoiceConfig, layoutGeminiLiveVoiceChoices;
+    private TextView tvGeminiLiveVoiceSummary;
     private ProgressBar pbImportModel;
     private SeekBar sbSpeechRate, sbSpeechPitch, sbFloatingOrbAlpha;
     private SwitchCompat swFloatingOrb, swFloatingOrbAutoHide;
@@ -146,6 +147,9 @@ public class SettingsActivity extends AppCompatActivity {
         tvActiveVoiceSummary = findViewById(R.id.tvActiveVoiceSummary);
         layoutMemoryList = findViewById(R.id.layoutMemoryList);
         layoutCustomVoiceConfig = findViewById(R.id.layoutCustomVoiceConfig);
+        layoutGeminiLiveVoiceChoices = findViewById(R.id.layoutGeminiLiveVoiceChoices);
+        tvGeminiLiveVoiceSummary = findViewById(R.id.tvGeminiLiveVoiceSummary);
+        setupGeminiLiveVoiceChoices();
         etCustomAssistantName = findViewById(R.id.etCustomAssistantName);
 
         btnPresetKobra = findViewById(R.id.btnPresetKobra);
@@ -840,6 +844,61 @@ public class SettingsActivity extends AppCompatActivity {
         ThemeManager.applyTheme(this);
         refreshThemeUi();
         refreshVoicePresetUi();
+    }
+
+
+    /**
+     * Pilihan karakter suara yang mengikuti nama pada Gemini Live picker.
+     * Nama API yang disimpan adalah padanan karakter dari katalog resmi Live API,
+     * bukan klaim bahwa suara proprietary Gemini Android tersedia di TTS lokal.
+     */
+    private void setupGeminiLiveVoiceChoices() {
+        if (layoutGeminiLiveVoiceChoices == null) return;
+        layoutGeminiLiveVoiceChoices.removeAllViews();
+        String selected = config.getGeminiLiveVoiceId();
+        VoiceProfileManager.GeminiLiveVoiceProfile active =
+                VoiceProfileManager.getGeminiLiveVoice(selected);
+        if (tvGeminiLiveVoiceSummary != null) {
+            tvGeminiLiveVoiceSummary.setText("Gaya aktif: " + active.getDisplayName()
+                    + " • Referensi karakter: " + active.getApiVoiceName()
+                    + "\nTTS lokal memakai mesin suara Android yang tersedia di HP; ini bukan salinan suara Gemini.");
+        }
+
+        for (int start = 0; start < VoiceProfileManager.GEMINI_LIVE_VOICES.size(); start += 2) {
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rowParams.bottomMargin = (int) (6 * getResources().getDisplayMetrics().density);
+            for (int col = start; col < Math.min(start + 2, VoiceProfileManager.GEMINI_LIVE_VOICES.size()); col++) {
+                VoiceProfileManager.GeminiLiveVoiceProfile profile =
+                        VoiceProfileManager.GEMINI_LIVE_VOICES.get(col);
+                Button choice = new Button(this);
+                choice.setText(profile.getDisplayName() + "\n" + profile.getCharacter());
+                choice.setAllCaps(false);
+                choice.setTextSize(11f);
+                choice.setMinHeight((int) (52 * getResources().getDisplayMetrics().density));
+                choice.setBackgroundResource(profile.getId().equals(selected)
+                        ? R.drawable.bg_persona_chip_active : R.drawable.bg_persona_chip_idle);
+                choice.setTextColor(android.graphics.Color.parseColor(profile.getId().equals(selected)
+                        ? "#00E5FF" : "#E2E8F0"));
+                LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                if (col == start) buttonParams.rightMargin =
+                        (int) (6 * getResources().getDisplayMetrics().density);
+                row.addView(choice, buttonParams);
+                choice.setOnClickListener(v -> {
+                    config.setGeminiLiveVoiceId(profile.getId());
+                    config.setSpeechPitch(profile.getPitch());
+                    config.setSpeechRate(profile.getRate());
+                    VoiceProfileManager.syncAllTts(SettingsActivity.this);
+                    setupGeminiLiveVoiceChoices();
+                    speaker.speak("Gaya suara " + profile.getDisplayName()
+                            + " diterapkan ke suara lokal perangkat.");
+                });
+            }
+            layoutGeminiLiveVoiceChoices.addView(row, rowParams);
+        }
     }
 
     private void selectVoicePreset(String presetId) {

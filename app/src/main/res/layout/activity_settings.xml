@@ -314,6 +314,31 @@
                     android:textColor="#E2E8F0"
                     android:textSize="12sp" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="PILIH GAYA KARAKTER SUARA"
+                    android:textColor="#00E5FF"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvGeminiLiveVoiceSummary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginBottom="8dp"
+                    android:text="Profil suara Live"
+                    android:textColor="#CBD5E1"
+                    android:textSize="11sp" />
+
+                <LinearLayout
+                    android:id="@+id/layoutGeminiLiveVoiceChoices"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
                 <!-- Row 1: Kobra & Arka -->
                 <LinearLayout
                     android:layout_width="match_parent"
