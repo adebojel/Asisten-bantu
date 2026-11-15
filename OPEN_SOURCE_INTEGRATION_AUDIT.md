@@ -1,6 +1,6 @@
 # Audit Integrasi Open-Source Kobra OS
 
-Tanggal audit: 15 November 2026  
+Tanggal audit: 15 November 2026 (pembaruan lanjutan)  
 Repository target: https://github.com/adebojel/Asisten-bantu  
 Cabang kerja: main
 
@@ -35,6 +35,25 @@ Dokumen ini membedakan kode yang benar-benar diubah pada Kobra, pola teknis yang
 | [Cambric-software/c-around](https://github.com/Cambric-software/c-around) | NOASSERTION / lisensi tidak terverifikasi | Deteksi objek/bahaya, klasifikasi suara YAMNet, scene description, face recognition offline | Proyek relatif baru; audit lisensi dan ketergantungan model belum memadai. Tidak menyalin kode. |
 | [NTDuck/uet-2627i-int3011e-3-visionaid](https://github.com/NTDuck/uet-2627i-int3011e-3-visionaid) | Metadata API tidak mendeteksi lisensi; README mengklaim MIT | OCR offline, YOLO, find-object dengan haptic pulse, voice onboarding | Status lisensi belum konsisten antara metadata dan README; tidak menyalin sampai file LICENSE dan hak upstream diverifikasi. |
 | [niki914/zafiro](https://github.com/niki914/zafiro) | MIT | Agent Android, Shizuku/root optional, skills/MCP, local shell and Python | Referensi untuk kemampuan agent lanjutan. Bukan integrasi langsung: Shizuku/root bukan hak yang dapat diasumsikan oleh aplikasi biasa dan setiap aksi sistem perlu izin eksplisit. |
+
+| [wangzan101/Mika](https://github.com/wangzan101/Mika) | Apache-2.0 | Agent Android on-device, operasi aplikasi/web, tugas panjang, memori preferensi, skills, background-screen, pengujian perangkat | Prioritas audit tertinggi. Adaptasi task lifecycle, interupsi/lanjutkan, screen accuracy tests, dan laporan tugas. Tidak menyalin seluruh aplikasi; beberapa kontrol layar memerlukan setup tambahan. |
+| [SunZhi-Will/OpenRing](https://github.com/SunZhi-Will/OpenRing) | MIT | ReAct coordinator, tool schemas/dispatcher, UI tree compaction, local GGUF, memory vector, script/workflow, WorkManager scheduler, cancellation, risk governance | Prioritas integrasi arsitektur. ToolRiskClassifier, ActionExecutor, UiTreeCompact dan governance diperiksa; belum disalin karena Kobra belum memiliki tool-loop kompatibel penuh. |
+| [cAN586/openring](https://github.com/cAN586/openring) | MIT | Varian OpenRing, workflow lokal, skills dan agent | Referensi pembanding; bukan sumber salinan kedua dari kode yang sama. |
+| [Bilal140202/MobileAgent](https://github.com/Bilal140202/MobileAgent) | Tidak ada lisensi terdeteksi | Agent Kotlin native, AccessibilityService, screen capture, LLM client, loop aksi, voice input | Referensi arsitektur saja sampai lisensi penggunaan ulang diverifikasi. |
+| [k2-fsa/sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0 | Streaming ASR, VAD, keyword spotting/wake word, TTS, speaker diarization, enhancement, source separation Android | Prioritas tinggi untuk offline voice stack. Belum dipaketkan; perlu model Indonesia, ABI, ukuran, RAM dan baterai. |
+| [alphacep/vosk-api](https://github.com/alphacep/vosk-api) | Apache-2.0 | Offline speech recognition Android | Alternatif ASR offline; perlu benchmark Bahasa Indonesia dan ukuran model. |
+| [ggml-org/llama.cpp](https://github.com/ggml-org/llama.cpp) | MIT | Inferensi GGUF, CPU/GPU, backend lokal dan streaming | Kandidat runtime tambahan hanya jika benchmark lebih baik daripada LiteRT-LM/MediaPipe yang sudah ada. |
+| [google-ai-edge/mediapipe](https://github.com/google-ai-edge/mediapipe) | Apache-2.0 | Vision tasks, audio/vision pipeline dan on-device inference | MediaPipe sudah dipakai untuk LLM Kobra; Tasks Vision perlu diuji terpisah dan kompatibilitas native diverifikasi. |
+| [google/oboe](https://github.com/google/oboe) | Apache-2.0 | Audio C++ Android latensi rendah dan spatial audio | Kandidat untuk directional audio setelah sumber arah dan kalibrasi tersedia. |
+| [maplibre/maplibre-native](https://github.com/maplibre/maplibre-native) | BSD-2-Clause | Peta vektor native Android | Kandidat peta lokal; perlu atribusi tile/style dan pengujian storage. |
+| [graphhopper/graphhopper](https://github.com/graphhopper/graphhopper) | Apache-2.0 | Routing OpenStreetMap, profil pedestrian, routing offline | Kandidat engine routing; offline mobile perlu graph regional dan pengelolaan storage. |
+| [opencv/opencv](https://github.com/opencv/opencv) | Apache-2.0 | Image processing, tracking, geometri dan transformasi kamera | Tambahkan hanya untuk tugas yang belum ditangani CameraX/ML Kit. |
+| [rhengtl/textsnip](https://github.com/rhengtl/textsnip) | MIT | Floating OCR capture dengan ML Kit, copy/share | Referensi OCR seleksi area; Kobra tidak menambah bubble kedua. |
+| [krishivg22/Lumen_Codebase](https://github.com/krishivg22/Lumen_Codebase) | Tidak ada lisensi terdeteksi | EfficientDet, OCR, document QA MobileBERT dan scene captioning offline | Referensi riset; kode/model tidak disalin sebelum lisensi jelas. |
+| [nrai18/GuideLens-Android-App](https://github.com/nrai18/GuideLens-Android-App) | GPL-3.0 | On-device vision, path planner, object detection dan identifikasi obat | Tidak disalin tanpa keputusan lisensi/copy-left yang disengaja. |
+| [Subhashnaidudulla/Cogniscape-Android](https://github.com/Subhashnaidudulla/Cogniscape-Android) | Lisensi belum terverifikasi; README menyebut copyright | OSM pedestrian routing, GraphHopper, MapLibre, GPS/kompas, spatial audio Oboe dan haptic | Referensi arsitektur saja; tidak menyalin kode tanpa izin eksplisit. Beberapa fitur obstacle detection ditandai planned. |
+| [Srushtit-2005/smart-vision-assistance](https://github.com/Srushtit-2005/smart-vision-assistance) | Tidak ada lisensi terdeteksi | OCR, object detection, currency, QR, navigation dan voice | Referensi fitur saja sampai lisensi diverifikasi. |
+| [edgeaitechnologies/offline-voice-ai](https://github.com/edgeaitechnologies/offline-voice-ai) | Tidak ada lisensi terdeteksi | Facade Vosk STT + Sherpa-ONNX VITS TTS, streaming dan silence stop | Referensi API; tidak menambah dependency sampai lisensi dan model Indonesia diverifikasi. |
 
 ## Perubahan yang sudah masuk ke Kobra
 
