@@ -126,3 +126,26 @@ Blindly copying them would create duplicate services and resource owners, incomp
 - https://github.com/wnbotoo/sailens-android
 - https://github.com/andrachiritoiu/Accessnav-hybrid
 - https://github.com/Kashan-Zahid/Blind-AI-Assistant
+
+
+## 7. Critical implementation gaps found by reading KOBRA source (not just README)
+
+These findings are based on the current `main` source inspected during this audit:
+
+1. **The screen-agent execution path is not wired into the active command route.** `runMultiStepAgentAsync`, `analyzeScreenVisuallyAsync`, and `shouldUseScreenAgent` appear as private helpers but no call site was found in `CommandRouter.kt`. The user-facing multi-step automation therefore must not be advertised as fully operational based only on those methods existing.
+2. **The legacy screen-agent provider stub always returns null.** `callGeminiRest(...)` in `CommandRouter.kt` returns null unconditionally, and `callGeminiBlocking(...)` is also explicitly disabled. Any path that relies on these helpers cannot get an AI decision from that implementation.
+3. **A better provider path already exists but needs deliberate wiring and tests.** `OnlineAiRouter.askBlocking(context, userPrompt, systemPrompt, imageBase64)` has a path for OpenRouter image requests and discovers vision models only when the live catalog reports both prompt and completion prices as zero and image input support. It requires a configured OpenRouter key and a successful live provider catalog; it is not guaranteed to be available or free forever. Do not silently fall back to a paid Gemini API.
+4. **The current safe object detector does not provide geometry.** `SafeObjectDetector.DetectedItem.boundingBox` is nullable and the current ML Kit image-labeling fallback constructs each item with `null` bounds. The class comment explicitly says image labeling does not provide bounding boxes. Therefore the current fallback cannot truthfully produce left/right location or metric distance from those labels.
+5. **The camera activity owns multiple detector references.** `VisionActivity.java` declares stream and single-shot detector clients. Confirm both are closed on all lifecycle/error/cancel paths and avoid concurrent duplicate inference before adding a second detector model.
+6. **Existing local model runtime is already serialized.** `LiteRtLmEngine.kt` owns one executor and serializes engine/conversation operations. A second LLM runtime must not be added without a measured need and explicit memory arbitration.
+
+### Required next code change (P0)
+
+- Wire one bounded screen-agent entrypoint from the active `CommandRouter` decision path.
+- Use `OnlineAiRouter.askBlocking(..., imageBase64)` only when a configured key exists and the live catalog confirms an image-capable zero-price model; otherwise return a clear `UNAVAILABLE` result and use the existing local Qwen answer path (do not invent a local tool decision).
+- After every action, capture a fresh snapshot and compare it with the pre-action snapshot. A successful Android API return is not proof the intended UI state changed.
+- If the action result cannot be verified, report `UNVERIFIED` rather than claiming completion and do not cache the sequence as a known-good macro.
+- Disable or reject risky actions in the autonomous loop until a separate confirmation gate is implemented for message sending, calls, payments, deletion, purchases and data sharing.
+- Add tests for provider unavailable, no model found, malformed JSON, stale screen, action API false, unchanged screen, changed screen and cancellation.
+
+This gap analysis takes precedence over aspirational feature lists in README files. Build success alone does not prove the screen agent or vision geometry works on a physical phone.
