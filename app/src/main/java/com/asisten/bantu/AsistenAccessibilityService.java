@@ -1301,6 +1301,17 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         // Navigasi layar & kontrol global (#66 & #68)
+        if (has(c, "menu aksesibilitas", "buka menu aksesibilitas")) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                boolean opened = performGlobalAction(GLOBAL_ACTION_ACCESSIBILITY_MENU);
+                say(opened ? "Menu Aksesibilitas Android diminta untuk dibuka."
+                        : "Menu Aksesibilitas tidak tersedia. Aktifkan Menu Aksesibilitas di Pengaturan Android terlebih dahulu.");
+            } else {
+                openSettings(Settings.ACTION_ACCESSIBILITY_SETTINGS,
+                        "Menu Aksesibilitas Android memerlukan pengaturan sistem. Silakan aktifkan dari sini.");
+            }
+            return;
+        }
         if (has(c, "kembali")) { global(GLOBAL_ACTION_BACK, "Kembali."); return; }
         if (has(c, "beranda", "layar utama", "ke layar utama")) { global(GLOBAL_ACTION_HOME, "Ke layar utama."); return; }
         if (has(c, "aplikasi terbaru")) { global(GLOBAL_ACTION_RECENTS, "Aplikasi terbaru."); return; }
