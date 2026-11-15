@@ -609,6 +609,7 @@ object CommandRouter {
     ): Boolean {
         return when (decision.action) {
             "open-app" -> decision.target.isNotBlank() &&
+                !isRiskyAgentTarget(decision.target) &&
                 UnifiedAccessibilityEngine.openAppSmart(service, decision.target)
             "click-label" -> {
                 if (decision.target.isBlank() || isRiskyAgentTarget(decision.target)) return false
@@ -631,7 +632,7 @@ object CommandRouter {
 
     internal fun isRiskyAgentTarget(target: String): Boolean {
         return Regex(
-            "(kirim|send|bayar|transfer|hapus|delete|remove|beli|purchase|pay|checkout|order|\\bpanggil\\b|\\bcall\\b|install|izin|permission|allow|accept|setuju|agree|confirm|konfirmasi|share|bagikan|upload|download|logout|sign out|blokir|block|report|pesan|wifi|wi-fi|data seluler|mobile data|bluetooth|lokasi|location|security|keamanan|password|kata sandi|akun|account|privacy|privasi|accessibility|aksesibilitas|network|jaringan|airplane mode|mode pesawat|factory reset|reset|reboot|shutdown|restart|aktifkan|nonaktifkan|nyalakan|matikan|enable|disable|toggle|switch|clear data|hapus data|format|\\bok\\b|okay|\\byes\\b|\\bya\\b|\\biya\\b|continue|lanjutkan|next|finish|done|submit|save|simpan|apply|terapkan)",
+            "(kirim|send|bayar|transfer|hapus|delete|remove|beli|purchase|pay|checkout|order|\\bpanggil\\b|\\bcall\\b|install|izin|permission|allow|accept|setuju|agree|confirm|konfirmasi|share|bagikan|upload|download|logout|sign out|blokir|block|report|pesan|message|messages|new message|reply|respond|compose|chat|dial|record|recording|capture|take photo|camera shutter|start|begin|create|add|wifi|wi-fi|data seluler|mobile data|bluetooth|lokasi|location|security|keamanan|password|kata sandi|akun|account|privacy|privasi|accessibility|aksesibilitas|network|jaringan|airplane mode|mode pesawat|factory reset|reset|reboot|shutdown|restart|aktifkan|nonaktifkan|nyalakan|matikan|enable|disable|toggle|switch|clear data|hapus data|format|\\bok\\b|okay|\\byes\\b|\\bya\\b|\\biya\\b|continue|lanjutkan|next|finish|done|submit|save|simpan|apply|terapkan)",
             RegexOption.IGNORE_CASE
         ).containsMatchIn(target)
     }
