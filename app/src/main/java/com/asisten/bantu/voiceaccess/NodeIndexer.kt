@@ -295,7 +295,7 @@ object NodeIndexer {
             focused?.refresh()
             val start = focused?.textSelectionStart ?: -1
             val end = focused?.textSelectionEnd ?: -1
-            val range = resolveWordRange(text, start, end) ?: return null
+            val range = FocusedWordRangeResolver.resolve(text, start, end) ?: return null
             text.substring(range.first, range.last + 1)
         } catch (_: Throwable) {
             null
@@ -317,7 +317,7 @@ object NodeIndexer {
             val end = focused?.textSelectionEnd ?: -1
             // A selected/focused word must be explicitly exposed by the provider.
             if (start < 0 || end <= start) return null
-            val range = resolveWordRange(text, start, end) ?: return null
+            val range = FocusedWordRangeResolver.resolve(text, start, end) ?: return null
             text.substring(range.first, range.last + 1)
         } finally {
             safeRecycle(focused)
@@ -388,26 +388,6 @@ object NodeIndexer {
         }
     }
 
-    private fun resolveWordRange(text: String, selectionStart: Int, selectionEnd: Int): IntRange? {
-        if (text.isEmpty()) return null
-        if (selectionStart >= 0 && selectionEnd > selectionStart) {
-            val start = selectionStart.coerceIn(0, text.length)
-            val end = selectionEnd.coerceIn(start, text.length)
-            if (end > start && text.substring(start, end).any { it.isLetterOrDigit() }) return start until end
-        }
-        val cursor = (if (selectionEnd >= 0) selectionEnd else 0).coerceIn(0, text.length)
-        var index = if (cursor == text.length) cursor - 1 else cursor
-        if (index < 0) return null
-        if (!text[index].isLetterOrDigit()) {
-            while (index < text.length && !text[index].isLetterOrDigit()) index++
-            if (index >= text.length) return null
-        }
-        var start = index
-        var end = index + 1
-        while (start > 0 && text[start - 1].isLetterOrDigit()) start--
-        while (end < text.length && text[end].isLetterOrDigit()) end++
-        return if (end > start) start until end else null
-    }
 
     /** Current focused node label, without retaining AccessibilityNodeInfo references. */
     @JvmStatic
