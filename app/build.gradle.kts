@@ -171,5 +171,5 @@ val downloadQwenModel by tasks.registering {
     }
 }
 
-android.sourceSets.getByName("main").assets.srcDir(qwenAssetDirectory)
+android.sourceSets.getByName("main").assets.srcDir(qwenAssetDirectory.get().asFile)
 tasks.named("preBuild").configure { dependsOn(downloadQwenModel) }
