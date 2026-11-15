@@ -53,11 +53,12 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             focusOutline.show(wordBounds)
             return
         }
+        val label = NodeIndexer.focusedLabel(service)
         val bounds = NodeIndexer.focusedBounds(service)
         val dm = service.resources.displayMetrics
-        // Never draw a huge rectangle around a paragraph, web page, or full-screen container.
-        if (bounds != null && bounds.width() <= dm.widthPixels * 0.82f &&
-            bounds.height() <= dm.heightPixels * 0.28f) focusOutline.show(bounds)
+        // Fallback is only for short controls. Never outline a whole paragraph or text container.
+        if (label.length <= 32 && bounds != null && bounds.width() <= dm.widthPixels * 0.82f &&
+            bounds.height() <= dm.heightPixels * 0.18f) focusOutline.show(bounds)
         else focusOutline.hide()
     }
 
@@ -394,7 +395,7 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             numberOverlay.hide()
             gridOverlay.hide()
             val accepted = UnifiedAccessibilityEngine.clickAt(service, x, y)
-            sayCallback.accept(if (accepted) "Ketukan pada area " + positionLabel(positionCell) + " dikirim ke sistem. Untuk titik kecil, tampilkan grid lalu zoom nomor."
+            sayCallback.accept(if (accepted) "Ketukan pada area " + positionLabel(positionCell) + " dikirim ke sistem. Untuk titik lebih presisi, gunakan koordinat suara seperti B3."
                 else "Sistem menolak ketukan pada area " + positionLabel(positionCell) + ".")
             return true
         }
