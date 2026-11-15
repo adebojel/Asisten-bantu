@@ -360,7 +360,28 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             }
         }
 
-        // 2B) Ketukan berbasis posisi layar. Untuk titik kecil gunakan grid + zoom bertingkat.
+        // 2B) Voice-only 10x10 coordinate targeting (A1-J10); no grid is drawn over the screen.
+        val gridTap = Regex("^(?:ketuk|klik|tap|tekan) ([a-j](?:10|[1-9]))$").find(c)
+        if (gridTap != null) {
+            val point = gridCoordinate(gridTap.groupValues[1])
+            if (point != null) {
+                val accepted = UnifiedAccessibilityEngine.clickAt(service, point.first, point.second)
+                sayCallback.accept(if (accepted) "Ketukan pada koordinat " + gridTap.groupValues[1].uppercase(Locale.ROOT) + " dikirim ke Android." else "Android menolak ketukan pada koordinat tersebut.")
+            } else sayCallback.accept("Koordinat suara tidak valid.")
+            return true
+        }
+        val gridSwipe = Regex("^(?:geser|seret|swipe|drag) (?:dari )?([a-j](?:10|[1-9])) (?:ke|to) ([a-j](?:10|[1-9]))$").find(c)
+        if (gridSwipe != null) {
+            val from = gridCoordinate(gridSwipe.groupValues[1])
+            val to = gridCoordinate(gridSwipe.groupValues[2])
+            if (from != null && to != null) {
+                val accepted = UnifiedAccessibilityEngine.swipe(service, from.first.toFloat(), from.second.toFloat(), to.first.toFloat(), to.second.toFloat(), 650L)
+                sayCallback.accept(if (accepted) "Gestur dari " + gridSwipe.groupValues[1].uppercase(Locale.ROOT) + " ke " + gridSwipe.groupValues[2].uppercase(Locale.ROOT) + " dikirim ke Android." else "Android menolak gestur tersebut.")
+            } else sayCallback.accept("Koordinat awal atau tujuan tidak valid.")
+            return true
+        }
+
+        // 2C) Ketukan area 3x3 secara suara saja. Tidak ada garis grid yang ditampilkan.
         val positionCell = resolvePositionCell(c)
         if (positionCell != null) {
             val dm = service.resources.displayMetrics
@@ -791,6 +812,18 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         } catch (_: Throwable) {
             false
         }
+    }
+
+    private fun gridCoordinate(raw: String): Pair<Int, Int>? {
+        val match = Regex("^([a-j])(10|[1-9])$", RegexOption.IGNORE_CASE).matchEntire(raw.trim()) ?: return null
+        val column = match.groupValues[1].uppercase(Locale.ROOT)[0] - 'A'
+        val row = match.groupValues[2].toIntOrNull()?.minus(1) ?: return null
+        if (column !in 0..9 || row !in 0..9) return null
+        val dm = service.resources.displayMetrics
+        return Pair(
+            ((column + 0.5f) * dm.widthPixels / 10f).toInt(),
+            ((row + 0.5f) * dm.heightPixels / 10f).toInt()
+        )
     }
 
     private fun resolvePositionCell(command: String): Int? {
