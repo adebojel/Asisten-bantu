@@ -188,6 +188,10 @@ public class KobraLogicTest {
                 com.asisten.bantu.voiceaccess.NodeIndexer.findByLabel(nodes, "putar video").getLabel());
         assertEquals("Putar berikutnya",
                 com.asisten.bantu.voiceaccess.NodeIndexer.findByLabel(nodes, "berikutnya").getLabel());
+        nodes.add(new com.asisten.bantu.voiceaccess.NodeIndexer.IndexedNode(
+                3, "Putar video", 300, 100, new android.graphics.Rect(250, 50, 350, 150),
+                false, false, false, false, "", "TextView"));
+        assertNull(com.asisten.bantu.voiceaccess.NodeIndexer.findByLabel(nodes, "putar video"));
     }
 
     @Test
