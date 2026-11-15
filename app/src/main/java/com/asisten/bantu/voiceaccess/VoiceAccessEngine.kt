@@ -12,6 +12,7 @@ import android.telecom.TelecomManager
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.asisten.bantu.KobraConfig
+import com.asisten.bantu.OfflineBrain
 import com.asisten.bantu.UnifiedAccessibilityEngine
 import com.asisten.bantu.VoiceProfileManager
 import java.util.Locale
@@ -610,19 +611,9 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
     private fun parsePositiveInt(raw: String): Int? {
         val clean = raw.lowercase(Locale.ROOT).trim()
         clean.toIntOrNull()?.let { if (it > 0) return it }
-        return when (clean) {
-            "satu" -> 1
-            "dua" -> 2
-            "tiga" -> 3
-            "empat" -> 4
-            "lima" -> 5
-            "enam" -> 6
-            "tujuh" -> 7
-            "delapan" -> 8
-            "sembilan" -> 9
-            "sepuluh" -> 10
-            else -> null
-        }
+        // Reuse the shared Indonesian number parser so numbered targets above ten
+        // work with natural speech ("nomor tiga puluh dua"), not only digits.
+        return OfflineBrain.firstNumber(clean)?.takeIf { it > 0 }
     }
 
     private fun safeRecycle(node: AccessibilityNodeInfo?) {
