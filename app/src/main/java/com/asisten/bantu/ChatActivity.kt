@@ -2,6 +2,7 @@ package com.asisten.bantu
 
 import android.Manifest
 import android.content.Intent
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -80,11 +81,35 @@ open class ChatActivity : AppCompatActivity() {
         }
 
         @JvmStatic
+        fun appendGlobalUser(context: Context, text: String) {
+            val activity = current
+            if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
+                activity.runOnUiThread {
+                    if (!activity.isFinishing && !activity.isDestroyed) activity.addUserMessage(text)
+                }
+            } else {
+                UnifiedConversationHistory.append(context, text, true, "Mikrofon Mengambang")
+            }
+        }
+
+        @JvmStatic
         fun appendGlobalAssistant(text: String, source: String = "Kontrol Kobra") {
             val activity = current ?: return
             if (activity.isFinishing || activity.isDestroyed) return
             activity.runOnUiThread {
                 if (!activity.isFinishing && !activity.isDestroyed) activity.addAiMessage(text, source)
+            }
+        }
+
+        @JvmStatic
+        fun appendGlobalAssistant(context: Context, text: String, source: String) {
+            val activity = current
+            if (activity != null && !activity.isFinishing && !activity.isDestroyed) {
+                activity.runOnUiThread {
+                    if (!activity.isFinishing && !activity.isDestroyed) activity.addAiMessage(text, source)
+                }
+            } else {
+                UnifiedConversationHistory.append(context, text, false, source)
             }
         }
     }
@@ -827,8 +852,8 @@ open class ChatActivity : AppCompatActivity() {
     }
 
     private fun restoreChatHistory() {
-        val raw = getSharedPreferences(CHAT_HISTORY_PREFS, MODE_PRIVATE)
-            .getString(CHAT_HISTORY_KEY, null) ?: return
+        val raw = UnifiedConversationHistory.read(this)
+        if (raw == "[]") return
         try {
             val json = JSONArray(raw)
             val restored = ArrayList<ChatMessage>()
