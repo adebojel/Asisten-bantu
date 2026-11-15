@@ -63,10 +63,8 @@ object OnlineAiRouter {
     @JvmStatic
     fun getActiveProviderSummary(context: Context): String {
         val cfg = KobraConfig(context.applicationContext)
-        val geminiKey = CommandRouter.resolveGeminiApiKey(context)
-        if (geminiKey.isNotEmpty()) return "Gemini AI Studio"
-        if (cfg.hasAi()) return "OpenRouter AI"
-        return "AI Online Gratis (Tanpa Key)"
+        if (cfg.hasAi()) return "OpenRouter • model harga nol saja"
+        return "AI online gratis tanpa API key • jika tersedia"
     }
 
     @JvmStatic
@@ -121,16 +119,10 @@ object OnlineAiRouter {
             KobraPersona.buildFullSystemPrompt(appCtx)
         }
 
-        // Lapis 1: Gemini API Key manual (gemini-2.5-flash -> gemini-2.0-flash)
-        val geminiKey = CommandRouter.resolveGeminiApiKey(appCtx)
-        if (geminiKey.isNotEmpty()) {
-            val combinedPrompt = "$effectiveSystem\n\n$userPrompt"
-            val geminiReply = callGeminiWithFallback(geminiKey, combinedPrompt, imageBase64)
-            if (!geminiReply.isNullOrBlank()) {
-                return AiResult(cleanForSpeech(geminiReply), "Gemini AI")
-            }
-        }
-
+        // Kebijakan Kobra: Gemini API key dinonaktifkan dari failover otomatis
+        // karena akun dengan billing aktif dapat dikenai biaya. Jalur online otomatis
+        // hanya memakai model OpenRouter yang harga input/output-nya diverifikasi nol,
+        // lalu endpoint tanpa API key sebagai fallback.
         // Lapis 2: OpenRouter API Key manual
         val openRouterKey = cfg.apiKey
         if (openRouterKey.isNotEmpty()) {
@@ -240,7 +232,9 @@ object OnlineAiRouter {
                 if (!candidates.contains(m)) candidates.add(m)
             }
         } else {
-            for (m in KobraConfig.VISION_MODELS) {
+            // Untuk gambar, jangan memakai daftar statis yang belum diverifikasi harganya.
+            // Model vision hanya dipakai jika katalog provider menyatakan kedua tarif nol.
+            for (m in discoverFreeVisionModels(apiKey)) {
                 if (!candidates.contains(m)) candidates.add(m)
             }
         }
@@ -309,6 +303,38 @@ object OnlineAiRouter {
                     secondCheck
                 }
             }
+        }
+    }
+
+    private fun discoverFreeVisionModels(apiKey: String): List<String> {
+        return try {
+            val request = Request.Builder()
+                .url("https://openrouter.ai/api/v1/models")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("HTTP-Referer", "https://github.com/adebojel/Asisten-bantu")
+                .addHeader("X-Title", "Kobra OS")
+                .get().build()
+            httpClient.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) return emptyList()
+                val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
+                    ?: return emptyList()
+                val result = ArrayList<String>()
+                for (i in 0 until data.length()) {
+                    val model = data.optJSONObject(i) ?: continue
+                    val id = model.optString("id", "").trim()
+                    val pricing = model.optJSONObject("pricing") ?: continue
+                    val zeroPrice = pricing.optString("prompt", "").toDoubleOrNull() == 0.0 &&
+                        pricing.optString("completion", "").toDoubleOrNull() == 0.0
+                    val modality = model.optJSONObject("architecture")
+                        ?.optString("modality", "").orEmpty()
+                    val vision = modality.contains("image", ignoreCase = true)
+                    if (id.isNotEmpty() && zeroPrice && vision) result.add(id)
+                }
+                result.distinct().take(3)
+            }
+        } catch (t: Throwable) {
+            Log.w(TAG, "Discovery model vision gratis gagal: ${t.message}")
+            emptyList()
         }
     }
 
