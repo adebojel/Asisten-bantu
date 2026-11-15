@@ -76,6 +76,7 @@ public class VisionActivity extends AppCompatActivity {
     private Button btnScanAllObjects, btnReadTextOcr, btnDetectMoneyColor, btnAskAiCamera;
     private ImageButton btnBack;
     private String mode = "describe";
+    private volatile String liveQuestion = "";
     private String pendingAiCameraQuestion = null;
     private ImageCapture imageCapture;
     private Camera boundCamera;
@@ -346,7 +347,31 @@ public class VisionActivity extends AppCompatActivity {
             return;
         }
         long now = System.currentTimeMillis();
-        if ("find_object".equals(mode)) {
+        if ("live_companion".equals(mode)) {
+            if (now - lastLiveSpeakAt < 1800L) { proxy.close(); return; }
+            liveProcessing = true;
+            InputImage img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+            ocr.process(img)
+                    .addOnSuccessListener(res -> {
+                        String raw = res.getText() == null ? "" : res.getText().replaceAll("\\s+", " ").trim();
+                        if (!raw.isEmpty() && now - lastLiveSpeakAt >= 2200L) {
+                            MoneyAndReceiptParser.BillResult bill = MoneyAndReceiptParser.parseRupiahBill(raw, null);
+                            String result = bill.amount > 0
+                                    ? "Kemungkinan uang rupiah nominal " + MoneyAndReceiptParser.formatRupiah(bill.amount) + " terdeteksi. Pastikan seluruh angka pada uang terlihat jelas."
+                                    : "Teks yang terlihat: " + raw.substring(0, Math.min(raw.length(), 180));
+                            if (!result.equals(lastLiveText)) {
+                                lastLiveText = result;
+                                lastLiveSpeakAt = System.currentTimeMillis();
+                                lastCapturedRawText = raw;
+                                runOnUiThread(() -> {
+                                    tvResult.setText(result);
+                                    if (!speaker.isSpeaking()) speak(result);
+                                });
+                            }
+                        }
+                    })
+                    .addOnCompleteListener(t -> { liveProcessing = false; proxy.close(); });
+        } else if ("find_object".equals(mode)) {
             if (streamObjectDetector == null) { proxy.close(); return; }
             liveProcessing = true;
             int rot = proxy.getImageInfo().getRotationDegrees();
@@ -436,6 +461,23 @@ public class VisionActivity extends AppCompatActivity {
                     highUrgency ? ToneGenerator.TONE_PROP_BEEP2 : ToneGenerator.TONE_PROP_BEEP,
                     highUrgency ? 120 : 75);
         } catch (Exception ignored) {}
+    }
+
+    public void answerLiveQuestion(String question) {
+        if (!"live_companion".equals(mode)) {
+            speak("Mode Mata Kedua langsung belum aktif.");
+            return;
+        }
+        liveQuestion = question == null ? "" : question;
+        lastLiveSpeakAt = System.currentTimeMillis();
+        captureNow();
+    }
+
+    public static boolean askCurrentFrame(String question) {
+        VisionActivity active = current;
+        if (active == null || active.isFinishing()) return false;
+        active.answerLiveQuestion(question);
+        return true;
     }
 
     public void captureNow() {
@@ -556,6 +598,19 @@ public class VisionActivity extends AppCompatActivity {
     private void analyze(Bitmap bmp) {
         if (bmp == null) { done("Foto tidak bisa dibaca. Coba lagi."); return; }
         switch (mode) {
+            case "live_companion":
+                String question = liveQuestion == null || liveQuestion.trim().isEmpty()
+                        ? "Jelaskan secara singkat benda utama yang terlihat di depan kamera untuk pengguna tunanetra. Jangan menebak jika tidak jelas."
+                        : liveQuestion;
+                liveQuestion = "";
+                if (question.toLowerCase(Locale.ROOT).contains("uang") || question.toLowerCase(Locale.ROOT).contains("nominal")) {
+                    detectMoneyAndColor(bmp);
+                } else if (question.toLowerCase(Locale.ROOT).contains("teks") || question.toLowerCase(Locale.ROOT).contains("tulisan")) {
+                    readInstantOcr(bmp);
+                } else {
+                    askAiWithBitmap(bmp, question);
+                }
+                return;
             case "scan_all":
                 scanAllObjectsAloud(bmp);
                 return;
