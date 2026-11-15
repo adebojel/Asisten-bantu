@@ -126,7 +126,7 @@ object OnlineAiRouter {
         // Lapis 2: OpenRouter API Key manual
         val openRouterKey = cfg.apiKey
         if (openRouterKey.isNotEmpty()) {
-            val orReply = callOpenRouterWithFallback(openRouterKey, cfg, effectiveSystem, userPrompt, imageBase64)
+            val orReply = callOpenRouterWithFallback(openRouterKey, effectiveSystem, userPrompt, imageBase64)
             if (!orReply.isNullOrBlank()) {
                 return AiResult(cleanForSpeech(orReply), "OpenRouter AI")
             }
@@ -209,26 +209,17 @@ object OnlineAiRouter {
 
     private fun callOpenRouterWithFallback(
         apiKey: String,
-        cfg: KobraConfig,
         systemPrompt: String,
         userPrompt: String,
         imageBase64: String?
     ): String? {
         val candidates = ArrayList<String>()
         if (imageBase64.isNullOrEmpty()) {
-            // Hanya izinkan model yang secara eksplisit gratis. Model pilihan
-            // pengguna tidak boleh melewati filter harga karena dapat menimbulkan biaya.
+            // Hanya gunakan ID yang ditemukan pada katalog harga live dan memiliki
+            // tarif prompt serta completion tepat 0.0. Akhiran ":free" saja tidak
+            // cukup sebagai bukti harga; bila katalog gagal dibaca, jangan kirim request.
             val discoveredFree = discoverFreeTextModels(apiKey)
-            val preferred = cfg.model
-            if (preferred.endsWith(":free", ignoreCase = true) ||
-                discoveredFree.contains(preferred)) {
-                if (preferred.isNotEmpty()) candidates.add(preferred)
-            }
-            // Katalog live hanya memasukkan model dengan harga prompt dan completion = 0.
             for (m in discoveredFree) {
-                if (!candidates.contains(m)) candidates.add(m)
-            }
-            for (m in KobraConfig.TEXT_MODELS) {
                 if (!candidates.contains(m)) candidates.add(m)
             }
         } else {
