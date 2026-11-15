@@ -34,8 +34,8 @@ public final class VoiceSilenceCommandParser {
     private static String normalize(String input) {
         if (input == null) return "";
         return input.toLowerCase(Locale.ROOT)
-                .replaceAll("[^\\\\p{L}\\\\p{N}]+", " ")
+                .replaceAll("[^\\p{L}\\p{N}]+", " ")
                 .trim()
-                .replaceAll("\\\\s+", " ");
+                .replaceAll("\\s+", " ");
     }
 }
