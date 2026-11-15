@@ -620,8 +620,7 @@ open class ChatActivity : AppCompatActivity() {
                 if (isFinishing || isDestroyed) return@summarizeTextAsync
                 val cleanReply = reply?.trim().orEmpty()
                 if (cleanReply.isNotEmpty() && !cleanReply.contains("Gagal memproses") && !cleanReply.contains("Mode Aman")) {
-                    addAiMessage(cleanReply, "Gemma 3 1B Offline")
-                    speaker.speak(cleanReply)
+                    replyAndSpeak(cleanReply, "Gemma 3 1B Offline")
                     refreshModeBanner()
                 } else {
                     routeToOnlineOrFallback(displayPrompt, systemPrompt)
@@ -765,6 +764,13 @@ open class ChatActivity : AppCompatActivity() {
 
     private fun replyAndSpeak(text: String, meta: String) {
         addAiMessage(text, meta)
+        // Keep one bounded local session history across online/offline provider switches.
+        // Chat generation uses summarizeTextAsync(useHistory=false), so record each
+        // completed Chat turn here exactly once.
+        val userTurn = adapter.lastUserMessage()
+        if (userTurn.isNotBlank() && text.isNotBlank()) {
+            LocalLlmEngine.getInstance(this).addSessionTurn(userTurn, text)
+        }
         speaker.speak(text)
     }
 
@@ -784,12 +790,15 @@ open class ChatActivity : AppCompatActivity() {
             notifyItemInserted(items.size - 1)
         }
 
+        fun lastUserMessage(): String =
+            items.lastOrNull { it.fromUser }?.text.orEmpty()
+
         /** Last bounded turns for online AI continuity; omit the current user turn (sent separately). */
         fun recentConversationContext(): String {
             val endExclusive = if (items.lastOrNull()?.fromUser == true) items.size - 1 else items.size
             if (endExclusive <= 0) return ""
             return items.subList(0, endExclusive).takeLast(12)
-                .joinToString("\\n") { item ->
+                .joinToString("\n") { item ->
                     (if (item.fromUser) "Pengguna: " else "Kobra: ") + item.text
                 }
                 .takeLast(2600)
