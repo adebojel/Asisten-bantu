@@ -860,9 +860,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 String[] nums = p.b.split("\n");
                 Integer n = OfflineBrain.firstNumber(text);
                 if (n != null && n >= 1 && n <= names.length) {
-                    boolean wa = "whatsapp".equalsIgnoreCase(p.c);
-                    pending = new Pending(wa ? "wa_call" : "call", names[n - 1], nums[n - 1]);
-                    say((wa ? "Panggilan WhatsApp ke " : "Telepon seluler ke ") + names[n - 1] + "? Bilang iya untuk melanjutkan.");
+                    boolean waVideo = "whatsapp_video".equalsIgnoreCase(p.c);
+                    boolean wa = waVideo || "whatsapp".equalsIgnoreCase(p.c);
+                    pending = new Pending(waVideo ? "wa_video_call" : (wa ? "wa_call" : "call"), names[n - 1], nums[n - 1]);
+                    say((waVideo ? "Panggilan video WhatsApp ke " : (wa ? "Panggilan suara WhatsApp ke " : "Telepon seluler ke ")) + names[n - 1] + "? Bilang iya untuk melanjutkan.");
                 } else {
                     say("Pilihan tidak cocok. Panggilan dibatalkan.");
                 }
@@ -870,7 +871,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
             }
             case "wa_call":
                 if (yes && !no) startWhatsAppVoiceCall(p.a, p.b);
-                else say("Panggilan WhatsApp dibatalkan.");
+                else say("Panggilan suara WhatsApp dibatalkan.");
+                break;
+            case "wa_video_call":
+                if (yes && !no) startWhatsAppVideoCall(p.a, p.b);
+                else say("Panggilan video WhatsApp dibatalkan.");
                 break;
             case "call":
                 if (yes && !no) {
@@ -2597,23 +2602,28 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (target.isEmpty()) { say("Panggil siapa?"); return; }
         String rawTarget = target.trim();
         boolean whatsappCall = rawTarget.matches("(?i).*\\b(melalui|lewat|via|pakai)\\s+(whatsapp|wa)\\b.*")
-                || rawTarget.toLowerCase(Locale.ROOT).endsWith(" whatsapp")
+                || rawTarget.toLowerCase(Locale.ROOT).contains("whatsapp")
                 || rawTarget.toLowerCase(Locale.ROOT).endsWith(" wa");
-        target = rawTarget.replaceAll("(?i)\\s+(melalui|lewat|via|pakai)\\s+(whatsapp|wa)$", "")
-                .replaceAll("(?i)\\s+(whatsapp|wa)$", "").trim();
+        boolean whatsappVideoCall = whatsappCall
+                && rawTarget.matches("(?i).*\\b(video|video\\s*call|panggilan\\s+video)\\b.*");
+        target = rawTarget.replaceAll("(?i)\\s+(melalui|lewat|via|pakai)\\s+(whatsapp|wa)(?:\\s+(?:video(?:\\s*call)?|panggilan\\s+video))?$", "")
+                .replaceAll("(?i)\\s+(whatsapp|wa)(?:\\s+(?:video(?:\\s*call)?|panggilan\\s+video))?$", "")
+                .replaceAll("(?i)\\s+(video\\s*call|panggilan\\s+video|video)$", "").trim();
         if (target.isEmpty()) { say("Nama kontak untuk panggilan WhatsApp belum disebutkan."); return; }
         if (target.matches("[0-9+ ]{6,}")) {
             String number = target.replace(" ", "");
-            pending = new Pending(whatsappCall ? "wa_call" : "call", number, number);
-            say((whatsappCall ? "Panggilan WhatsApp" : "Telepon seluler") + " ke nomor itu? Bilang iya untuk melanjutkan.");
+            String action = whatsappVideoCall ? "wa_video_call" : (whatsappCall ? "wa_call" : "call");
+            pending = new Pending(action, number, number);
+            say((whatsappVideoCall ? "Panggilan video WhatsApp" : (whatsappCall ? "Panggilan suara WhatsApp" : "Telepon seluler")) + " ke nomor itu? Bilang iya untuk melanjutkan.");
             return;
         }
         List<String[]> matches = findContacts(target, 3);
         if (matches.isEmpty()) { say("Kontak " + target + " tidak ditemukan."); return; }
         if (matches.size() == 1) {
             String[] found = matches.get(0);
-            pending = new Pending(whatsappCall ? "wa_call" : "call", found[0], found[1]);
-            say((whatsappCall ? "Panggilan WhatsApp ke " : "Telepon seluler ke ") + found[0] + "? Bilang iya untuk melanjutkan.");
+            String action = whatsappVideoCall ? "wa_video_call" : (whatsappCall ? "wa_call" : "call");
+            pending = new Pending(action, found[0], found[1]);
+            say((whatsappVideoCall ? "Panggilan video WhatsApp ke " : (whatsappCall ? "Panggilan suara WhatsApp ke " : "Telepon seluler ke ")) + found[0] + "? Bilang iya untuk melanjutkan.");
             return;
         }
         StringBuilder names = new StringBuilder();
@@ -2625,7 +2635,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
             nums.append(matches.get(i)[1]);
             prompt.append("Nomor ").append(i + 1).append(", ").append(matches.get(i)[0]).append(". ");
         }
-        pending = new Pending("call_pick", names.toString(), nums.toString(), whatsappCall ? "whatsapp" : "cellular");
+        pending = new Pending("call_pick", names.toString(), nums.toString(),
+                whatsappVideoCall ? "whatsapp_video" : (whatsappCall ? "whatsapp" : "cellular"));
         say(prompt + "Sebutkan nomornya.");
     }
 
@@ -2642,6 +2653,23 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 return;
             }
             say("Tombol panggilan WhatsApp ditekan. Memeriksa status pada layar.");
+            main.postDelayed(() -> announceCallStatus(name, readScreenText()), 1800L);
+        }, 2200L);
+    }
+
+    private void startWhatsAppVideoCall(String name, String number) {
+        if (!openChatDeepLink(number, "whatsapp", "")) {
+            say("WhatsApp tidak dapat membuka percakapan untuk " + name + ". Panggilan video belum dimulai.");
+            return;
+        }
+        say("Percakapan WhatsApp " + name + " dibuka. Mencari kontrol panggilan video.");
+        main.postDelayed(() -> {
+            boolean pressed = clickExact("Panggilan video", "Video call", "Video call button", "Panggilan video WhatsApp");
+            if (!pressed) {
+                say("Percakapan terbuka, tetapi kontrol panggilan video tidak ditemukan. Panggilan video belum dimulai.");
+                return;
+            }
+            say("Kontrol panggilan video WhatsApp ditekan. Memeriksa status pada layar.");
             main.postDelayed(() -> announceCallStatus(name, readScreenText()), 1800L);
         }, 2200L);
     }
