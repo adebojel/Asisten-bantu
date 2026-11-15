@@ -102,3 +102,34 @@ Lisensi repository tidak otomatis melisensikan model, dataset, voice pack, atau 
 - **Adaptasi arsitektur** bila idenya kuat tetapi stack/SDK tidak cocok.
 - **Referensi saja** untuk repository tanpa lisensi yang jelas atau proyek eksperimental.
 - **Tolak** jika memerlukan akses root/ADB tersembunyi, menambah pemilik kedua kamera/mikrofon/AccessibilityService, atau mengirim data sensitif tanpa persetujuan yang jelas.
+
+## Tambahan hasil pencarian lanjutan — 16 November 2026
+
+| Repository | Lisensi | Fitur/arsitektur yang ditemukan | Keputusan |
+|---|---|---|---|
+| [NightMean/OlliteRT](https://github.com/NightMean/OlliteRT) | Apache-2.0 | Ponsel Android menjadi server inferensi LLM lokal dengan API kompatibel OpenAI; katalog model, endpoint lokal, dan integrasi klien. | Referensi arsitektur/API untuk opsi model lokal LAN. Tidak menjalankan server kedua di dalam KOBRA tanpa benchmark baterai, suhu, memori, dan kontrol lifecycle. |
+| [DaedalusApps/daedalus-echo](https://github.com/DaedalusApps/daedalus-echo) | MIT | Rekaman lokal, Whisper/sherpa-onnx transcription, Gemma 3 1B, ringkasan, mind-map, dan pencarian semantik atas rekaman. | Kandidat audit komponen memori audio; adaptasi selektif, jangan membuka pemilik mikrofon kedua atau menyalin model tanpa lisensi model terpisah. |
+| [NosytLabs/openclaw-droid](https://github.com/NosytLabs/openclaw-droid) | MIT | Installer OpenClaw melalui Termux + Ubuntu proot; local agent gateway. | Bukan modul Android native. Referensi eksperimen opsional; tidak dipasang otomatis karena runtime Termux/proot, konsumsi daya dan keamanan. |
+| [wink-wink-wink555/blind_navigation](https://github.com/wink-wink-wink555/blind_navigation) | MIT | ARIADNE: analisis video, navigasi suara, multi-agent, peta, pengaturan dan pesan melalui agent; backend Python/Flask. | Referensi desain multi-agent dan alur navigasi. Audit endpoint, prompt injection, autentikasi, dan ketergantungan cloud sebelum adaptasi. |
+| [microsoft/accessibility-insights-for-android-service](https://github.com/microsoft/accessibility-insights-for-android-service) | MIT | Scanner/inspector untuk evaluasi aksesibilitas aplikasi Android. | Hanya alat QA dan referensi pengujian. Proyek dihentikan dukungannya pada 2023; bukan dependency runtime. |
+| [X-SLAYER/flutter_accessibility_service](https://github.com/X-SLAYER/flutter_accessibility_service) | MIT | Plugin Flutter untuk event dan aksi AccessibilityService. | Referensi API saja; KOBRA native Java/Kotlin sehingga tidak perlu menambah Flutter bridge. |
+| [Ahmednaser30/blind-guider](https://github.com/Ahmednaser30/blind-guider) | Tidak ada lisensi terverifikasi | Gesture navigation audio-first, TFLite SSD object detection, GPU delegate, Bluetooth band. | Referensi fitur; jangan salin kode/model tanpa lisensi dan audit usia model. |
+| [aminbaybon/blind-vision-assistant](https://github.com/aminbaybon/blind-vision-assistant) | Tidak ada lisensi terverifikasi | YOLO26n, MiDaS small, Piper TTS offline; peringatan hambatan berbasis kedalaman relatif. README menyatakan tidak mengukur meter dan tidak menjamin jalur aman. | Referensi penting untuk komunikasi risiko yang jujur dan evaluasi depth relatif; tidak reuse kode/model sebelum lisensi diperjelas. |
+| [renjithsd/SmartBlindAssistant](https://github.com/renjithsd/SmartBlindAssistant) | Tidak ada lisensi terverifikasi | Kotlin, CameraX, ML Kit OCR/object detection, pengenalan mata uang, GPS, emergency SMS. | Referensi daftar fungsi; tidak copy tanpa lisensi dan belum terbukti implementasi matang. |
+| [gobinda789/object_navigation_for_blind_person_app](https://github.com/gobinda789/object_navigation_for_blind_person_app) | Tidak ada lisensi terverifikasi | Deteksi objek dan depth estimation untuk panduan rintangan. | Referensi konsep saja; klaim free for personal/educational use bukan lisensi open-source yang cukup untuk reuse komersial. |
+| [codingaslu/Voice-Vision-Assistant-for-Blind](https://github.com/codingaslu/Voice-Vision-Assistant-for-Blind) | Tidak ada lisensi terverifikasi | Voice + vision + NLP untuk pertanyaan tentang lingkungan dan pengenalan objek. | Referensi arsitektur saja sampai lisensi, model, dan implementasi diverifikasi. |
+| [lee-b/kobold_assistant](https://github.com/lee-b/kobold_assistant) | AGPL-3.0 | Percakapan suara offline dengan Whisper dan TTS lokal, namun upstream menyatakan proyek lama/outdated. | Tidak reuse code karena AGPL dan status usang; konsep turn-taking dan konfirmasi ucapan saja. |
+| [tim-gromeyer/VoiceAssistant](https://github.com/tim-gromeyer/VoiceAssistant) | GPL-3.0 | Asisten suara offline yang dapat dikustomisasi; proyek masih tahap awal. | Referensi arsitektur saja karena GPL dan status belum matang. |
+| [steve1316/uma-android-automation](https://github.com/steve1316/uma-android-automation) | GPL-3.0 | Kotlin engine, OpenCV/YOLOv8, RAG chatbot on-device. | Tidak relevan sebagai fitur produk langsung; referensi teknik computer vision/RAG saja dan tidak reuse GPL. |
+
+### Prioritas integrasi setelah audit
+
+1. **P0 — audio Indonesia dan turn-taking:** uji sherpa-onnx yang sudah ada di katalog dibanding speech-android (Apache-2.0) dan komponen audio Daedalus Echo (MIT). Kriteria: model bahasa Indonesia, streaming latency, VAD, TTS chunking, pembatalan, pemakaian RAM/baterai.
+2. **P1 — QA aksesibilitas:** gunakan pola scanner dari Microsoft Accessibility Insights hanya sebagai test harness/daftar pemeriksaan; jangan memasukkannya ke APK produksi.
+3. **P1 — navigasi aman:** pelajari ARIADNE dan Blind Vision Assistant untuk depth relatif, peringatan konservatif, dan keterbatasan eksplisit. Tidak boleh menyebut jarak meter atau jalur aman tanpa sensor/model terkalibrasi.
+4. **P2 — local inference server:** OlliteRT hanya opsi terpisah untuk perangkat kedua/LAN; jangan mengganggu satu runtime LiteRT-LM KOBRA.
+5. **Ditolak untuk copy saat ini:** semua repository tanpa lisensi, AGPL/GPL, proyek usang, atau sistem yang memerlukan service kamera/mikrofon kedua.
+
+## Catatan audit kualitas repository
+
+Banyak hasil pencarian GitHub berupa proyek demo, tugas kuliah, fork, prototype server-based, atau repositori tanpa lisensi. Jumlah repository bukan ukuran kualitas. KOBRA hanya mengadopsi implementasi setelah source code, tests, commit upstream, lisensi dependency, model weights, ABI, minSdk, ukuran, performa, privasi, dan lifecycle diverifikasi.
