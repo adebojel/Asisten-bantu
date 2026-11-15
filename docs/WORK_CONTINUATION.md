@@ -81,3 +81,15 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Offline Indonesian ASR remains a design decision only. LiveSub's Sherpa model is optional, around 247 MB, and has separate model licensing; no second microphone capture path has been added.
 - Main README and releases have not yet been rewritten; main has existing 3D SVG assets, but no verified current in-app screenshots. Do not use a failed CI screenshot as a product screenshot.
 - No merge, release, branch deletion, or physical-device test has occurred. Do not clean branches until all intended changes are safely in main and release artifacts have been verified.
+
+
+## Permission-scope work — 16 November 2026
+
+- Replaced the Settings permission button's single broad `Perms.required()` request with a feature-group picker.
+- Added separate groups for microphone, camera, location, contacts, calls, SMS send, SMS read, call history, calendar, Bluetooth, notifications, activity recognition, audio files, and nearby Wi-Fi.
+- Already-granted permissions are filtered before requesting.
+- Deprecated `Perms.required()` now returns only microphone permission; optional capabilities must use `Perms.forGroup()`.
+- Added `PermsTest` for baseline permission, separate SMS grants, label/group parity, and invalid IDs.
+- Updated the Settings subtitle and feature-gap matrix.
+- Important limitation: this is feature-group selection from Settings, not yet complete just-in-time prompting from each individual feature entry point. The remaining feature entrypoints need wiring before claiming full least-privilege runtime permission UX.
+- Latest code commit at this checkpoint: `790bb57598589cc88404fdcc8e7ce8661fbb5521`. Earlier successful build `29cbaab...` predates the permission-group code. Wait for a CI run containing the latest code before calling this update build-verified.
