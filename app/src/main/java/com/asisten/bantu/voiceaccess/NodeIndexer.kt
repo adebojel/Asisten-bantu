@@ -2,7 +2,9 @@ package com.asisten.bantu.voiceaccess
 
 import android.accessibilityservice.AccessibilityService
 import android.graphics.Rect
+import android.graphics.RectF
 import android.os.Build
+import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
 import java.util.Locale
 
@@ -257,6 +259,114 @@ object NodeIndexer {
             !node.contentDescription.isNullOrBlank() ||
             node.isClickable || node.isEditable || node.isCheckable
         return hasLabel && node.performAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS)
+    }
+
+    /**
+     * Advances the focused text node by one word using Android's native text movement granularity.
+     * Returns the word selected by the app's accessibility provider, or null if unsupported.
+     */
+    @JvmStatic
+    fun moveFocusedTextByWord(service: AccessibilityService?, forward: Boolean): String? {
+        if (service == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
+        val root = selectActiveRoot(service) ?: return null
+        var focused: AccessibilityNodeInfo? = null
+        return try {
+            focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY) ?: return null
+            val text = focused?.text?.toString().orEmpty()
+            if (text.isEmpty()) return null
+            val args = Bundle().apply {
+                putInt(
+                    AccessibilityNodeInfo.ACTION_ARGUMENT_MOVEMENT_GRANULARITY_INT,
+                    AccessibilityNodeInfo.MOVEMENT_GRANULARITY_WORD
+                )
+                putBoolean(AccessibilityNodeInfo.ACTION_ARGUMENT_EXTEND_SELECTION_BOOLEAN, false)
+            }
+            val action = if (forward) AccessibilityNodeInfo.ACTION_NEXT_AT_MOVEMENT_GRANULARITY
+                else AccessibilityNodeInfo.ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY
+            if (focused?.performAction(action, args) != true) return null
+            focused?.refresh()
+            val start = focused?.textSelectionStart ?: -1
+            val end = focused?.textSelectionEnd ?: -1
+            val range = resolveWordRange(text, start, end) ?: return null
+            text.substring(range.first, range.last + 1)
+        } catch (_: Throwable) {
+            null
+        } finally {
+            safeRecycle(focused)
+            safeRecycle(root)
+        }
+    }
+
+    /**
+     * Returns a tight screen rectangle for the current word using Android's per-character
+     * text geometry. No full-line or full-TextView rectangle is drawn as a word substitute.
+     */
+    @JvmStatic
+    fun focusedWordBounds(service: AccessibilityService?): Rect? {
+        if (service == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return null
+        val root = selectActiveRoot(service) ?: return null
+        var focused: AccessibilityNodeInfo? = null
+        return try {
+            focused = root.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY) ?: return null
+            val text = focused?.text?.toString().orEmpty()
+            if (text.isEmpty()) return null
+            val start = focused?.textSelectionStart ?: -1
+            val end = focused?.textSelectionEnd ?: -1
+            val range = resolveWordRange(text, start, end) ?: return null
+            val args = Bundle().apply {
+                putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, range.first)
+                putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH, range.last - range.first + 1)
+            }
+            val node = focused ?: return null
+            if (!node.refreshWithExtraData(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY, args)) return null
+            val rects = node.extras.getParcelableArray(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY)
+                ?: return null
+            val union = RectF()
+            var hasRect = false
+            for (item in rects) {
+                val charRect = item as? RectF ?: continue
+                if (charRect.isEmpty || !charRect.left.isFinite() || !charRect.top.isFinite()) continue
+                if (!hasRect) {
+                    union.set(charRect)
+                    hasRect = true
+                } else {
+                    union.union(charRect)
+                }
+            }
+            if (!hasRect || union.isEmpty) return null
+            Rect(
+                kotlin.math.floor(union.left).toInt(),
+                kotlin.math.floor(union.top).toInt(),
+                kotlin.math.ceil(union.right).toInt(),
+                kotlin.math.ceil(union.bottom).toInt()
+            ).takeIf { !it.isEmpty }
+        } catch (_: Throwable) {
+            null
+        } finally {
+            safeRecycle(focused)
+            safeRecycle(root)
+        }
+    }
+
+    private fun resolveWordRange(text: String, selectionStart: Int, selectionEnd: Int): IntRange? {
+        if (text.isEmpty()) return null
+        if (selectionStart >= 0 && selectionEnd > selectionStart) {
+            val start = selectionStart.coerceIn(0, text.length)
+            val end = selectionEnd.coerceIn(start, text.length)
+            if (end > start && text.substring(start, end).any { it.isLetterOrDigit() }) return start until end
+        }
+        val cursor = (if (selectionEnd >= 0) selectionEnd else 0).coerceIn(0, text.length)
+        var index = if (cursor == text.length) cursor - 1 else cursor
+        if (index < 0) return null
+        if (!text[index].isLetterOrDigit()) {
+            while (index < text.length && !text[index].isLetterOrDigit()) index++
+            if (index >= text.length) return null
+        }
+        var start = index
+        var end = index + 1
+        while (start > 0 && text[start - 1].isLetterOrDigit()) start--
+        while (end < text.length && text[end].isLetterOrDigit()) end++
+        return if (end > start) start until end else null
     }
 
     /** Current focused node label, without retaining AccessibilityNodeInfo references. */
