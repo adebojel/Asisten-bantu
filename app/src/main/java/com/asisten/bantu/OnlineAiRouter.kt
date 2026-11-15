@@ -63,6 +63,8 @@ object OnlineAiRouter {
     @JvmStatic
     fun getActiveProviderSummary(context: Context): String {
         val cfg = KobraConfig(context.applicationContext)
+        val cfg = KobraConfig(context.applicationContext)
+        if (cfg.getOpenAiApiKey().isNotEmpty()) return "OpenAI GPT"
         val geminiKey = CommandRouter.resolveGeminiApiKey(context)
         if (geminiKey.isNotEmpty()) return "Gemini AI Studio"
         if (cfg.hasAi()) return "OpenRouter AI"
@@ -121,7 +123,14 @@ object OnlineAiRouter {
             KobraPersona.buildFullSystemPrompt(appCtx)
         }
 
-        // Lapis 1: Gemini API Key manual (gemini-2.5-flash -> gemini-2.0-flash)
+        // Lapis 1: OpenAI Responses API (GPT online).
+        val openAiKey = cfg.getOpenAiApiKey()
+        if (openAiKey.isNotEmpty()) {
+            val openAiReply = callOpenAiResponses(openAiKey, effectiveSystem, userPrompt)
+            if (!openAiReply.isNullOrBlank()) return AiResult(cleanForSpeech(openAiReply), "OpenAI GPT")
+        }
+
+        // Lapis 2: Gemini API Key manual
         val geminiKey = CommandRouter.resolveGeminiApiKey(appCtx)
         if (geminiKey.isNotEmpty()) {
             val combinedPrompt = "$effectiveSystem\n\n$userPrompt"
@@ -149,6 +158,31 @@ object OnlineAiRouter {
         }
 
         return null
+    }
+
+    /** OpenAI Responses API text route; this is online, not an embedded model. */
+    private fun callOpenAiResponses(apiKey: String, systemPrompt: String, userPrompt: String): String? {
+        return try {
+            val payload = JSONObject().put("model", "gpt-4.1-mini")
+                .put("instructions", systemPrompt).put("input", userPrompt).put("max_output_tokens", 600)
+            val request = Request.Builder().url("https://api.openai.com/v1/responses")
+                .addHeader("Authorization", "Bearer $apiKey")
+                .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType())).build()
+            httpClient.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) { Log.w(TAG, "OpenAI Responses HTTP ${response.code}: $body"); return null }
+                val output = JSONObject(body).optJSONArray("output") ?: return null
+                val result = StringBuilder()
+                for (i in 0 until output.length()) {
+                    val content = output.optJSONObject(i)?.optJSONArray("content") ?: continue
+                    for (j in 0 until content.length()) {
+                        val part = content.optJSONObject(j) ?: continue
+                        if (part.optString("type") == "output_text") result.append(part.optString("text")).append(' ')
+                    }
+                }
+                result.toString().trim().ifEmpty { null }
+            }
+        } catch (t: Throwable) { Log.w(TAG, "OpenAI Responses gagal: ${t.message}"); null }
     }
 
     @JvmStatic
