@@ -213,3 +213,13 @@ Safety constraints in this implementation:
 - Risk-target logic has unit tests for destructive/transactional actions, system settings, confirmation controls and ordinary navigation labels.
 
 This agent is still experimental: screen fingerprint changes can be caused by unrelated UI animation or navigation and are not semantic proof of the requested end state. The user must review the resulting screen before any sensitive follow-up action.
+
+
+## 16 November 2026 — target ranking and strict word-only focus
+
+- Added `TargetLabelMatcher.kt`, a pure matcher adapted from the target-ranking design studied in MIT-licensed ScreenSaathi. It scores exact text/ID above normalized and word-boundary matches, prefers actionable/smaller nodes for tied scores, and refuses near-tied targets at separate screen locations.
+- `NodeIndexer.findByLabel()` now uses this matcher. If the match is ambiguous, the result is null and the screen agent stops instead of guessing.
+- Added unit tests for exact vs partial matches, "call" not matching "Recall", overlapping label/control selection, non-actionable IDs, and Unicode word boundaries.
+- Found and fixed a word-focus edge case: the old range resolver could outline a multi-word selection as one large rectangle and could infer the first word when the provider exposed no selection. Replaced it with `FocusedWordRangeResolver.kt`.
+- The new resolver accepts only one selected word or the word touching an actual caret. Multi-word selection and absent caret/selection are rejected. Added unit tests for paragraph rejection, punctuation, reversed selections, caret handling and missing metadata.
+- `focusedWordBounds()` still requires provider-advertised per-character geometry; no line/paragraph fallback exists.
