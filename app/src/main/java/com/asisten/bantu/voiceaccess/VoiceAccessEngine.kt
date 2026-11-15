@@ -172,6 +172,32 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
         // 2) Tampilan Nomor Layar & Grid 3x3
         val cfg = KobraConfig(service)
 
+        if (c == "bicara lebih cepat" || c == "talk faster" || c == "naikkan kecepatan bicara") {
+            val rate = VoiceProfileManager.adjustSpeechRate(service, 0.1f)
+            sayCallback.accept("Kecepatan suara sekarang " + rate + ".")
+            return true
+        }
+        if (c == "bicara lebih lambat" || c == "talk slower" || c == "turunkan kecepatan bicara") {
+            val rate = VoiceProfileManager.adjustSpeechRate(service, -0.1f)
+            sayCallback.accept("Kecepatan suara sekarang " + rate + ".")
+            return true
+        }
+        if (c == "kecepatan bicara normal" || c == "reset kecepatan bicara") {
+            val rate = VoiceProfileManager.resetSpeechRate(service)
+            sayCallback.accept("Kecepatan suara dikembalikan ke preset " + rate + ".")
+            return true
+        }
+        if (c == "suara lebih tinggi" || c == "naikkan nada suara") {
+            val pitch = VoiceProfileManager.adjustSpeechPitch(service, 0.1f)
+            sayCallback.accept("Nada suara sekarang " + pitch + ".")
+            return true
+        }
+        if (c == "suara lebih rendah" || c == "turunkan nada suara") {
+            val pitch = VoiceProfileManager.adjustSpeechPitch(service, -0.1f)
+            sayCallback.accept("Nada suara sekarang " + pitch + ".")
+            return true
+        }
+
         if (c == "tampilkan garis fokus" || c == "aktifkan garis fokus" || c == "tampilkan bingkai fokus" || c == "bingkai fokus") {
             cfg.setFocusOutlineEnabled(true)
             val bounds = NodeIndexer.focusedBounds(service)
