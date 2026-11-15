@@ -69,3 +69,17 @@ These API integrations were not found in the current Java/Kotlin service paths d
 - Do not enable root, Shizuku, ADB, or hidden system-control permissions as a normal path.
 - Do not let the AI send SMS, make calls, pay, buy, delete, install, share or change system security without a separate explicit confirmation workflow.
 - Do not claim any capability is production-verified until it passes tests and physical-device validation.
+
+
+## Permission UX implementation update — 16 November 2026
+
+The broad permission request from the Settings permission button has been replaced on this branch by a feature-group picker:
+
+- The user selects one capability before Android's permission prompt appears.
+- SMS send and SMS read are separate groups.
+- Contacts, call control, call history, calendar, camera, location, microphone, Bluetooth, notifications, activity recognition, audio files, and nearby Wi-Fi are separated.
+- Already-granted permissions are filtered out.
+- `Perms.required()` is deprecated and now returns only the microphone baseline to prevent new callers from requesting every sensitive permission at once.
+- `PermsTest` covers the baseline, separate SMS grants, picker/group count, and invalid group IDs.
+
+This is a least-privilege improvement to the Settings permission workflow. It is not yet a complete just-in-time runtime permission system: individual feature entry points still need to request their own group when a permission is missing. Keep this gap visible until all feature flows are wired and tested.
