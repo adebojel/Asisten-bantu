@@ -17,6 +17,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.PixelFormat;
+import android.graphics.Path;
+import android.accessibilityservice.GestureDescription;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -35,6 +37,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StatFs;
+import android.os.SystemClock;
 import android.provider.AlarmClock;
 import android.provider.ContactsContract;
 import android.provider.Settings;
@@ -218,7 +221,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (wakeStripped != null) c = wakeStripped;
         final String command = c;
         boolean deviceCommand = c.startsWith("buka ") || c.startsWith("tekan ") || c.startsWith("klik ")
-                || c.startsWith("ketik ") || c.startsWith("tulis ") || c.startsWith("scroll ")
+                || c.startsWith("ketik ") || c.startsWith("tulis ") || c.startsWith("scroll ") || c.startsWith("matikan video") || c.startsWith("jeda video") || c.startsWith("pause video")
                 || c.startsWith("geser ") || c.startsWith("panggil ") || c.startsWith("telepon ")
                 || c.startsWith("telpon ") || c.startsWith("kirim pesan ") || c.startsWith("chat ke ")
                 || c.startsWith("whatsapp ke ") || c.startsWith("arahkan ke ") || c.startsWith("navigasi ke ")
@@ -827,28 +830,42 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 if (yes && !no) placeCall(p.a, p.b);
                 else say("Panggilan dibatalkan.");
                 break;
+            case "msg_contact_pick": {
+                if (no) { say("Pengiriman pesan dibatalkan."); break; }
+                Integer choice = OfflineBrain.firstNumber(text);
+                String[] names = p.a.split("\\n");
+                String[] numbers = p.b.split("\\n");
+                if (choice == null || choice < 1 || choice > names.length) {
+                    say("Pilihan kontak tidak cocok. Sebutkan nomor kontak yang benar.");
+                    pending = p;
+                } else {
+                    pending = new Pending("msg_body", names[choice - 1], "", numbers[choice - 1]);
+                    say("Kontak " + names[choice - 1] + " dipilih. Apa isi pesannya?");
+                }
+                break;
+            }
             case "msg_body":
                 if (no) {
                     say("Pesan dibatalkan.");
                 } else {
-                    pending = new Pending("msg_confirm", p.a, text);
-                    say("Pesan untuk " + p.a + ": " + text + ". Bilang iya untuk mengirim.");
+                    pending = new Pending("msg_confirm", p.a, text, p.c);
+                    say("Pesan untuk " + p.a + ": " + text + ". Bilang iya untuk membuka WhatsApp dan mengirim.");
                 }
                 break;
             case "msg_confirm":
                 if (yes && !no) {
                     if (config.isLayeredConfirmEnabled()) {
-                        pending = new Pending("msg_confirm2", p.a, p.b);
+                        pending = new Pending("msg_confirm2", p.a, p.b, p.c);
                         say("Konfirmasi kedua. Yakin mengirim WhatsApp ke " + p.a + "? Bilang lanjut atau iya.");
                     } else {
-                        sendWhatsApp(p.a, p.b);
+                        sendWhatsApp(p.a, p.c, p.b);
                     }
                 } else {
                     say("Pesan dibatalkan.");
                 }
                 break;
             case "msg_confirm2":
-                if (yes && !no) sendWhatsApp(p.a, p.b);
+                if (yes && !no) sendWhatsApp(p.a, p.c, p.b);
                 else say("Pesan dibatalkan.");
                 break;
             case "app_pick":
@@ -1150,6 +1167,18 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         if (routeExtra(c)) return;
+
+        // Tap tengah layar menggunakan gesture aksesibilitas Android, bukan pencarian teks.
+        if (has(c, "klik tengah", "ketuk tengah", "tekan tengah", "tap tengah", "klik bagian tengah")) {
+            tapScreenCenter();
+            return;
+        }
+
+        // Perintah video dikirim sebagai media key ke sesi pemutar aktif.
+        if (has(c, "matikan video", "hentikan video", "jeda video", "pause video", "stop video")) {
+            dispatchMediaCommand(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, "Perintah jeda video dikirim ke pemutar media.");
+            return;
+        }
 
         // Navigasi layar & kontrol global (#66 & #68)
         if (has(c, "kembali")) { global(GLOBAL_ACTION_BACK, "Kembali."); return; }
@@ -2125,6 +2154,49 @@ public class AsistenAccessibilityService extends AccessibilityService {
         return null;
     }
 
+    private void tapScreenCenter() {
+        try {
+            android.util.DisplayMetrics metrics = new android.util.DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getRealMetrics(metrics);
+            float x = metrics.widthPixels / 2f;
+            float y = metrics.heightPixels / 2f;
+            Path path = new Path();
+            path.moveTo(x, y);
+            GestureDescription gesture = new GestureDescription.Builder()
+                    .addStroke(new GestureDescription.StrokeDescription(path, 0, 80))
+                    .build();
+            boolean accepted = dispatchGesture(gesture, new GestureResultCallback() {
+                @Override public void onCompleted(GestureDescription description) {
+                    say("Ketukan di tengah layar selesai.");
+                }
+                @Override public void onCancelled(GestureDescription description) {
+                    say("Ketukan tengah dibatalkan oleh sistem.");
+                }
+            }, null);
+            if (!accepted) say("Sistem menolak ketukan tengah. Periksa izin Aksesibilitas Kobra.");
+        } catch (Throwable error) {
+            Log.w(TAG, "Tap tengah gagal", error);
+            say("Tidak dapat mengetuk tengah layar pada aplikasi ini.");
+        }
+    }
+
+    private void dispatchMediaCommand(int keyCode, String message) {
+        try {
+            AudioManager audio = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (audio == null) {
+                say("Kontrol media tidak tersedia.");
+                return;
+            }
+            long now = SystemClock.uptimeMillis();
+            audio.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0));
+            audio.dispatchMediaKeyEvent(new KeyEvent(now, now + 1, KeyEvent.ACTION_UP, keyCode, 0));
+            say(message + " Status pemutaran belum dapat diverifikasi.");
+        } catch (Throwable error) {
+            Log.w(TAG, "Perintah media gagal", error);
+            say("Pemutar media tidak menerima perintah.");
+        }
+    }
+
     private void clickByName(String name) {
         boolean ok = clickAny(name) || UnifiedAccessibilityEngine.clickByNameGlobal(this, name);
         say(ok ? "Oke." : "Tombol " + name + " tidak ditemukan di layar.");
@@ -2210,12 +2282,38 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void startSendMessage(String target) {
         if (target.isEmpty()) { say("Kirim pesan ke siapa? Contoh: kirim pesan ke Ibu."); return; }
-        pending = new Pending("msg_body", target, "");
-        say("Apa isi pesannya untuk " + target + "?");
+        if (target.matches("[0-9+ ]{6,}")) {
+            pending = new Pending("msg_body", target, "", target);
+            say("Nomor tujuan " + target + " dipilih. Apa isi pesannya?");
+            return;
+        }
+        List<String[]> matches = findContacts(target, 5);
+        if (matches.isEmpty()) {
+            say("Kontak " + target + " tidak ditemukan di daftar kontak HP. Periksa ejaan atau izin kontak.");
+            return;
+        }
+        if (matches.size() == 1) {
+            String[] found = matches.get(0);
+            pending = new Pending("msg_body", found[0], "", found[1]);
+            say("Saya menemukan kontak " + found[0] + ". Apa isi pesannya?");
+            return;
+        }
+        StringBuilder names = new StringBuilder();
+        StringBuilder numbers = new StringBuilder();
+        StringBuilder prompt = new StringBuilder("Saya menemukan beberapa kontak yang cocok. ");
+        for (int i = 0; i < matches.size(); i++) {
+            if (i > 0) { names.append('\\n'); numbers.append('\\n'); }
+            names.append(matches.get(i)[0]);
+            numbers.append(matches.get(i)[1]);
+            prompt.append("Nomor ").append(i + 1).append(", ").append(matches.get(i)[0]).append(". ");
+        }
+        pending = new Pending("msg_contact_pick", names.toString(), numbers.toString());
+        say(prompt + "Sebutkan nomor kontak yang dimaksud.");
     }
 
-    private void sendWhatsApp(String name, String body) {
-        if (openChatDeepLink(name, "whatsapp", body)) {
+    private void sendWhatsApp(String name, String number, String body) {
+        String destination = number == null || number.trim().isEmpty() ? name : number;
+        if (openChatDeepLink(destination, "whatsapp", body)) {
             main.postDelayed(() -> say(clickExact("kirim", "send")
                     ? "Pesan terkirim ke " + name + "."
                     : "Pesan sudah diketik di chat " + name + ", tetapi tombol kirim tidak ketemu. Tekan kirim sendiri."), 3000);
