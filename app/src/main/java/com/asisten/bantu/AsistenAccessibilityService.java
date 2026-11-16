@@ -293,13 +293,17 @@ public class AsistenAccessibilityService extends AccessibilityService {
         UnifiedAccessibilityEngine.onServiceConnected(this);
         voiceAccessEngine = new VoiceAccessEngine(this);
         if (main != null) main.postDelayed(() -> {
-            if (voiceAccessEngine != null) voiceAccessEngine.refreshFocusOutline();
+            if (serviceActive && voiceAccessEngine != null) voiceAccessEngine.refreshFocusOutline();
         }, 350L);
 
         // Lazy-load Mesin LLM Offline: cek crash-guard tanpa memuat model berat saat startup
         localLlmEngine = LocalLlmEngine.getInstance(this);
         if (localLlmEngine.isModelPresent() && localLlmEngine.isSafeMode() && main != null) {
-            main.postDelayed(() -> speaker.speakQueued("Model AI offline berada di Mode Aman karena terlalu berat untuk RAM. Asisten tetap aktif dengan perintah sistem lokal."), 3000L);
+            main.postDelayed(() -> {
+                if (serviceActive && speaker != null) {
+                    speaker.speakQueued("Model AI offline berada di Mode Aman karena terlalu berat untuk RAM. Asisten tetap aktif dengan perintah sistem lokal.");
+                }
+            }, 3000L);
         }
 
         networkCallback = NetworkState.watch(this, online -> {
@@ -642,9 +646,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void scheduleRetry(long ms) {
-        if (main == null || !micOn) return;
-        main.removeCallbacks(micRetry);
-        main.postDelayed(micRetry, ms);
+        Handler handler = main;
+        if (!serviceActive || handler == null || !micOn) return;
+        handler.removeCallbacks(micRetry);
+        handler.postDelayed(() -> {
+            if (serviceActive && micOn) micRetry.run();
+        }, ms);
     }
 
     private void createRecognizer() {
@@ -3876,6 +3883,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     };
 
     private void checkLowStorageOnStart() {
+        if (!serviceActive) return;
         try {
             StatFs stat = new StatFs(getFilesDir().getAbsolutePath());
             long availBytes = stat.getAvailableBytes();
