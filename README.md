@@ -45,6 +45,18 @@ Artwork 3D di bagian atas adalah ilustrasi identitas produk. Screenshot aplikasi
 
 Model Qwen3 LiteRT-LM yang dibundel di APK diambil dari revisi Hugging Face yang dipatok (bukan cabang `main` yang dapat berubah). Proses Gradle memvalidasi ukuran file tepat 347.251.840 byte dan SHA-256 `2df6821ec12702dafd33915e7a1a1adc7c4b053f3672fd9555dfaf3a114c4139` untuk cache maupun unduhan baru. Unduhan yang tidak cocok ditolak sebelum dimasukkan ke APK. Model berlisensi Apache-2.0; lihat [model card upstream](https://huggingface.co/litert-community/Qwen3-0.6B-int4).
 
+### Deteksi objek dan ukuran APK
+
+MediaPipe EfficientDet-Lite0 (float32, 13.836.895 byte, Apache-2.0) digunakan untuk bounding box; model diverifikasi dengan SHA-256 `40338edf5ec70d43e318b0a716a84d4564cd1802759a7a07170c7e43796dbf58`. Posisi kiri/tengah/kanan hanya relatif pada bingkai kamera, bukan jarak fisik atau jaminan jalur aman. ML Kit Image Labeling tetap menjadi fallback tanpa bounding box. APK rilis ditargetkan untuk ABI `arm64-v8a` agar tidak membawa native library x86/32-bit yang tidak dipakai perangkat modern.
+
+### Status suara offline Bahasa Indonesia
+
+Pengenalan suara menggunakan Android on-device recognition bila tersedia; jika paket bahasa Indonesia tidak tersedia, layanan beralih ke recognizer sistem yang mungkin memerlukan internet. TTS memilih voice Bahasa Indonesia offline jika sudah terpasang. Perintah suara **"cek suara offline"** melaporkan status ASR/TTS. Saat ini model ASR/TTS mandiri belum dibundel, sehingga kemampuan offline bergantung pada paket bahasa/voice di perangkat.
+
+### Navigasi pedestrian offline
+
+Navigasi peta pedestrian offline berbasis OSM/MapLibre dan mesin routing belum selesai dan belum boleh dianggap tersedia. Layar navigasi saat ini memberi informasi deteksi kamera, bukan petunjuk rute pedestrian. Integrasi data peta, lisensi tile, routing graph offline, dan pengujian rute masih menjadi pekerjaan P4.
+
 ## Kemampuan utama
 
 | Modul | Fungsi |

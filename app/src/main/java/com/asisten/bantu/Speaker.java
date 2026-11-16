@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
 import android.speech.tts.UtteranceProgressListener;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,8 @@ public class Speaker implements TextToSpeech.OnInitListener {
     private final Handler mainHandler;
     private TextToSpeech tts;
     private boolean ready = false;
+    private volatile boolean offlineIndonesianVoiceReady = false;
+    private volatile String offlineIndonesianVoiceStatus = "Mesin suara belum siap.";
     private volatile boolean sedangBicara = false;
     private Runnable onEndCallback = null;
     private final AtomicLong utteranceSequence = new AtomicLong();
@@ -128,7 +131,32 @@ public class Speaker implements TextToSpeech.OnInitListener {
     public void applyVoiceSettings() {
         if (tts != null && ready) {
             VoiceProfileManager.applyToTextToSpeech(context, tts);
+            refreshOfflineIndonesianVoiceStatus();
         }
+    }
+
+    private void refreshOfflineIndonesianVoiceStatus() {
+        try {
+            Voice voice = tts == null ? null : tts.getVoice();
+            String language = voice == null || voice.getLocale() == null
+                    ? "" : voice.getLocale().getLanguage();
+            boolean isIndonesian = "id".equalsIgnoreCase(language) || "in".equalsIgnoreCase(language);
+            offlineIndonesianVoiceReady = isIndonesian && !voice.isNetworkConnectionRequired();
+            offlineIndonesianVoiceStatus = offlineIndonesianVoiceReady
+                    ? "Suara Bahasa Indonesia tersedia secara offline."
+                    : "Paket suara Bahasa Indonesia offline belum tersedia; suara TTS mungkin memerlukan internet.";
+        } catch (Exception ignored) {
+            offlineIndonesianVoiceReady = false;
+            offlineIndonesianVoiceStatus = "Status suara offline tidak dapat diperiksa.";
+        }
+    }
+
+    public boolean isOfflineIndonesianVoiceReady() {
+        return offlineIndonesianVoiceReady;
+    }
+
+    public String getOfflineIndonesianVoiceStatus() {
+        return offlineIndonesianVoiceStatus;
     }
 
     public void updateVoiceSettings(float speechRate, float pitch) {
@@ -190,6 +218,8 @@ public class Speaker implements TextToSpeech.OnInitListener {
         } catch (Exception ignored) {}
         tts = null;
         ready = false;
+        offlineIndonesianVoiceReady = false;
+        offlineIndonesianVoiceStatus = "Mesin suara belum aktif.";
         sedangBicara = false;
         synchronized (Speaker.class) {
             if (sInstance == this) sInstance = null;

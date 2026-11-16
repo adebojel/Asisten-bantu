@@ -232,7 +232,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 || has(c, "kembali", "beranda", "layar utama", "aplikasi terbaru", "pengaturan cepat",
                 "baca layar", "isi layar", "apa di layar", "putar voice note", "putar pesan suara", "mainkan voice note", "dengarkan voice note", "dengarkan pesan suara", "baterai", "jam berapa", "tanggal",
                 "nyalakan senter", "matikan senter", "senter", "volume", "bluetooth", "gps",
-                "status sinyal", "cek sinyal", "cek mikrofon", "status mikrofon", "nyalakan mikrofon",
+                "status sinyal", "cek sinyal", "cek mikrofon", "status mikrofon", "cek suara offline", "status suara offline", "cek bahasa offline", "nyalakan mikrofon",
                 "matikan mikrofon", "mode privasi", "layar hitam", "cari hp", "posisi saya",
                 "saya di mana", "alamat saya", "rute pulang", "arahkan pulang", "baca notifikasi",
                 "ringkas notifikasi", "baca ktp", "baca uang", "hitung uang", "scan qr", "scan barcode",
@@ -1269,6 +1269,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
         if (has(c, "cek mikrofon", "status mikrofon")) { say(micOn ? "Mikrofon aktif." : "Mikrofon mati."); return; }
+        if (has(c, "cek suara offline", "status suara offline", "cek bahasa offline")) {
+            String recognitionStatus = recognizerUsesOnDevice
+                    ? "Pengenalan suara berjalan di perangkat."
+                    : "Pengenalan suara sistem aktif dan mungkin memerlukan internet.";
+            String synthesisStatus = speaker == null
+                    ? "Mesin suara belum siap." : speaker.getOfflineIndonesianVoiceStatus();
+            say(recognitionStatus + " " + synthesisStatus);
+            return;
+        }
         if (has(c, "matikan mikrofon")) { micOn = false; stopMic(); updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED); say("Mikrofon dimatikan."); return; }
         if (has(c, "nyalakan mikrofon", "hidupkan mikrofon")) { micOn = true; updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE); say("Mikrofon aktif."); return; }
         if (has(c, "talkback")) { handleTalkback(c); return; }

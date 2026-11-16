@@ -18,6 +18,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Release artifact targets current 64-bit Android phones; omit unused x86/32-bit native payloads.
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
+
         val geminiApiKey = (System.getenv("GEMINI_API_KEY") ?: "")
             .trim()
             .replace("\\", "\\\\")

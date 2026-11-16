@@ -453,7 +453,7 @@ public class VisionActivity extends AppCompatActivity {
             try {
                 streamObjectDetector.process(proxy.toBitmap(), proxy.getImageInfo().getRotationDegrees(), (items, usedFallback) -> {
                     try {
-                        if (!destroyed && !isFinishing()) handleLiveLabels(items);
+                        if (!destroyed && !isFinishing()) handleLiveLabels(items, usedFallback);
                     } catch (RuntimeException ignored) {
                         // UI failures must not retain the camera frame.
                     } finally {
@@ -585,7 +585,7 @@ public class VisionActivity extends AppCompatActivity {
         }
     }
 
-    private void handleLiveLabels(List<SafeObjectDetector.DetectedItem> items) {
+    private void handleLiveLabels(List<SafeObjectDetector.DetectedItem> items, boolean usedFallback) {
         List<SafeObjectDetector.DetectedItem> confirmed = objectDetectionStability.filter(items);
         if (confirmed.isEmpty()) {
             String status = items == null || items.isEmpty()
@@ -606,12 +606,14 @@ public class VisionActivity extends AppCompatActivity {
                 hasBoxPosition = true;
             }
         }
-        text.append(hasBoxPosition
-                ? ". Kotak objek terdeteksi; posisi hanya relatif pada gambar, bukan jarak fisik."
-                : ". Label cadangan tidak menyediakan kotak posisi atau jarak.");
+        text.append(usedFallback
+                ? ". Fallback label-only aktif; kotak posisi tidak tersedia."
+                : hasBoxPosition
+                    ? ". Kotak objek terdeteksi; posisi hanya relatif pada gambar, bukan jarak fisik."
+                    : ". Detektor utama belum menghasilkan kotak posisi.");
         String spoken = text.toString();
         runOnUiThread(() -> {
-            tvStatus.setText("Label stabil dan kotak objek terdeteksi; jarak fisik tidak tersedia");
+            tvStatus.setText(usedFallback ? "Fallback label-only aktif; bounding box tidak tersedia." : "Deteksi bounding box aktif; jarak fisik tidak tersedia.");
             tvResult.setText(spoken);
         });
         long now = System.currentTimeMillis();

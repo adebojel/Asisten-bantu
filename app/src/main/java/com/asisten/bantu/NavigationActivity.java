@@ -239,7 +239,7 @@ public class NavigationActivity extends AppCompatActivity {
             Bitmap frame = proxy.toBitmap();
             detector.process(frame, rot, (items, usedFallback) -> {
                 try {
-                    if (generation == frameGeneration && !isFinishing() && !isDestroyed() && navigating) onLabels(items);
+                    if (generation == frameGeneration && !isFinishing() && !isDestroyed() && navigating) onLabels(items, usedFallback);
                 } catch (RuntimeException ignored) {
                     // A UI/render failure must never retain the camera frame.
                 } finally {
@@ -253,7 +253,7 @@ public class NavigationActivity extends AppCompatActivity {
         }
     }
 
-    private void onLabels(List<SafeObjectDetector.DetectedItem> items) {
+    private void onLabels(List<SafeObjectDetector.DetectedItem> items, boolean usedFallback) {
         if (!navigating) return;
         if (sonarRadarView != null) sonarRadarView.updateObstacles(new ArrayList<>());
         if (items == null || items.isEmpty()) {
@@ -272,9 +272,11 @@ public class NavigationActivity extends AppCompatActivity {
                 hasBoxPosition = true;
             }
         }
-        String safetyNote = hasBoxPosition
-                ? " Posisi hanya relatif pada bingkai kamera; jarak fisik tidak tersedia."
-                : " Kotak posisi tidak tersedia; arah dan jarak tidak diketahui.";
+        String safetyNote = usedFallback
+                ? " Fallback label-only aktif; kotak posisi dan jarak tidak tersedia."
+                : hasBoxPosition
+                    ? " Posisi hanya relatif pada bingkai kamera; jarak fisik tidak tersedia."
+                    : " Detektor utama belum memberi kotak posisi; arah dan jarak tidak diketahui.";
         tvObstacle.setText("Terdeteksi kemungkinan: " + names + "." + safetyNote
                 + " Jalur belum dipastikan aman.");
         long now = System.currentTimeMillis();
