@@ -93,20 +93,6 @@ public class Speaker implements TextToSpeech.OnInitListener {
             tts.setLanguage(Locale.getDefault());
         }
         applyVoiceSettings();
-        String immediate;
-        List<String> queued;
-        synchronized (this) {
-            immediate = pendingImmediateText;
-            pendingImmediateText = null;
-            queued = new ArrayList<>(pendingQueuedTexts);
-            pendingQueuedTexts.clear();
-        }
-        if (immediate != null && !immediate.trim().isEmpty()) {
-            speak(immediate);
-        }
-        for (String queuedText : queued) {
-            speakQueued(queuedText);
-        }
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
@@ -134,7 +120,22 @@ public class Speaker implements TextToSpeech.OnInitListener {
             public void onStop(String utteranceId, boolean interrupted) {
                 mainHandler.post(() -> finishUtterance(utteranceId));
             }
-        });
+        })
+        String immediate;
+        List<String> queued;
+        synchronized (this) {
+            immediate = pendingImmediateText;
+            pendingImmediateText = null;
+            queued = new ArrayList<>(pendingQueuedTexts);
+            pendingQueuedTexts.clear();
+        }
+        if (immediate != null && !immediate.trim().isEmpty()) {
+            speak(immediate);
+        }
+        for (String queuedText : queued) {
+            speakQueued(queuedText);
+        }
+;
     }
 
     private void finishUtterance(String utteranceId) {
