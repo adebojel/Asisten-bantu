@@ -412,11 +412,21 @@ public class VisionActivity extends AppCompatActivity {
             int w = (rot == 90 || rot == 270) ? proxy.getHeight() : proxy.getWidth();
             int h = (rot == 90 || rot == 270) ? proxy.getWidth() : proxy.getHeight();
             InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
-            streamObjectDetector.process(img, (items, usedFallback) -> {
-                handleLiveLabels(items);
+            try {
+                streamObjectDetector.process(img, (items, usedFallback) -> {
+                    try {
+                        if (!destroyed && !isFinishing()) handleLiveLabels(items);
+                    } catch (RuntimeException ignored) {
+                        // UI failures must not retain the camera frame.
+                    } finally {
+                        liveProcessing = false;
+                        try { proxy.close(); } catch (Exception ignored) {}
+                    }
+                });
+            } catch (RuntimeException error) {
                 liveProcessing = false;
-                proxy.close();
-            });
+                try { proxy.close(); } catch (Exception ignored) {}
+            }
         } else if ("barcode".equals(mode)) {
             if (now - lastLiveSpeakAt < 2200L || barcodeScanner == null) { proxy.close(); return; }
             liveProcessing = true;
@@ -507,9 +517,14 @@ public class VisionActivity extends AppCompatActivity {
         }
         try {
             streamObjectDetector.process(image, (items, usedFallback) -> {
-                handleLiveLabels(items);
-                liveProcessing = false;
-                try { proxy.close(); } catch (Exception ignored) {}
+                try {
+                    if (!destroyed && !isFinishing()) handleLiveLabels(items);
+                } catch (RuntimeException ignored) {
+                    // Keep CameraX frame ownership deterministic on UI errors.
+                } finally {
+                    liveProcessing = false;
+                    try { proxy.close(); } catch (Exception ignored) {}
+                }
             });
         } catch (Throwable error) {
             liveProcessing = false;
