@@ -76,13 +76,13 @@ kotlin {
 }
 
 dependencies {
-    // AndroidX, KTX & Material Design (Aligned for Java 17 & Kotlin 2.2)
-    implementation("androidx.core:core-ktx:1.13.1")
-    implementation("androidx.activity:activity-ktx:1.9.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    // AndroidX, CameraX & Material Design (stable releases aligned with the current Android toolchain)
+    implementation("androidx.core:core-ktx:1.19.1")
+    implementation("androidx.activity:activity-ktx:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    implementation("androidx.appcompat:appcompat:1.8.0")
     implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.2")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // Kotlin Coroutines & Network Client (Gemini / AI Studio REST Integration)
@@ -92,18 +92,18 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-    // CameraX 1.3.1
-    implementation("androidx.camera:camera-core:1.3.1")
-    implementation("androidx.camera:camera-camera2:1.3.1")
-    implementation("androidx.camera:camera-lifecycle:1.3.1")
-    implementation("androidx.camera:camera-view:1.3.1")
+    // CameraX 1.6.2 (stable)
+    implementation("androidx.camera:camera-core:1.6.2")
+    implementation("androidx.camera:camera-camera2:1.6.2")
+    implementation("androidx.camera:camera-lifecycle:1.6.2")
+    implementation("androidx.camera:camera-view:1.6.2")
 
-    // Google ML Kit (Offline Vision, Barcode, Translation & Text Recognition)
-    implementation("com.google.mlkit:text-recognition:16.0.0")
+    // Google ML Kit (latest stable bundled-model APIs; offline vision, barcode, translation & OCR)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("com.google.mlkit:image-labeling:17.0.9")
     // Retained for legacy OfflineVision type references; no runtime detector client is created.
-    implementation("com.google.mlkit:object-detection:16.0.0")
-    implementation("com.google.mlkit:face-detection:16.1.6")
+    implementation("com.google.mlkit:object-detection:17.0.2")
+    implementation("com.google.mlkit:face-detection:16.1.7")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation("com.google.mlkit:translate:17.0.3")
 
