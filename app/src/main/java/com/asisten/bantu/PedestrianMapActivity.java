@@ -333,7 +333,7 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
     }
 
     private void updateTurnGuidance(Location location) {
-        if (!routeActive || routeInstructions.isEmpty()) return;
+        if (!routeActive) return;
         if (location.hasAccuracy() && location.getAccuracy() > 50f) return;
         while (nextInstructionIndex < routeInstructions.size()) {
             RouteInstruction instruction = routeInstructions.get(nextInstructionIndex);
@@ -360,7 +360,7 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
             float[] result = new float[1];
             Location.distanceBetween(location.getLatitude(), location.getLongitude(),
                     destination.getLatitude(), destination.getLongitude(), result);
-            if (result[0] <= 20f) {
+            if (PedestrianRouteProgress.isDestinationReached(result[0])) {
                 speaker.speak("Anda sudah dekat dengan tujuan.");
                 routeActive = false;
                 stopLocationUpdates();
