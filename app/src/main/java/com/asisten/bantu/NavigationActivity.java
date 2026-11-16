@@ -46,6 +46,7 @@ public class NavigationActivity extends AppCompatActivity {
     private Button btnStart, btnStop, btnEmergencySos, btnGuardianAck, btnGuardianCheckNow;
     private SafeObjectDetector detector;
     private ProcessCameraProvider cameraProvider;
+    private ImageAnalysis analysisUseCase;
     private Speaker speaker;
     private Vibrator vibrator;
     private final KobraScreenHelper screenHelper = new KobraScreenHelper();
@@ -158,6 +159,10 @@ public class NavigationActivity extends AppCompatActivity {
     @Override protected void onDestroy() {
         navigating = false;
         processing = false;
+        if (analysisUseCase != null) {
+            try { analysisUseCase.clearAnalyzer(); } catch (Exception ignored) {}
+            analysisUseCase = null;
+        }
         if (cameraProvider != null) {
             try { cameraProvider.unbindAll(); } catch (Exception ignored) {}
             cameraProvider = null;
@@ -197,6 +202,7 @@ public class NavigationActivity extends AppCompatActivity {
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build();
                 analysis.setAnalyzer(analyzerExec, this::analyzeFrame);
+                analysisUseCase = analysis;
 
                 provider.unbindAll();
                 provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis);
@@ -215,20 +221,29 @@ public class NavigationActivity extends AppCompatActivity {
     }
 
     private void analyzeFrame(androidx.camera.core.ImageProxy proxy) {
-        if (!navigating || processing || proxy.getImage() == null) {
+        if (proxy == null) return;
+        if (!navigating || processing || detector == null || proxy.getImage() == null) {
             proxy.close();
             return;
         }
         processing = true;
-        int rot = proxy.getImageInfo().getRotationDegrees();
-        int imgW = (rot == 90 || rot == 270) ? proxy.getHeight() : proxy.getWidth();
-        int imgH = (rot == 90 || rot == 270) ? proxy.getWidth() : proxy.getHeight();
-        InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
-        detector.process(img, (items, usedFallback) -> {
-            onLabels(items);
+        try {
+            int rot = proxy.getImageInfo().getRotationDegrees();
+            InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
+            detector.process(img, (items, usedFallback) -> {
+                try {
+                    if (!isFinishing() && !isDestroyed() && navigating) onLabels(items);
+                } catch (RuntimeException ignored) {
+                    // A UI/render failure must never retain the camera frame.
+                } finally {
+                    processing = false;
+                    try { proxy.close(); } catch (Exception ignored) {}
+                }
+            });
+        } catch (RuntimeException error) {
             processing = false;
-            proxy.close();
-        });
+            try { proxy.close(); } catch (Exception ignored) {}
+        }
     }
 
     private void onLabels(List<SafeObjectDetector.DetectedItem> items) {
@@ -263,6 +278,9 @@ public class NavigationActivity extends AppCompatActivity {
     public void startNavigation() {
         if (isFinishing() || isDestroyed() || detector == null) return;
         navigating = true;
+        if (analysisUseCase != null) {
+            try { analysisUseCase.setAnalyzer(analyzerExec, this::analyzeFrame); } catch (Exception ignored) {}
+        }
         tvStatus.setText("Sonar Radar 3D AKTIF");
         speaker.speak("Bantuan kamera aktif. Deteksi ini dapat melewatkan objek dan tidak mengukur jarak dengan pasti. Tetap gunakan tongkat atau anjing pemandu dan jangan menyeberang hanya berdasarkan radar.");
     }
@@ -271,6 +289,9 @@ public class NavigationActivity extends AppCompatActivity {
         if (!navigating) return;
         navigating = false;
         processing = false;
+        if (analysisUseCase != null) {
+            try { analysisUseCase.clearAnalyzer(); } catch (Exception ignored) {}
+        }
         if (sonarRadarView != null) sonarRadarView.updateObstacles(new ArrayList<>());
         tvStatus.setText("Sonar Radar berhenti");
         speaker.speak("Mode tongkat berhenti.");
