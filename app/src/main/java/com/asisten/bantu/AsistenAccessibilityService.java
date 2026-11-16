@@ -1924,7 +1924,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void answerCall() {
         if (!Perms.has(this, Manifest.permission.ANSWER_PHONE_CALLS)) {
-            openFeaturePermissionSettings(Perms.GROUP_CALLS, "Izin menjawab telepon diperlukan.");
+            openFeaturePermissionSettings(Perms.GROUP_ANSWER_CALLS, "Izin menjawab telepon diperlukan.");
             return;
         }
         try {
@@ -1938,7 +1938,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void endCall() {
         if (!Perms.has(this, Manifest.permission.ANSWER_PHONE_CALLS)) {
-            openFeaturePermissionSettings(Perms.GROUP_CALLS, "Izin telepon diperlukan.");
+            openFeaturePermissionSettings(Perms.GROUP_ANSWER_CALLS, "Izin mengakhiri telepon diperlukan.");
             return;
         }
         try {
