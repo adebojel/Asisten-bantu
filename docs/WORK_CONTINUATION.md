@@ -144,3 +144,10 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Granting permission does not resume the read automatically. The user repeats the voice command, preventing unexpected disclosure immediately after a permission prompt.
 - Without `READ_CONTACTS`, sender names remain unresolved and the reader reports the sender number.
 - This is a source-level change only; await CI for the new head. Device behavior remains unverified and device testing stays deferred.
+
+## Voice step-counter permission recovery — 16 November 2026
+
+- Voice commands for daily steps now request only `GROUP_ACTIVITY` (`ACTIVITY_RECOGNITION`) on Android 10+ when permission is missing.
+- The step query stops before sensor registration and opens the feature-specific permission flow; the user repeats the command after granting.
+- Added `PermsTest` coverage for the activity-recognition mapping on Android 10+ and documented that this does not gate accelerometer-based fall/pocket sensing.
+- Await CI for the new source/test commits before calling this change build-verified; device testing remains deferred.
