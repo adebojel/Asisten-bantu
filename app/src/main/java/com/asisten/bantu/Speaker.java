@@ -23,7 +23,10 @@ public class Speaker implements TextToSpeech.OnInitListener {
     private final Context context;
     private final Handler mainHandler;
     private TextToSpeech tts;
-    private boolean ready = false;
+    private volatile boolean ready = false;
+    // TTS initialization is asynchronous; retain speech requested during startup.
+    private String pendingImmediateText;
+    private final List<String> pendingQueuedTexts = new ArrayList<>();
     private volatile boolean offlineIndonesianVoiceReady = false;
     private volatile String offlineIndonesianVoiceStatus = "Mesin suara belum siap.";
     private volatile boolean sedangBicara = false;
@@ -90,6 +93,20 @@ public class Speaker implements TextToSpeech.OnInitListener {
             tts.setLanguage(Locale.getDefault());
         }
         applyVoiceSettings();
+        String immediate;
+        List<String> queued;
+        synchronized (this) {
+            immediate = pendingImmediateText;
+            pendingImmediateText = null;
+            queued = new ArrayList<>(pendingQueuedTexts);
+            pendingQueuedTexts.clear();
+        }
+        if (immediate != null && !immediate.trim().isEmpty()) {
+            speak(immediate);
+        }
+        for (String queuedText : queued) {
+            speakQueued(queuedText);
+        }
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
@@ -170,8 +187,15 @@ public class Speaker implements TextToSpeech.OnInitListener {
 
     public void speak(String teks) {
         if (teks == null || teks.trim().isEmpty()) return;
+        if (!ready || tts == null) {
+            synchronized (this) {
+                // QUEUE_FLUSH semantics: replace any speech waiting for engine startup.
+                pendingImmediateText = teks;
+                pendingQueuedTexts.clear();
+            }
+            return;
+        }
         // Tandai sedang bicara sejak pemanggilan untuk mencegah loop mikrofon
-        if (tts == null) return;
         String utteranceId = "kobra_" + utteranceSequence.incrementAndGet();
         activeUtteranceId = utteranceId;
         notifySpeechStart();
@@ -186,6 +210,12 @@ public class Speaker implements TextToSpeech.OnInitListener {
 
     public void speakQueued(String teks) {
         if (teks == null || teks.trim().isEmpty()) return;
+        if (!ready || tts == null) {
+            synchronized (this) {
+                pendingQueuedTexts.add(teks);
+            }
+            return;
+        }
         if (tts != null) {
             try {
                 String utteranceId = "kobra_q_" + utteranceSequence.incrementAndGet();
@@ -220,6 +250,10 @@ public class Speaker implements TextToSpeech.OnInitListener {
         ready = false;
         offlineIndonesianVoiceReady = false;
         offlineIndonesianVoiceStatus = "Mesin suara belum aktif.";
+        synchronized (this) {
+            pendingImmediateText = null;
+            pendingQueuedTexts.clear();
+        }
         sedangBicara = false;
         synchronized (Speaker.class) {
             if (sInstance == this) sInstance = null;
