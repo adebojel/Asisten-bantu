@@ -91,9 +91,13 @@ public final class SafeObjectDetector implements AutoCloseable {
             return;
         }
         Bitmap oriented = rotate(bitmap, rotationDegrees);
+        // rotate() allocates a new bitmap for non-zero rotations. The camera/gallery
+        // caller owns the source bitmap, so this detector must release only its copy.
+        Bitmap ownedRotatedBitmap = oriented != bitmap ? oriented : null;
         List<DetectedItem> boxes = Collections.emptyList();
         synchronized (inferenceLock) {
             if (closed) {
+                recycleOwnedBitmap(ownedRotatedBitmap);
                 callback.onDetected(Collections.<DetectedItem>emptyList(), true);
                 return;
             }
@@ -110,8 +114,19 @@ public final class SafeObjectDetector implements AutoCloseable {
                 }
             }
         }
-        if (!boxes.isEmpty()) callback.onDetected(boxes, false);
-        else processFallback(InputImage.fromBitmap(oriented, 0), callback);
+        if (!boxes.isEmpty()) {
+            recycleOwnedBitmap(ownedRotatedBitmap);
+            callback.onDetected(boxes, false);
+            return;
+        }
+        try {
+            // ML Kit consumes the bitmap asynchronously. Transfer ownership until its
+            // completion callback; recycling immediately here can invalidate inference.
+            processFallback(InputImage.fromBitmap(oriented, 0), callback, ownedRotatedBitmap);
+            ownedRotatedBitmap = null;
+        } finally {
+            recycleOwnedBitmap(ownedRotatedBitmap);
+        }
     }
 
     /** Existing callers with ML Kit InputImage remain supported as label-only fallback. */
@@ -190,25 +205,50 @@ public final class SafeObjectDetector implements AutoCloseable {
     }
 
     private void processFallback(InputImage image, Callback callback) {
+        processFallback(image, callback, null);
+    }
+
+    private void processFallback(InputImage image, Callback callback, Bitmap ownedBitmap) {
         ImageLabeler labeler = getImageLabeler();
         if (labeler == null) {
-            callback.onDetected(Collections.<DetectedItem>emptyList(), true);
+            try {
+                callback.onDetected(Collections.<DetectedItem>emptyList(), true);
+            } finally {
+                recycleOwnedBitmap(ownedBitmap);
+            }
             return;
         }
         try {
-            labeler.process(image)
-                    .addOnSuccessListener(labels -> {
-                        List<DetectedItem> items = new ArrayList<>();
-                        for (ImageLabel label : labels) {
-                            items.add(new DetectedItem(translateLabel(label.getText()), null, label.getConfidence()));
-                        }
-                        items.sort((a, b) -> Float.compare(b.confidence, a.confidence));
-                        callback.onDetected(items, true);
-                    })
-                    .addOnFailureListener(error ->
-                            callback.onDetected(Collections.<DetectedItem>emptyList(), true));
+            labeler.process(image).addOnCompleteListener(task -> {
+                List<DetectedItem> items = new ArrayList<>();
+                if (task.isSuccessful() && task.getResult() != null) {
+                    for (ImageLabel label : task.getResult()) {
+                        items.add(new DetectedItem(
+                                translateLabel(label.getText()), null, label.getConfidence()));
+                    }
+                    items.sort((a, b) -> Float.compare(b.confidence, a.confidence));
+                }
+                try {
+                    callback.onDetected(items, true);
+                } finally {
+                    recycleOwnedBitmap(ownedBitmap);
+                }
+            });
         } catch (Throwable ignored) {
-            callback.onDetected(Collections.<DetectedItem>emptyList(), true);
+            try {
+                callback.onDetected(Collections.<DetectedItem>emptyList(), true);
+            } finally {
+                recycleOwnedBitmap(ownedBitmap);
+            }
+        }
+    }
+
+    private static void recycleOwnedBitmap(Bitmap bitmap) {
+        if (bitmap == null || bitmap.isRecycled()) return;
+        try {
+            bitmap.recycle();
+        } catch (RuntimeException ignored) {
+            // Recycling is best-effort; never crash the assistive camera flow.
         }
     }
 
