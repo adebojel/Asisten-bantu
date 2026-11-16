@@ -44,7 +44,7 @@ These API integrations were not found in the current Java/Kotlin service paths d
 
 - The current manifest declares sensitive permissions for contacts, SMS, call log, calendar, phone calls, location, camera, microphone, Bluetooth, storage and more.
 - `Perms.required()` currently returns many of these together, and `SettingsActivity` requests that combined list.
-- `READ_CALENDAR` is used by today's agenda reader. `READ_CONTACTS` and `SEND_SMS` are used by existing flows. `READ_SMS` and `READ_CALL_LOG` are declared/requested, but database-read features were not found in the audited paths.
+- `READ_CALENDAR` is used by today's agenda reader. `READ_CONTACTS` and `SEND_SMS` are used by existing flows. `READ_SMS` is gated at the SMS-reader entry point. Call-log database reading was not found; `READ_CALL_LOG` has therefore been removed from the manifest and its permission group now requests nothing.
 - This is broader than the least-privilege model used by droid-mcp, where each tool/module declares its own required permissions.
 - Next security/UX improvement: request only core microphone permission at onboarding; request camera, location, contacts, SMS, call log, calendar, media and Bluetooth permissions only when the user enables or invokes the corresponding feature. Remove or defer unused sensitive permissions until their feature exists. Explain each use and provide a revoke/disable route.
 - Do not silently expand permissions just because a repository offers a tool.
@@ -77,7 +77,8 @@ The broad permission request from the Settings permission button has been replac
 
 - The user selects one capability before Android's permission prompt appears.
 - SMS send and SMS read are separate groups.
-- Contacts, call control, call history, calendar, camera, location, microphone, Bluetooth, notifications, activity recognition, audio files, and nearby Wi-Fi are separated.
+- Contacts, call control, calendar, camera, location, microphone, Bluetooth, notifications, activity recognition, and audio files are separated.
+- Call-log reading and nearby Wi-Fi discovery are not implemented; their picker entries are marked unavailable and request no permission. Their manifest permissions are removed.
 - Already-granted permissions are filtered out.
 - `Perms.required()` is deprecated and now returns only the microphone baseline to prevent new callers from requesting every sensitive permission at once.
 - `PermsTest` covers the baseline, separate SMS grants, picker/group count, and invalid group IDs.
@@ -131,3 +132,10 @@ This is a least-privilege improvement to the Settings permission workflow. It is
 - Missing permission opens only `GROUP_MEDIA`; playback does not start until the user grants permission and repeats the command.
 - Android 13+ uses `READ_MEDIA_AUDIO`; earlier supported versions use `READ_EXTERNAL_STORAGE` as already mapped by `Perms.forGroup(GROUP_MEDIA)`.
 - This protects the voice entry point. Document-picker access remains separately mediated by Android's Storage Access Framework and does not require broad media-library access.
+
+## Unimplemented permission removal — 16 November 2026
+
+- Branch-wide source review found no call-log query implementation and no nearby Wi-Fi discovery implementation. Removed `READ_CALL_LOG` and `NEARBY_WIFI_DEVICES` from the manifest and changed their picker groups to request no permission; labels clearly mark both capabilities unavailable.
+- Removed unused `CHANGE_WIFI_STATE`; current code reads network/Wi-Fi state but does not toggle Wi-Fi.
+- Added regression coverage proving the unimplemented call-log and nearby-Wi-Fi groups return no runtime permissions.
+- Do not advertise call-log reading, nearby Wi-Fi discovery, or Wi-Fi toggling as current KOBRA functionality.
