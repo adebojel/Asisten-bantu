@@ -66,6 +66,14 @@ class CommandRouterSafetyTest {
     }
 
     @Test
+    fun legacyMacroMustRemainInsideRecordedTargetPackage() {
+        assertTrue(CommandRouter.isMacroTargetPackageAllowed("com.example.mail", "com.example.mail"))
+        assertFalse(CommandRouter.isMacroTargetPackageAllowed("", "com.example.mail"))
+        assertFalse(CommandRouter.isMacroTargetPackageAllowed("com.example.mail", ""))
+        assertFalse(CommandRouter.isMacroTargetPackageAllowed("com.example.mail", "com.example.bank"))
+    }
+
+    @Test
     fun allowsOrdinaryNavigationLabels() {
         val safeTargets = listOf(
             "Settings", "Apps", "Home", "Back", "Menu",
