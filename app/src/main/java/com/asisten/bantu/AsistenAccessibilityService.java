@@ -3388,6 +3388,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void registerBluetoothMonitor() {
+        if (Build.VERSION.SDK_INT >= 31
+                && !Perms.has(this, Manifest.permission.BLUETOOTH_CONNECT)) {
+            Log.i(TAG, "Pemantau headset Bluetooth dilewati: izin Bluetooth belum diberikan.");
+            return;
+        }
         try {
             IntentFilter filter = new IntentFilter();
             filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
@@ -3432,6 +3437,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
     };
 
     private void registerPhoneStateMonitor() {
+        if (!Perms.has(this, Manifest.permission.READ_PHONE_STATE)) {
+            Log.i(TAG, "Pengumuman nomor penelepon dilewati: izin status telepon belum diberikan.");
+            return;
+        }
         try {
             registerReceiver(phoneStateReceiver, new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED));
             phoneStateReceiverRegistered = true;
@@ -3444,6 +3453,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         @Override public void onReceive(Context context, Intent intent) {
             try {
                 if (intent == null || !TelephonyManager.ACTION_PHONE_STATE_CHANGED.equals(intent.getAction())) return;
+                if (!Perms.has(AsistenAccessibilityService.this, Manifest.permission.READ_PHONE_STATE)) return;
                 String state = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
                 if (!TelephonyManager.EXTRA_STATE_RINGING.equals(state)) return;
                 @SuppressWarnings("deprecation")
