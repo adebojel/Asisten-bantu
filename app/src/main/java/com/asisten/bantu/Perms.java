@@ -31,6 +31,7 @@ public final class Perms {
     public static final int GROUP_MEDIA = 11;
     public static final int GROUP_NEARBY_WIFI = 12;
     public static final int GROUP_SMS_READ = 13;
+    public static final int GROUP_ANSWER_CALLS = 14;
 
     public static String[] groupLabels() {
         return new String[] {
@@ -47,7 +48,8 @@ public final class Perms {
             "Aktivitas fisik — penghitung langkah",
             "Audio — memilih berkas suara",
             "Wi-Fi sekitar — pemindaian perangkat/jaringan",
-            "Baca SMS — mengakses pesan masuk"
+            "Baca SMS — mengakses pesan masuk",
+            "Angkat atau akhiri panggilan — kontrol panggilan masuk"
         };
     }
 
@@ -112,6 +114,9 @@ public final class Perms {
                 break;
             case GROUP_SMS_READ:
                 permissions.add(Manifest.permission.READ_SMS);
+                break;
+            case GROUP_ANSWER_CALLS:
+                permissions.add(Manifest.permission.ANSWER_PHONE_CALLS);
                 break;
             default:
                 return new String[0];
