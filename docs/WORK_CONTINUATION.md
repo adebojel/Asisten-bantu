@@ -192,3 +192,13 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Remaining manifest audit: verify every declared permission and special app access against actual call sites and feature UX, especially `REQUEST_INSTALL_PACKAGES`, `SYSTEM_ALERT_WINDOW`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, exact alarms, notification listener, boot receiver, phone state/call history, calendar, Bluetooth, nearby Wi-Fi, and package visibility. Do not remove a permission until the owning feature and user-facing fallback are understood.
 - Current-head CI: workflow [43803302486](https://github.com/adebojel/Asisten-bantu/actions/runs/43803302486) is running for head `21bd8206038adecaa8dfeb9e1c830efcbc934a84`; pure logic tests and Gradle setup passed, Debug APK build is in progress. Do not call the hardened manifest build-verified until this or a later run completes successfully.
 - Manifest hardening commit: `972f3d44dcbbafd814aac442f6763ae3a993b3fe`. A new CI run for the updated head must be checked.
+
+
+## Follow-up hardening — 16 November 2026
+
+- The Gradle model-download task previously accepted `KOBRA_QWEN_MODEL_URL` without validating its scheme. Although the default URL is HTTPS, an overridden URL could have been plain HTTP.
+- Added a fail-closed HTTPS requirement for the configured model URL and a second HTTPS check after opening the connection to reject a redirect that downgrades transport security.
+- This protects the build-time Qwen model supply path from accidental plaintext transport. It does not by itself authenticate model provenance or guarantee a pinned content digest; a SHA-256 allowlist and upstream artifact/version verification remain recommended before release.
+- Change commit: `6850f9cff2790c5de0545c6978932dc2ea518d30`. CI for this commit must complete before the change is treated as build-verified.
+- Permission audit remains in progress. In particular, the manifest declares nearby Wi-Fi, Bluetooth advertise, phone state, call history, calendar, exact alarm, overlay, notification listener, battery-optimization exemption, package installation, broad package visibility, and foreground-service special use. Each requires a verified owning feature and Android-version-specific UX; no permission is removed merely to make the manifest shorter.
+- The widget provider is exported for the Android AppWidget broadcast contract and also declares a custom voice action. Its external-broadcast trust boundary needs a dedicated review before changing export behavior; avoid breaking launcher widget updates.
