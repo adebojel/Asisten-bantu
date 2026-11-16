@@ -1697,6 +1697,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "agenda hari ini", "jadwal hari ini", "kalender hari ini", "ada acara apa")) {
+            if (!Perms.has(this, Manifest.permission.READ_CALENDAR)) {
+                openFeaturePermissionSettings(Perms.GROUP_CALENDAR, "Izin kalender diperlukan untuk membaca agenda Android.");
+                return true;
+            }
             String offlinePlanner = config.listPlannerSpeech();
             String plannerPart = offlinePlanner.isEmpty()
                     ? "Belum ada agenda pengingat offline."
