@@ -316,6 +316,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         setupFloatingOrb();
 
         String activeName = VoiceProfileManager.getActiveAssistantName(this);
+        micOn = !config.isPrivacyMode();
         if (config.isPrivacyMode()) {
             micOn = false;
             updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
