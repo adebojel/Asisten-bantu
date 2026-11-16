@@ -42,13 +42,13 @@ public final class Perms {
             "Kontak — mencari nomor kontak",
             "Telepon — melakukan panggilan",
             "SMS — mengirim pesan",
-            "Riwayat panggilan — membaca log telepon",
+            "Riwayat panggilan — belum tersedia",
             "Kalender — membaca agenda",
             "Bluetooth — perangkat terdekat",
             "Notifikasi — status dan pengingat",
             "Aktivitas fisik — penghitung langkah",
             "Audio — memilih berkas suara",
-            "Wi-Fi sekitar — pemindaian perangkat/jaringan",
+            "Wi-Fi sekitar — belum tersedia",
             "Baca SMS — mengakses pesan masuk",
             "Angkat atau akhiri panggilan — kontrol panggilan masuk",
             "Status telepon — membaca status jaringan dan perangkat telepon"
@@ -79,7 +79,7 @@ public final class Perms {
                 permissions.add(Manifest.permission.SEND_SMS);
                 break;
             case GROUP_CALL_HISTORY:
-                permissions.add(Manifest.permission.READ_CALL_LOG);
+                // Call-log query feature is not implemented; request no sensitive permission.
                 break;
             case GROUP_CALENDAR:
                 permissions.add(Manifest.permission.READ_CALENDAR);
@@ -107,9 +107,7 @@ public final class Perms {
                 }
                 break;
             case GROUP_NEARBY_WIFI:
-                if (Build.VERSION.SDK_INT >= 33) {
-                    permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES);
-                }
+                // Nearby Wi-Fi discovery is not implemented; request no permission.
                 break;
             case GROUP_SMS_READ:
                 permissions.add(Manifest.permission.READ_SMS);
