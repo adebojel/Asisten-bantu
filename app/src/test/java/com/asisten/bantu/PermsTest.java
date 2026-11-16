@@ -48,6 +48,18 @@ public class PermsTest {
     }
 
     @Test
+    public void activityRecognitionGroupContainsOnlyStepPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            assertArrayEquals(
+                    new String[] { Manifest.permission.ACTIVITY_RECOGNITION },
+                    Perms.forGroup(Perms.GROUP_ACTIVITY)
+            );
+        } else {
+            assertEquals(0, Perms.forGroup(Perms.GROUP_ACTIVITY).length);
+        }
+    }
+
+    @Test
     public void phoneStateGroupIsIndependent() {
         assertArrayEquals(
                 new String[] { Manifest.permission.READ_PHONE_STATE },
