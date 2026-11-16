@@ -391,6 +391,22 @@ object CommandRouter {
         }
     }
 
+    internal fun isMacroTargetPackageAllowed(expectedPackage: String, actualPackage: String): Boolean {
+        return expectedPackage.isNotBlank() && actualPackage.isNotBlank() &&
+            expectedPackage == actualPackage
+    }
+
+    private fun activeWindowPackage(service: AccessibilityService): String {
+        val root = try { service.rootInActiveWindow } catch (_: Throwable) { null } ?: return ""
+        return try {
+            root.packageName?.toString().orEmpty()
+        } catch (_: Throwable) {
+            ""
+        } finally {
+            try { root.recycle() } catch (_: Throwable) {}
+        }
+    }
+
     private fun executeMacroSequenceAsync(
         service: AccessibilityService,
         macro: MacroSequence,
@@ -403,36 +419,45 @@ object CommandRouter {
             var allOk = true
 
             for ((idx, step) in macro.steps.withIndex()) {
-                val ok = executeSingleStep(service, step)
+                // A stored macro is bound to the package where it was recorded.
+                // The first open_app step may start from another app; every other
+                // step must begin on the expected app, and every transition is rechecked.
+                if (step.action != "open_app" ||
+                    idx > 0 && macro.steps.firstOrNull()?.action != "open_app") {
+                    if (!isMacroTargetPackageAllowed(macro.targetPackage, activeWindowPackage(service))) {
+                        allOk = false
+                        break
+                    }
+                }
+
+                var ok = executeSingleStep(service, step)
                 if (!ok) {
                     val dismissed = RecoveryEngine.tryDismissBlockingPopup(service)
                     if (dismissed != null) {
                         delay(450L)
-                        if (!executeSingleStep(service, step)) {
-                            allOk = false
-                            break
-                        }
-                    } else if (recovery.shouldRecover) {
-                        allOk = false
-                        break
-                    } else {
+                        ok = executeSingleStep(service, step)
+                    } else if (!recovery.shouldRecover) {
                         delay(350L)
-                        if (!executeSingleStep(service, step)) {
-                            allOk = false
-                            break
-                        }
+                        ok = executeSingleStep(service, step)
                     }
                 }
+                if (!ok) {
+                    allOk = false
+                    break
+                }
+
                 recovery.recordAction("${step.action}:${step.target}")
-                if (idx < macro.steps.lastIndex) {
-                    delay(if (step.action == "open_app") 900L else 320L)
+                delay(if (step.action == "open_app") 900L else 320L)
+                if (!isMacroTargetPackageAllowed(macro.targetPackage, activeWindowPackage(service))) {
+                    allOk = false
+                    break
                 }
             }
 
             if (allOk) {
                 cache.recordUsage(macro.id)
             } else {
-                sayCallback.accept("Sebagian langkah makro gagal karena tampilan layar berubah.")
+                sayCallback.accept("Makro dihentikan: aplikasi tujuan berubah atau tidak dapat diverifikasi. Tidak ada langkah lanjutan yang dijalankan.")
             }
         }
     }
