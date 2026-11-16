@@ -56,25 +56,25 @@ public final class MoneyAndReceiptParser {
         String upper = text.toUpperCase(Locale.ROOT);
         String digitsOnly = upper.replace(".", "").replace(",", "").replace("O", "0");
 
-        if (upper.contains("SERATUS RIBU") || digitsOnly.contains("100000")) {
+        if (upper.contains("SERATUS RIBU") || containsStandaloneDigits(digitsOnly, 100_000L)) {
             return new BillResult(100_000L, true, "Seratus ribu rupiah");
         }
-        if (upper.contains("LIMA PULUH RIBU") || digitsOnly.contains("50000")) {
+        if (upper.contains("LIMA PULUH RIBU") || containsStandaloneDigits(digitsOnly, 50_000L)) {
             return new BillResult(50_000L, true, "Lima puluh ribu rupiah");
         }
-        if (upper.contains("DUA PULUH RIBU") || digitsOnly.contains("20000")) {
+        if (upper.contains("DUA PULUH RIBU") || containsStandaloneDigits(digitsOnly, 20_000L)) {
             return new BillResult(20_000L, true, "Dua puluh ribu rupiah");
         }
-        if (upper.contains("SEPULUH RIBU") || digitsOnly.contains("10000")) {
+        if (upper.contains("SEPULUH RIBU") || containsStandaloneDigits(digitsOnly, 10_000L)) {
             return new BillResult(10_000L, true, "Sepuluh ribu rupiah");
         }
-        if (upper.contains("LIMA RIBU") || digitsOnly.contains("5000")) {
+        if (upper.contains("LIMA RIBU") || containsStandaloneDigits(digitsOnly, 5_000L)) {
             return new BillResult(5_000L, true, "Lima ribu rupiah");
         }
-        if (upper.contains("DUA RIBU") || digitsOnly.contains("2000")) {
+        if (upper.contains("DUA RIBU") || containsStandaloneDigits(digitsOnly, 2_000L)) {
             return new BillResult(2_000L, true, "Dua ribu rupiah");
         }
-        if (upper.contains("SERIBU") || digitsOnly.contains("1000")) {
+        if (upper.contains("SERIBU") || containsStandaloneDigits(digitsOnly, 1_000L)) {
             return new BillResult(1_000L, true, "Seribu rupiah");
         }
 
@@ -110,7 +110,7 @@ public final class MoneyAndReceiptParser {
         String lower = aiText.toLowerCase(Locale.ROOT);
         String compact = lower.replace(".", "").replace(",", "");
         for (long val : VALID_RUPIAH) {
-            if (compact.contains(String.valueOf(val))) {
+            if (containsStandaloneDigits(compact, val)) {
                 return val;
             }
         }
@@ -233,6 +233,13 @@ public final class MoneyAndReceiptParser {
             if (v > 0) return formatRupiah(v);
         }
         return "";
+    }
+
+    /** Match denomination digits as a complete numeric token, never as a substring of a larger balance. */
+    private static boolean containsStandaloneDigits(String text, long amount) {
+        if (text == null || text.isEmpty()) return false;
+        Pattern token = Pattern.compile("(?<!\\\\d)" + Pattern.quote(String.valueOf(amount)) + "(?!\\\\d)");
+        return token.matcher(text).find();
     }
 
     private static long parseDigitsSafe(String raw) {

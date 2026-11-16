@@ -11,4 +11,8 @@ const progress = await readFile('app/src/main/java/com/asisten/bantu/PedestrianR
 assert.match(mapActivity, /hasReliableLocationAccuracy/);
 assert.match(progress, /accuracyMeters <= 50f/);
 console.log('Pedestrian GPS guidance accuracy gate: PASS');
+const moneyParser = await readFile('app/src/main/java/com/asisten/bantu/MoneyAndReceiptParser.java', 'utf8');
+assert.match(moneyParser, /containsStandaloneDigits/);
+assert.doesNotMatch(moneyParser, /compact\\.contains\\(String\\.valueOf\\(val\\)\\)/);
+console.log('Rupiah denomination exact-match guard: PASS');
 console.log('NavigationSafetyCheck: PASS');
