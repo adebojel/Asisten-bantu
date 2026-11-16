@@ -101,6 +101,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private SpeechRecognizer recognizer;
     private Intent recognizerIntent;
     private boolean listening = false;
+    private volatile boolean serviceActive = false;
     private boolean recognizerUsesOnDevice = false;
     private boolean preferSystemRecognizer = false;
     private boolean micOn = true;
@@ -276,6 +277,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        serviceActive = true;
         isRunning = true;
         main = new Handler(Looper.getMainLooper());
         config = new KobraConfig(this);
@@ -314,6 +316,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         setupFloatingOrb();
 
         String activeName = VoiceProfileManager.getActiveAssistantName(this);
+        micOn = !config.isPrivacyMode();
         if (config.isPrivacyMode()) {
             micOn = false;
             updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
@@ -357,13 +360,34 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     @Override public boolean onUnbind(Intent intent) {
+        // Android may unbind an accessibility service before onDestroy is delivered.
+        // Stop audio and UI owners here so the microphone cannot outlive the service.
+        serviceActive = false;
         isRunning = false;
+        micOn = false;
+        stopMic();
+        destroyRecognizer();
+        if (main != null) {
+            main.removeCallbacksAndMessages(null);
+        }
+        if (speaker != null) {
+            speaker.removeListener(speechListener);
+        }
+        if (voiceAccessEngine != null) {
+            voiceAccessEngine.onDestroy();
+            voiceAccessEngine = null;
+        }
+        if (floatingOrbManager != null) {
+            floatingOrbManager.destroy();
+            floatingOrbManager = null;
+        }
         if (instance == this) instance = null;
         UnifiedAccessibilityEngine.onServiceDestroyed();
         return super.onUnbind(intent);
     }
 
     @Override public void onDestroy() {
+        serviceActive = false;
         isRunning = false;
         instance = null;
         UnifiedAccessibilityEngine.onServiceDestroyed();
@@ -493,14 +517,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
     };
 
     private void startListening() {
+        if (!serviceActive || main == null) return;
         main.post(() -> {
-            if (!micOn || listening || pocketLocked || (config != null && config.isPrivacyMode())
+            if (!serviceActive || !micOn || listening || pocketLocked || (config != null && config.isPrivacyMode())
                     || speaker == null || (speaker.isSpeaking() && (config == null || !config.isBargeInEnabled()))) return;
             if (!Perms.has(this, Manifest.permission.RECORD_AUDIO)) {
                 updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
                 if (!warnedNoPermission) {
                     warnedNoPermission = true;
-                    speaker.speak("Izin mikrofon belum aktif. Buka aplikasi Kobra, lalu tekan Izin.");
+                    openFeaturePermissionSettings(Perms.GROUP_MICROPHONE, "Izin mikrofon diperlukan untuk perintah suara.");
                 }
                 return;
             }
@@ -525,7 +550,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void startListeningForBargeIn() {
-        if (config == null || !config.isBargeInEnabled() || !micOn || listening
+        if (!serviceActive || config == null || !config.isBargeInEnabled() || !micOn || listening
                 || pocketLocked || config.isPrivacyMode()
                 || !Perms.has(this, Manifest.permission.RECORD_AUDIO)
                 || !SpeechRecognizer.isRecognitionAvailable(this)) return;
@@ -613,6 +638,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         @Override public void onEvent(int eventType, Bundle params) { }
 
         @Override public void onError(int error) {
+            if (!serviceActive) return;
             listening = false;
             // Android can report on-device recognition as available even when the
             // Indonesian language pack is absent. Fall back once to the system
@@ -654,6 +680,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         @Override public void onResults(Bundle results) {
+            if (!serviceActive) return;
             listening = false;
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
             ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
@@ -1399,7 +1426,17 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         // Pengendali Media Universal & Pemutar Audio Lokal (#74)
         if (has(c, "putar musik lokal", "putar lagu lokal", "mainkan musik lokal", "putar audio lokal")) {
-            say(SystemUtilityHelper.playLocalAudio(this, speaker));
+            String audioPermission = Build.VERSION.SDK_INT >= 33
+                    ? Manifest.permission.READ_MEDIA_AUDIO
+                    : Manifest.permission.READ_EXTERNAL_STORAGE;
+            if (!Perms.has(this, audioPermission)) {
+                openFeaturePermissionSettings(
+                        Perms.GROUP_MEDIA,
+                        "Izin berkas audio diperlukan untuk mencari dan memutar musik lokal."
+                );
+            } else {
+                say(SystemUtilityHelper.playLocalAudio(this, speaker));
+            }
             return;
         }
         if (has(c, "jeda musik", "pause musik", "jeda lagu", "pause lagu")) {
@@ -1561,7 +1598,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "baca sms", "baca pesan singkat", "sms terbaru")) {
-            say(MessageReader.latestSms(this, 3));
+            if (!Perms.has(this, Manifest.permission.READ_SMS)) {
+                openFeaturePermissionSettings(
+                        Perms.GROUP_SMS_READ,
+                        "Izin membaca SMS diperlukan untuk membacakan pesan masuk."
+                );
+            } else {
+                say(MessageReader.latestSms(this, 3));
+            }
             return true;
         }
         if (has(c, "kirim sms", "kirim pesan singkat")) {
@@ -1653,6 +1697,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "agenda hari ini", "jadwal hari ini", "kalender hari ini", "ada acara apa")) {
+            if (!Perms.has(this, Manifest.permission.READ_CALENDAR)) {
+                openFeaturePermissionSettings(Perms.GROUP_CALENDAR, "Izin kalender diperlukan untuk membaca agenda Android.");
+                return true;
+            }
             String offlinePlanner = config.listPlannerSpeech();
             String plannerPart = offlinePlanner.isEmpty()
                     ? "Belum ada agenda pengingat offline."
@@ -1682,6 +1730,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "berapa langkah", "langkah saya", "hitung langkah", "cek langkah", "pedometer")) {
+            if (Build.VERSION.SDK_INT >= 29 && !Perms.has(this, Manifest.permission.ACTIVITY_RECOGNITION)) {
+                openFeaturePermissionSettings(
+                        Perms.GROUP_ACTIVITY,
+                        "Izin aktivitas fisik diperlukan untuk membaca penghitung langkah perangkat."
+                );
+                return true;
+            }
             ensureStepSensorRegistered();
             int steps = config.getTodaySteps();
             int meters = config.getTodayDistanceMeters();
@@ -1924,7 +1979,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void answerCall() {
         if (!Perms.has(this, Manifest.permission.ANSWER_PHONE_CALLS)) {
-            say("Izin menjawab telepon belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_ANSWER_CALLS, "Izin menjawab telepon diperlukan.");
             return;
         }
         try {
@@ -1938,7 +1993,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void endCall() {
         if (!Perms.has(this, Manifest.permission.ANSWER_PHONE_CALLS)) {
-            say("Izin mengakhiri telepon belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_ANSWER_CALLS, "Izin mengakhiri telepon diperlukan.");
             return;
         }
         try {
@@ -1952,12 +2007,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void startSendSms(String target) {
         if (target.isEmpty()) { say("Kirim SMS ke siapa? Contoh: kirim SMS ke Ibu."); return; }
         if (!Perms.has(this, Manifest.permission.SEND_SMS)) {
-            say("Izin SMS belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_SMS, "Izin mengirim SMS diperlukan.");
             return;
         }
         boolean digits = target.matches("[0-9+ ]{6,}");
         if (!digits && !Perms.has(this, Manifest.permission.READ_CONTACTS)) {
-            say("Izin kontak belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_CONTACTS, "Izin kontak diperlukan untuk mencari nama penerima.");
             return;
         }
         String[] found = digits ? new String[]{target, target.replace(" ", "")} : findContact(target);
@@ -2210,6 +2265,23 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     // ----------------------------------------------------------------- bicara
+
+    /**
+     * Open the exact feature permission request instead of asking the user to hunt
+     * through Settings. The user still confirms the Android runtime permission dialog.
+     */
+    private void openFeaturePermissionSettings(int group, String explanation) {
+        say(explanation + " Membuka pilihan izin Kobra.");
+        try {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra(SettingsActivity.EXTRA_PERMISSION_GROUP, group);
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.w(TAG, "Tidak dapat membuka permintaan izin fitur", e);
+            say("Buka Kobra, masuk Pengaturan, lalu pilih izin fitur yang diperlukan.");
+        }
+    }
 
     private void say(String text) {
         if (text == null || text.isEmpty()) return;
@@ -2616,7 +2688,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
         if (!Perms.has(this, Manifest.permission.READ_CONTACTS)) {
-            say("Izin membaca kontak belum aktif. Aktifkan izin Kontak di pengaturan Kobra terlebih dahulu.");
+            openFeaturePermissionSettings(Perms.GROUP_CONTACTS, "Izin membaca kontak diperlukan untuk mencari penerima.");
             return;
         }
         List<String[]> matches = findContacts(target, 5);
@@ -2757,7 +2829,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private List<String[]> findContacts(String name, int maxResults) {
         List<String[]> out = new ArrayList<>();
         if (!Perms.has(this, Manifest.permission.READ_CONTACTS)) {
-            say("Izin kontak belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_CONTACTS, "Izin kontak diperlukan untuk mencari nama.");
             return out;
         }
         try (Cursor c = getContentResolver().query(
@@ -3347,6 +3419,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void registerBluetoothMonitor() {
+        if (Build.VERSION.SDK_INT >= 31
+                && !Perms.has(this, Manifest.permission.BLUETOOTH_CONNECT)) {
+            Log.i(TAG, "Pemantau headset Bluetooth dilewati: izin Bluetooth belum diberikan.");
+            return;
+        }
         try {
             IntentFilter filter = new IntentFilter();
             filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED);
@@ -3391,6 +3468,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
     };
 
     private void registerPhoneStateMonitor() {
+        if (!Perms.has(this, Manifest.permission.READ_PHONE_STATE)) {
+            Log.i(TAG, "Pengumuman nomor penelepon dilewati: izin status telepon belum diberikan.");
+            return;
+        }
         try {
             registerReceiver(phoneStateReceiver, new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED));
             phoneStateReceiverRegistered = true;
@@ -3403,6 +3484,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         @Override public void onReceive(Context context, Intent intent) {
             try {
                 if (intent == null || !TelephonyManager.ACTION_PHONE_STATE_CHANGED.equals(intent.getAction())) return;
+                if (!Perms.has(AsistenAccessibilityService.this, Manifest.permission.READ_PHONE_STATE)) return;
                 String state = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
                 if (!TelephonyManager.EXTRA_STATE_RINGING.equals(state)) return;
                 @SuppressWarnings("deprecation")

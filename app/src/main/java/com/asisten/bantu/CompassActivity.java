@@ -1,6 +1,8 @@
 package com.asisten.bantu;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -12,6 +14,7 @@ import android.view.MotionEvent;
 import android.widget.EditText;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import java.util.List;
 import java.util.Locale;
 
@@ -30,6 +33,25 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
     private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private int currentHeading = -1;
     private String currentCardinal = "";
+
+    private static final int REQUEST_LOCATION_PERMISSION = 302;
+
+    private boolean hasLocationPermission() {
+        return Perms.has(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                || Perms.has(this, Manifest.permission.ACCESS_COARSE_LOCATION);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != REQUEST_LOCATION_PERMISSION) return;
+        boolean granted = hasLocationPermission();
+        String message = granted
+                ? "Izin lokasi aktif. Silakan tekan tombol fitur lokasi sekali lagi."
+                : "Izin lokasi tidak diberikan. Fitur lokasi tetap tidak dijalankan.";
+        if (tvLocationResult != null) tvLocationResult.setText(message);
+        if (speaker != null) speaker.speak(message);
+    }
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,6 +89,12 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
 
         findViewById(R.id.btnWhereAmI).setOnClickListener(v -> {
             HapticFeedback.vibrateAction(this);
+            if (!hasLocationPermission()) {
+                ActivityCompat.requestPermissions(
+                        this, Perms.forGroup(Perms.GROUP_LOCATION), REQUEST_LOCATION_PERMISSION);
+                speaker.speak("Izin lokasi diperlukan untuk fitur ini. Silakan izinkan lokasi, lalu tekan tombolnya sekali lagi.");
+                return;
+            }
             tvLocationResult.setText("Mencari koordinat GPS saat ini...");
             speaker.speak("Mencari lokasi Anda sekarang.");
             CompassLocationHelper.fetchCurrentLocation(this, new CompassLocationHelper.LocationCallback() {
@@ -91,6 +119,12 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
 
         findViewById(R.id.btnSavePlace).setOnClickListener(v -> {
             HapticFeedback.vibrateAction(this);
+            if (!hasLocationPermission()) {
+                ActivityCompat.requestPermissions(
+                        this, Perms.forGroup(Perms.GROUP_LOCATION), REQUEST_LOCATION_PERMISSION);
+                speaker.speak("Izin lokasi diperlukan untuk fitur ini. Silakan izinkan lokasi, lalu tekan tombolnya sekali lagi.");
+                return;
+            }
             String label = etPlaceLabel.getText().toString().trim();
             if (label.isEmpty()) label = "Rumah";
             final String placeName = label;
@@ -115,6 +149,12 @@ public class CompassActivity extends AppCompatActivity implements SensorEventLis
 
         findViewById(R.id.btnGuidePlace).setOnClickListener(v -> {
             HapticFeedback.vibrateAction(this);
+            if (!hasLocationPermission()) {
+                ActivityCompat.requestPermissions(
+                        this, Perms.forGroup(Perms.GROUP_LOCATION), REQUEST_LOCATION_PERMISSION);
+                speaker.speak("Izin lokasi diperlukan untuk fitur ini. Silakan izinkan lokasi, lalu tekan tombolnya sekali lagi.");
+                return;
+            }
             String label = etPlaceLabel.getText().toString().trim();
             if (label.isEmpty()) label = "Rumah";
             double[] coords = config.getFavoritePlace(label);

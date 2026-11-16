@@ -19,7 +19,6 @@
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-    <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
 
     <!-- Perangkat, Alarm, Audio & Overlay -->
@@ -43,10 +42,7 @@
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
 
     <!-- Penyimpanan & Daftar Paket Terpasang -->
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
@@ -70,7 +66,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.KobraOS"
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="false">
         <!-- Optional native libraries: LiteRT-LM GPU backend falls back to CPU when unavailable. -->
         <uses-native-library android:name="libvndksupport.so" android:required="false" />
         <uses-native-library android:name="libOpenCL.so" android:required="false" />
@@ -111,6 +107,7 @@
         <activity android:name=".CaregiverActivity" android:exported="false" />
         <activity android:name=".DocumentReaderActivity" android:exported="false" />
         <activity android:name=".CrashRecoveryActivity" android:exported="false" />
+        <activity android:name=".WidgetVoiceActivity" android:exported="false" />
 
         <!-- Layanan Aksesibilitas Satu Pintu Kobra OS (Suara + Eyes + Agent + Recovery + Macro) -->
         <service
@@ -206,7 +203,6 @@
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.asisten.bantu.ACTION_WIDGET_VOICE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"

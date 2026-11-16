@@ -36,14 +36,9 @@ class RecoveryEngine {
         private const val SIGNATURE_WINDOW = 3
         private const val UNCHANGED_THRESHOLD = 3
 
-        private val SAFE_POPUP_LABELS = listOf(
-            "izinkan saat aplikasi digunakan",
-            "saat aplikasi digunakan",
-            "hanya kali ini",
-            "allow while using the app",
-            "while using the app",
-            "allow",
-            "izinkan",
+        // Only explicit dismissal/refusal labels are eligible. Never auto-grant
+        // runtime permissions or accept a confirmation dialog during recovery.
+        private val SAFE_POPUP_LABELS = setOf(
             "lewati",
             "skip",
             "tutup",
@@ -54,13 +49,13 @@ class RecoveryEngine {
             "not now",
             "tidak sekarang",
             "no thanks",
-            "tidak, terima kasih",
-            "mengerti",
-            "got it",
-            "saya mengerti",
-            "oke",
-            "ok"
+            "tidak, terima kasih"
         )
+
+        @JvmStatic
+        internal fun isSafeDismissPopupLabel(rawLabel: String): Boolean {
+            return rawLabel.trim().lowercase(Locale.ROOT) in SAFE_POPUP_LABELS
+        }
 
         private val BLOCKED_DESTRUCTIVE_KEYWORDS = listOf(
             "bayar", "pay", "transfer", "kirim uang", "beli", "checkout",
@@ -89,9 +84,7 @@ class RecoveryEngine {
                     if (label.isEmpty() || label.length > 42) continue
                     if (BLOCKED_DESTRUCTIVE_KEYWORDS.any { label.contains(it) }) continue
 
-                    val isPopupButton = SAFE_POPUP_LABELS.any { safe ->
-                        label == safe || (safe.length >= 6 && label.contains(safe))
-                    }
+                    val isPopupButton = isSafeDismissPopupLabel(label)
                     if (isPopupButton && node.isEnabled) {
                         var clickable: AccessibilityNodeInfo? = AccessibilityNodeInfo.obtain(node)
                         try {

@@ -44,7 +44,7 @@
                 android:id="@+id/tvSettingsStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Semua izin, AI, memori, sensor &amp; keamanan ada di sini."
+                android:text="Pilih izin per fitur; KOBRA tidak meminta semua akses sekaligus."
                 android:textColor="#94A3B8"
                 android:textSize="11sp" />
         </LinearLayout>

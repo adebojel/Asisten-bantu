@@ -6,7 +6,6 @@ import android.graphics.RectF
 import android.os.Build
 import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
-import java.util.Locale
 
 /**
  * Mengindeks kontrol interaktif DAN teks/label layar yang terlihat menjadi target suara.
@@ -99,41 +98,24 @@ object NodeIndexer {
 
     @JvmStatic
     fun findByLabel(nodes: List<IndexedNode>, query: String): IndexedNode? {
-        val q = normalizeTarget(query)
-        if (q.isEmpty()) return null
-        val ranked = nodes.mapNotNull { node ->
-            val text = normalizeTarget(node.label)
-            val id = normalizeTarget(node.viewId.replace('_', ' '))
-            val score = when {
-                text.isNotEmpty() && text == q -> 100
-                id.isNotEmpty() && id == q -> 90
-                text.isNotEmpty() && stripTarget(text) == stripTarget(q) -> 80
-                text.isNotEmpty() && startsWithTargetWord(text, q) -> 60
-                text.isNotEmpty() && containsTargetWord(text, q) -> 40
-                id.isNotEmpty() && containsTargetWord(id, q) -> 30
-                else -> 0
-            }
-            if (score > 0) node to score else null
+        val candidates = nodes.map { node ->
+            TargetLabelMatcher.Candidate(
+                value = node,
+                label = node.label,
+                resourceId = node.viewId,
+                left = node.bounds.left,
+                top = node.bounds.top,
+                right = node.bounds.right,
+                bottom = node.bounds.bottom,
+                actionable = node.isClickable || node.isEditable || node.isCheckable
+            )
         }
-        val bestScore = ranked.maxOfOrNull { it.second } ?: return null
-        // Equal top-ranked candidates are ambiguous: never pick the first one by list order.
-        val bestMatches = ranked.filter { it.second == bestScore }
-        return bestMatches.singleOrNull()?.first
+        return when (val match = TargetLabelMatcher.resolve(query, candidates)) {
+            is TargetLabelMatcher.Result.Found -> match.candidate.value
+            is TargetLabelMatcher.Result.Ambiguous,
+            TargetLabelMatcher.Result.NotFound -> null
+        }
     }
-
-    private fun normalizeTarget(value: String): String =
-        value.trim().lowercase(Locale.ROOT).replace(Regex("\\s+"), " ")
-
-    private fun stripTarget(value: String): String =
-        value.replace(Regex("[^\\p{L}\\p{N}]"), "")
-
-    private fun startsWithTargetWord(text: String, query: String): Boolean =
-        text == query || text.startsWith("$query ") ||
-            stripTarget(text).startsWith(stripTarget(query))
-
-    private fun containsTargetWord(text: String, query: String): Boolean =
-        Regex("(?<![\\p{L}\\p{N}])${Regex.escape(query)}(?![\\p{L}\\p{N}])")
-            .containsMatchIn(text)
 
     private fun collectInteractive(
         node: AccessibilityNodeInfo?,
@@ -313,7 +295,7 @@ object NodeIndexer {
             focused?.refresh()
             val start = focused?.textSelectionStart ?: -1
             val end = focused?.textSelectionEnd ?: -1
-            val range = resolveWordRange(text, start, end) ?: return null
+            val range = FocusedWordRangeResolver.resolve(text, start, end) ?: return null
             text.substring(range.first, range.last + 1)
         } catch (_: Throwable) {
             null
@@ -334,8 +316,8 @@ object NodeIndexer {
             val start = focused?.textSelectionStart ?: -1
             val end = focused?.textSelectionEnd ?: -1
             // A selected/focused word must be explicitly exposed by the provider.
-            if (start < 0 || end <= start) return null
-            val range = resolveWordRange(text, start, end) ?: return null
+            if (start < 0 || end < 0) return null
+            val range = FocusedWordRangeResolver.resolve(text, start, end) ?: return null
             text.substring(range.first, range.last + 1)
         } finally {
             safeRecycle(focused)
@@ -358,14 +340,17 @@ object NodeIndexer {
             if (text.isEmpty()) return null
             val start = focused?.textSelectionStart ?: -1
             val end = focused?.textSelectionEnd ?: -1
-            // Do not assume cursor zero or draw a fake first-word rectangle.
-            if (start < 0 || end <= start) return null
-            val range = resolveWordRange(text, start, end) ?: return null
+            // Accept only an exposed selection/caret; never assume cursor zero.
+            if (start < 0 || end < 0) return null
+            val range = FocusedWordRangeResolver.resolve(text, start, end) ?: return null
             val args = Bundle().apply {
                 putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, range.first)
                 putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH, range.last - range.first + 1)
             }
             val node = focused ?: return null
+            // Request geometry only from providers that explicitly advertise support.
+            // This avoids treating unsupported/empty extras as a usable word location.
+            if (!node.availableExtraData.contains(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY)) return null
             if (!node.refreshWithExtraData(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY, args)) return null
             val rects = node.extras.getParcelableArray(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY)
                 ?: return null
@@ -377,7 +362,10 @@ object NodeIndexer {
                     is Rect -> RectF(item)
                     else -> continue
                 }
-                if (charRect.isEmpty || !charRect.left.isFinite() || !charRect.top.isFinite()) continue
+                // Ignore missing, off-screen, and zero-area character boxes. The requested
+                // range is already a single word, so the union remains word-sized.
+                if (charRect.isEmpty || !charRect.left.isFinite() || !charRect.top.isFinite() ||
+                    !charRect.right.isFinite() || !charRect.bottom.isFinite()) continue
                 if (!hasRect) {
                     union.set(charRect)
                     hasRect = true
@@ -400,26 +388,6 @@ object NodeIndexer {
         }
     }
 
-    private fun resolveWordRange(text: String, selectionStart: Int, selectionEnd: Int): IntRange? {
-        if (text.isEmpty()) return null
-        if (selectionStart >= 0 && selectionEnd > selectionStart) {
-            val start = selectionStart.coerceIn(0, text.length)
-            val end = selectionEnd.coerceIn(start, text.length)
-            if (end > start && text.substring(start, end).any { it.isLetterOrDigit() }) return start until end
-        }
-        val cursor = (if (selectionEnd >= 0) selectionEnd else 0).coerceIn(0, text.length)
-        var index = if (cursor == text.length) cursor - 1 else cursor
-        if (index < 0) return null
-        if (!text[index].isLetterOrDigit()) {
-            while (index < text.length && !text[index].isLetterOrDigit()) index++
-            if (index >= text.length) return null
-        }
-        var start = index
-        var end = index + 1
-        while (start > 0 && text[start - 1].isLetterOrDigit()) start--
-        while (end < text.length && text[end].isLetterOrDigit()) end++
-        return if (end > start) start until end else null
-    }
 
     /** Current focused node label, without retaining AccessibilityNodeInfo references. */
     @JvmStatic

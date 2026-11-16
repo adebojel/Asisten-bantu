@@ -6,6 +6,11 @@ on:
 permissions:
   contents: write
 
+# Prevent parallel main pushes from racing to mark an older release as Latest.
+concurrency:
+  group: kobra-os-main-release
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest

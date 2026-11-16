@@ -12,21 +12,6 @@ import android.widget.RemoteViews
  */
 class KobraWidgetProvider : AppWidgetProvider() {
 
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (ACTION_WIDGET_VOICE == intent.action) {
-            if (AsistenAccessibilityService.isRunning()) {
-                AsistenAccessibilityService.requestListen()
-            } else {
-                val launch = Intent(context, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                    putExtra("auto_listen", true)
-                }
-                context.startActivity(launch)
-            }
-        }
-    }
-
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -38,8 +23,6 @@ class KobraWidgetProvider : AppWidgetProvider() {
     }
 
     companion object {
-        const val ACTION_WIDGET_VOICE = "com.asisten.bantu.ACTION_WIDGET_VOICE"
-
         fun updateWidget(context: Context, manager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_kobra_hud)
             val statusText = if (AsistenAccessibilityService.isRunning()) {
@@ -49,10 +32,10 @@ class KobraWidgetProvider : AppWidgetProvider() {
             }
             views.setTextViewText(R.id.widget_subtitle, statusText)
 
-            val voiceIntent = Intent(context, KobraWidgetProvider::class.java).apply {
-                action = ACTION_WIDGET_VOICE
-            }
-            val voicePi = PendingIntent.getBroadcast(
+            // Route taps through a private activity; the exported AppWidgetProvider
+            // must only receive framework widget broadcasts, never arbitrary voice triggers.
+            val voiceIntent = android.content.Intent(context, WidgetVoiceActivity::class.java)
+            val voicePi = PendingIntent.getActivity(
                 context,
                 9101,
                 voiceIntent,
