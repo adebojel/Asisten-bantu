@@ -321,26 +321,10 @@ class LocalMacroCache(context: Context) {
     fun findMatchingMacro(spokenCommand: String): MacroSequence? {
         val norm = normalizeCommand(spokenCommand)
         if (norm.isEmpty()) return null
-        val all = loadAllInternal()
-        var best: MacroSequence? = null
-        var bestScore = 0.0
-
-        val normWords = norm.split(" ").filter { it.length >= 2 }.toSet()
-        for (macro in all) {
-            if (macro.triggerNormalized == norm) {
-                return macro
-            }
-            val triggerWords = macro.triggerNormalized.split(" ").filter { it.length >= 2 }.toSet()
-            if (triggerWords.isEmpty() || normWords.isEmpty()) continue
-            val intersect = normWords.intersect(triggerWords).size.toDouble()
-            val union = normWords.union(triggerWords).size.toDouble()
-            val jaccard = if (union > 0.0) intersect / union else 0.0
-            if (jaccard >= 0.80 && jaccard > bestScore) {
-                bestScore = jaccard
-                best = macro
-            }
-        }
-        return best
+        // A saved macro can perform real UI navigation. Never execute it from
+        // approximate/fuzzy speech similarity: a partially recognized command must
+        // not accidentally trigger a different stored action sequence.
+        return loadAllInternal().firstOrNull { it.triggerNormalized == norm }
     }
 
     @Synchronized
