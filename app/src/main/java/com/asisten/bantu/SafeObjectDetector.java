@@ -54,6 +54,7 @@ public final class SafeObjectDetector implements AutoCloseable {
     }
 
     private final Object lifecycleLock = new Object();
+    private final Object inferenceLock = new Object();
     private final boolean streamMode;
     private volatile boolean closed;
     private ObjectDetector objectDetector;
@@ -90,23 +91,27 @@ public final class SafeObjectDetector implements AutoCloseable {
             return;
         }
         Bitmap oriented = rotate(bitmap, rotationDegrees);
-        ObjectDetector detector = objectDetector;
-        if (detector != null) {
-            try {
-                MPImage image = new BitmapImageBuilder(oriented).build();
-                ObjectDetectorResult result = streamMode
-                        ? detector.detectForVideo(image, nextTimestamp())
-                        : detector.detect(image);
-                List<DetectedItem> boxes = fromDetections(result.detections(), oriented.getWidth(), oriented.getHeight());
-                if (!boxes.isEmpty()) {
-                    callback.onDetected(boxes, false);
-                    return;
+        List<DetectedItem> boxes = Collections.emptyList();
+        synchronized (inferenceLock) {
+            if (closed) {
+                callback.onDetected(Collections.<DetectedItem>emptyList(), true);
+                return;
+            }
+            ObjectDetector detector = objectDetector;
+            if (detector != null) {
+                try {
+                    MPImage image = new BitmapImageBuilder(oriented).build();
+                    ObjectDetectorResult result = streamMode
+                            ? detector.detectForVideo(image, nextTimestamp())
+                            : detector.detect(image);
+                    boxes = fromDetections(result.detections(), oriented.getWidth(), oriented.getHeight());
+                } catch (Throwable ignored) {
+                    // Keep the label-only fallback if native inference fails.
                 }
-            } catch (Throwable ignored) {
-                // Keep the label-only fallback if native inference fails.
             }
         }
-        processFallback(InputImage.fromBitmap(oriented, 0), callback);
+        if (!boxes.isEmpty()) callback.onDetected(boxes, false);
+        else processFallback(InputImage.fromBitmap(oriented, 0), callback);
     }
 
     /** Existing callers with ML Kit InputImage remain supported as label-only fallback. */
@@ -282,16 +287,18 @@ public final class SafeObjectDetector implements AutoCloseable {
     }
 
     @Override public void close() {
-        synchronized (lifecycleLock) {
-            if (closed) return;
-            closed = true;
-            if (objectDetector != null) {
-                try { objectDetector.close(); } catch (Exception ignored) { }
-                objectDetector = null;
-            }
-            if (imageLabeler != null) {
-                try { imageLabeler.close(); } catch (Exception ignored) { }
-                imageLabeler = null;
+        synchronized (inferenceLock) {
+            synchronized (lifecycleLock) {
+                if (closed) return;
+                closed = true;
+                if (objectDetector != null) {
+                    try { objectDetector.close(); } catch (Exception ignored) { }
+                    objectDetector = null;
+                }
+                if (imageLabeler != null) {
+                    try { imageLabeler.close(); } catch (Exception ignored) { }
+                    imageLabeler = null;
+                }
             }
         }
     }

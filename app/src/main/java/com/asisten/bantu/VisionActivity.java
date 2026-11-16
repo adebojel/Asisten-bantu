@@ -280,6 +280,14 @@ public class VisionActivity extends AppCompatActivity {
         }
         boundCamera = null;
         cameraExec.shutdownNow();
+        if (streamObjectDetector != null) {
+            streamObjectDetector.close();
+            streamObjectDetector = null;
+        }
+        if (singleShotObjectDetector != null) {
+            singleShotObjectDetector.close();
+            singleShotObjectDetector = null;
+        }
         OfflineVision.release();
         super.onDestroy();
     }
@@ -434,7 +442,7 @@ public class VisionActivity extends AppCompatActivity {
                             }
                         }
                     })
-                    .addOnCompleteListener(task -> analyzeLiveObjectsThenClose(img, proxy));
+                    .addOnCompleteListener(task -> analyzeLiveObjectsThenClose(proxy));
         } else if ("find_object".equals(mode)) {
             if (streamObjectDetector == null) { proxy.close(); return; }
             liveProcessing = true;

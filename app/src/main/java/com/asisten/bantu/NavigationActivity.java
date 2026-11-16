@@ -173,7 +173,10 @@ public class NavigationActivity extends AppCompatActivity {
             try { detector.close(); } catch (Exception ignored) {}
         }
         analyzerExec.shutdownNow();
-        detector = null;
+        if (detector != null) {
+            detector.close();
+            detector = null;
+        }
         super.onDestroy();
     }
 

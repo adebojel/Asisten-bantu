@@ -964,6 +964,22 @@ public class AsistenAccessibilityService extends AccessibilityService {
         boolean yes = containsWord(text, YES);
         boolean no = containsWord(text, NO);
         switch (p.kind) {
+            case "click_confirm":
+                if (yes && !no) {
+                    if (ActionSafetyPolicy.requiresDoubleConfirmation(p.a)) {
+                        pending = new Pending("click_confirm_layer2", p.a, "");
+                        say("Konfirmasi kedua. Tindakan " + p.a + " berisiko tinggi. Bilang iya sekali lagi untuk melanjutkan.");
+                    } else {
+                        clickByNameConfirmed(p.a);
+                    }
+                } else {
+                    say("Tindakan pada tombol " + p.a + " dibatalkan.");
+                }
+                break;
+            case "click_confirm_layer2":
+                if (yes && !no) clickByNameConfirmed(p.a);
+                else say("Tindakan berisiko tinggi dibatalkan.");
+                break;
             case "sos":
                 if (yes && !no) triggerSos();
                 else say("SOS dibatalkan.");
@@ -2637,6 +2653,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void clickByName(String name) {
+        if (ActionSafetyPolicy.requiresConfirmation(name)) {
+            pending = new Pending("click_confirm", name, "");
+            say("Tombol " + name + " dapat mengirim, menghapus, mengubah izin, atau melakukan tindakan penting. "
+                    + "Bilang iya untuk menekan tombol, atau batal untuk membatalkan.");
+            return;
+        }
+        clickByNameConfirmed(name);
+    }
+
+    private void clickByNameConfirmed(String name) {
         boolean ok = clickAny(name) || UnifiedAccessibilityEngine.clickByNameGlobal(this, name);
         say(ok ? "Oke." : "Tombol " + name + " tidak ditemukan di layar.");
     }
