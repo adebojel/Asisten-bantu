@@ -298,14 +298,19 @@ public class AsistenAccessibilityService extends AccessibilityService {
             main.postDelayed(() -> speaker.speakQueued("Model AI offline berada di Mode Aman karena terlalu berat untuk RAM. Asisten tetap aktif dengan perintah sistem lokal."), 3000L);
         }
 
-        networkCallback = NetworkState.watch(this, online -> main.post(() -> {
-            if (online) {
-                String type = NetworkState.connectionType(this);
-                say("Koneksi " + type + " tersambung. Fitur online aktif.");
-            } else {
-                say("Koneksi Wi-Fi dan data seluler terputus. Fitur dasar tetap jalan offline.");
-            }
-        }));
+        networkCallback = NetworkState.watch(this, online -> {
+            Handler handler = main;
+            if (!serviceActive || handler == null) return;
+            handler.post(() -> {
+                if (!serviceActive) return;
+                if (online) {
+                    String type = NetworkState.connectionType(this);
+                    say("Koneksi " + type + " tersambung. Fitur online aktif.");
+                } else {
+                    say("Koneksi Wi-Fi dan data seluler terputus. Fitur dasar tetap jalan offline.");
+                }
+            });
+        });
         registerBatteryMonitor();
         registerBluetoothMonitor();
         registerPhoneStateMonitor();
@@ -551,11 +556,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private final Runnable watchdog = new Runnable() {
         @Override public void run() {
+            // A callback already dequeued when onUnbind/onDestroy clears the handler
+            // must not resurrect its own polling loop after service teardown.
+            if (!serviceActive || main == null) return;
             if (micOn && !listening && !pocketLocked && (config == null || !config.isPrivacyMode())
                     && speaker != null && !speaker.isSpeaking()) {
                 startListening();
             }
-            main.postDelayed(this, WATCHDOG_MS);
+            if (serviceActive && main != null) {
+                main.postDelayed(this, WATCHDOG_MS);
+            }
         }
     };
 
