@@ -570,7 +570,7 @@ public class VisionActivity extends AppCompatActivity {
         try {
             streamObjectDetector.process(proxy.toBitmap(), proxy.getImageInfo().getRotationDegrees(), (items, usedFallback) -> {
                 try {
-                    if (!destroyed && !isFinishing()) handleLiveLabels(items);
+                    if (!destroyed && !isFinishing()) handleLiveLabels(items, usedFallback);
                 } catch (RuntimeException ignored) {
                     // Keep CameraX frame ownership deterministic on UI errors.
                 } finally {
