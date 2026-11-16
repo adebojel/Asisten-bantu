@@ -238,7 +238,7 @@ public final class MoneyAndReceiptParser {
     /** Match denomination digits as a complete numeric token, never as a substring of a larger balance. */
     private static boolean containsStandaloneDigits(String text, long amount) {
         if (text == null || text.isEmpty()) return false;
-        Pattern token = Pattern.compile("(?<!\\\\d)" + Pattern.quote(String.valueOf(amount)) + "(?!\\\\d)");
+        Pattern token = Pattern.compile("(?<!\\d)" + Pattern.quote(String.valueOf(amount)) + "(?!\\d)");
         return token.matcher(text).find();
     }
 
