@@ -200,3 +200,39 @@ Implementasi berada di `voiceaccess/TargetLabelMatcher.kt`, dipanggil oleh `Node
 - KOBRA memiliki agen navigasi terbatas yang dapat membuka aplikasi, memilih kontrol navigasi aman, scroll, back, dan home. Aksi pesan, panggilan, transaksi, penghapusan, perubahan keamanan, izin, upload, dan sejenisnya ditolak oleh guard.
 - Jangan memperluas agen ke input teks atau aksi eksternal sebelum ada konfirmasi eksplisit per aksi dan verifikasi hasil pasca-aksi.
 - Jangan menyamakan keberhasilan API klik dengan keberhasilan tugas; fingerprint layar harus berubah dan tujuan tetap perlu diverifikasi.
+
+
+## Gelombang audit berikutnya — 16 November 2026
+
+Penemuan ini berasal dari pencarian repositori publik tambahan. Ini adalah shortlist untuk audit source dan lisensi, bukan bukti bahwa seluruh kode atau modelnya dapat digabung. Status lisensi di bawah adalah keputusan sementara sampai file LICENSE, dependency, model card, dan aset diperiksa pada commit yang akan diadaptasi.
+
+| Repository | Sistem/fitur yang menarik | Penilaian dan tindakan KOBRA |
+|---|---|---|
+| [alexeyw/knotwork](https://github.com/alexeyw/knotwork) | Android local-first agent, LiteRT-LM, workflow graph dengan node LLM/tool/routing/evaluation, MCP, dan konfirmasi tindakan sensitif | Prioritas audit agent workflow. Periksa lisensi, Android 14+ requirement, kebutuhan RAM sekitar 2 GB, tool contract, dan cara pipeline menyimpan data. Jangan impor app utuh atau menambah engine kedua. |
+| [Bilal140202/MobileAgent](https://github.com/Bilal140202/MobileAgent) | Kotlin AccessibilityService agent, UI tree, semantic/coordinate action, voice control, multi-step loop | Referensi untuk evaluasi target dan observasi. KOBRA sudah punya satu AccessibilityService dan agent terbatas; jangan membawa service kedua atau mengaktifkan ketik/tap berisiko tanpa kebijakan konfirmasi. Lisensi harus diperiksa sebelum reuse. |
+| [Digitalbrainstem/atlas-sight](https://github.com/Digitalbrainstem/atlas-sight) | Offline vision assistant, priority TTS, wake-word/command pipeline, scene history dan deduplikasi, navigasi dan landmark | Kandidat audit mendalam untuk speech queue dan pengurangan pengumuman berulang. README menyatakan MIT; verifikasi LICENSE root, implementasi Android, model, dan benchmark perangkat sebelum adaptasi. Klaim jarak dari bounding box tidak dianggap pengukuran. |
+| [DrophouseLtd/SightBuddy](https://github.com/DrophouseLtd/SightBuddy) | Object discovery/find, OCR, text playback, colour/light, haptics, offline Whisper, aksesibilitas UI | MIT telah tercatat pada audit sebelumnya. Lanjutkan audit algoritma pencarian objek dan seekable OCR. Model Whisper (~154 MB menurut README) dan seluruh aset punya lisensi/provenance terpisah. Hindari duplikasi pipeline CameraX dan audio KOBRA. |
+| [wnbotoo/sailens-android](https://github.com/wnbotoo/sailens-android) | Perception kamera untuk walkable area, road edge, obstacle, speech dan haptics | Apache-2.0. Prioritas riset navigasi, namun pre-release, BYO model, dan menargetkan Snapdragon 8 Gen 1+. Audit ukuran model, kalibrasi, false positive, thermal/battery dan perangkat kelas menengah sebelum integrasi. |
+| [NeuroMarshal/LocalChat](https://github.com/NeuroMarshal/LocalChat) | LiteRT-LM offline, agent tools, dokumen, PDF vision, hybrid lexical/semantic RAG | Kandidat audit RAG dan kontrak tool saja. KOBRA sudah memakai LiteRT-LM; jangan menambah runtime/model manager kedua. Periksa lisensi kode dan setiap model/dependency. |
+| [edgeaitechnologies/offline-voice-ai](https://github.com/edgeaitechnologies/offline-voice-ai) | Vosk STT, Sherpa-ONNX VITS TTS, streaming TTS, coroutine API, silence stop | Belum ada lisensi yang terverifikasi dari hasil pencarian; feature/API reference only. Prioritaskan benchmark Bahasa Indonesia dan lisensi model. Jangan menambahkan microphone owner kedua. |
+| [Amir-Nafissi/CueMate](https://github.com/Amir-Nafissi/CueMate) | CameraX + MediaPipe face/gesture landmark, fusion/debounce, speech/haptic feedback, offline social cue interpretation | Kandidat fitur opsional untuk gesture recognition, bukan fitur default. Wajib consent, jangan menyimpulkan identitas/emosi personal, audit lisensi dan dampak privasi; hindari kamera pipeline kedua. |
+| [jjaeyun01/SENSEA](https://github.com/jjaeyun01/SENSEA) | Destination search, route comparison, GPS guidance, obstacle reports, noise data, multimodal guidance | Referensi produk navigasi; stack Expo/FastAPI dan backend kampus membuatnya bukan modul native yang bisa langsung ditempel. Pelajari evaluasi rute dan desain laporan hambatan; verifikasi lisensi dan ketergantungan server. |
+| [inoahaipro/phoneclaw](https://github.com/inoahaipro/phoneclaw) | Local script bridge, accessibility automation, screen capture, voice assistant | Jangan integrasikan bridge/socket. README menyebut protokol socket tidak berhasil direkonstruksi dan source asal tidak tersedia; port jaringan lokal tanpa protokol/audit yang jelas memperbesar attack surface. |
+| [j0taaa/android-use](https://github.com/j0taaa/android-use) | Native on-device agent, screen observation, semantic taps, gestures, foreground service, pause/stop, encrypted task history | Sudah tercatat sebagai referensi sebelumnya. Tetap feature/architecture reference sampai lisensi file terkonfirmasi; jangan menyalin seluruh agent karena KOBRA sudah memiliki bounded agent dan satu service owner. |
+
+### Peringkat audit selanjutnya
+
+1. **Agent workflow & task verification:** Knotwork, MobileAgent, MantiClaw-Agent, JARVIS. Tujuan: structured plan, step budget, stop/pause, verification, audit trail, confirmation gates; bukan memberi agent akses bebas.
+2. **Offline vision & mobility:** Sailens, Atlas Sight, SightBuddy, SIGHT. Tujuan: temporal object tracking, obstacle/road-edge evaluation, speech priority, haptic cues. Tidak boleh mengklaim jalur aman atau jarak fisik tanpa sensor/metode terkalibrasi.
+3. **Indonesian speech stack:** Sherpa-ONNX, Vosk, OfflineVoiceAI. Tujuan: streaming ASR/TTS/VAD, interrupt/barge-in, noise robustness, model download integrity. Model language pack harus punya lisensi terpisah dan benchmark Bahasa Indonesia.
+4. **Local knowledge/RAG:** LocalChat dan local-llms-on-android. Tujuan: chunking, BM25/hybrid retrieval, page-level citations, cancellable indexing, deletion. Tetap satu database dan satu LiteRT-LM runtime.
+5. **Gesture/social cue extension:** CueMate hanya sebagai fitur opt-in eksperimental dengan consent yang jelas; bukan identifikasi orang atau diagnosis emosi.
+
+### Gerbang sebelum mengambil file
+
+- Ambil snapshot commit upstream dan catat URL file, commit SHA, LICENSE, copyright header, serta perubahan lokal.
+- Periksa root LICENSE, lisensi dependency, model card/weights, dataset, suara dan ikon secara terpisah. README badge atau label lisensi tidak cukup.
+- Periksa `minSdk`, `targetSdk`, AGP/Gradle, Kotlin/JVM, ABI, native `.so`, ukuran model, RAM, CPU/GPU, thermal, baterai dan dukungan Indonesia.
+- Pertahankan satu pemilik `AccessibilityService`, satu pipeline CameraX, dan satu pemilik sesi mikrofon.
+- Jangan expose local TCP server/MCP tanpa authentication, explicit opt-in, loopback binding, per-tool allowlist, audit log dan revoke switch.
+- Integrasi hanya modul kecil dengan tes KOBRA; jika tidak ada manfaat terukur atau lisensi jelas, dokumentasikan sebagai referensi saja.
