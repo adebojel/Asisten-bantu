@@ -6,6 +6,16 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class PedestrianRouteProgressTest {
+    @Test public void requiresExplicitFiniteGpsAccuracyForSpokenGuidance() {
+        assertTrue(PedestrianRouteProgress.hasReliableLocationAccuracy(true, 0f));
+        assertTrue(PedestrianRouteProgress.hasReliableLocationAccuracy(true, 50f));
+        assertFalse(PedestrianRouteProgress.hasReliableLocationAccuracy(false, 5f));
+        assertFalse(PedestrianRouteProgress.hasReliableLocationAccuracy(true, 50.01f));
+        assertFalse(PedestrianRouteProgress.hasReliableLocationAccuracy(true, -1f));
+        assertFalse(PedestrianRouteProgress.hasReliableLocationAccuracy(true, Float.NaN));
+        assertFalse(PedestrianRouteProgress.hasReliableLocationAccuracy(true, Float.POSITIVE_INFINITY));
+    }
+
     @Test public void acceptsDistancesInsideArrivalRadius() {
         assertTrue(PedestrianRouteProgress.isDestinationReached(0f));
         assertTrue(PedestrianRouteProgress.isDestinationReached(12.5f));

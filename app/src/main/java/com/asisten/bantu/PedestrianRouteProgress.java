@@ -57,6 +57,12 @@ public final class PedestrianRouteProgress {
         return Double.isFinite(minimum) ? (float) minimum : Float.NaN;
     }
 
+    /** GPS fixes without explicit, finite accuracy or above 50 m are unsafe for spoken guidance. */
+    public static boolean hasReliableLocationAccuracy(boolean hasAccuracy, float accuracyMeters) {
+        return hasAccuracy && Float.isFinite(accuracyMeters)
+                && accuracyMeters >= 0f && accuracyMeters <= 50f;
+    }
+
     private static boolean validCoordinate(double latitude, double longitude) {
         return Double.isFinite(latitude) && Double.isFinite(longitude)
                 && latitude >= -90.0 && latitude <= 90.0

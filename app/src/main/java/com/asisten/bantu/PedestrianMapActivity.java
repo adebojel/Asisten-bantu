@@ -406,7 +406,9 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
 
     private void updateTurnGuidance(Location location) {
         if (!routeActive || rerouting) return;
-        if (location.hasAccuracy() && location.getAccuracy() > 50f) return;
+        // Do not announce turns or arrival from a fix with missing/poor accuracy.
+        if (!PedestrianRouteProgress.hasReliableLocationAccuracy(
+                location.hasAccuracy(), location.hasAccuracy() ? location.getAccuracy() : Float.NaN)) return;
         if (location.hasAccuracy() && activeRouteLatitudes != null && activeRouteLongitudes != null) {
             float routeDistance = PedestrianRouteProgress.distanceToPolylineMeters(
                     location.getLatitude(), location.getLongitude(),
