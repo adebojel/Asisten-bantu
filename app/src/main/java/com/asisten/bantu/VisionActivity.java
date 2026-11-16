@@ -82,6 +82,8 @@ public class VisionActivity extends AppCompatActivity {
     private String pendingAiCameraQuestion = null;
     private ImageCapture imageCapture;
     private Camera boundCamera;
+    private ProcessCameraProvider cameraProvider;
+    private ImageAnalysis liveImageAnalysis;
     private SensorManager sensorManager;
     private Sensor lightSensor;
     private boolean autoTorchEnabled = false;
@@ -268,6 +270,15 @@ public class VisionActivity extends AppCompatActivity {
         if (singleShotObjectDetector != null) {
             try { singleShotObjectDetector.close(); } catch (Exception ignored) {}
         }
+        if (liveImageAnalysis != null) {
+            try { liveImageAnalysis.clearAnalyzer(); } catch (Exception ignored) {}
+            liveImageAnalysis = null;
+        }
+        if (cameraProvider != null) {
+            try { cameraProvider.unbindAll(); } catch (Exception ignored) {}
+            cameraProvider = null;
+        }
+        boundCamera = null;
         cameraExec.shutdownNow();
         super.onDestroy();
     }
@@ -338,7 +349,8 @@ public class VisionActivity extends AppCompatActivity {
         future.addListener(() -> {
             try {
                 ProcessCameraProvider provider = future.get();
-                if (destroyed || isFinishing()) return;
+                if (destroyed || isFinishing() || isDestroyed()) return;
+                cameraProvider = provider;
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(previewView.getSurfaceProvider());
                 imageCapture = new ImageCapture.Builder()
@@ -357,9 +369,19 @@ public class VisionActivity extends AppCompatActivity {
                             .setTargetResolution(new Size(640, 480))
                             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                             .build();
+                    liveImageAnalysis = analysis;
                     analysis.setAnalyzer(cameraExec, this::analyzeLiveFrame);
+                    if (destroyed || isFinishing() || isDestroyed()) {
+                        analysis.clearAnalyzer();
+                        provider.unbindAll();
+                        return;
+                    }
                     boundCamera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture, analysis);
                 } else {
+                    if (destroyed || isFinishing() || isDestroyed()) {
+                        provider.unbindAll();
+                        return;
+                    }
                     boundCamera = provider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture);
                 }
             } catch (Exception e) {
@@ -377,7 +399,14 @@ public class VisionActivity extends AppCompatActivity {
         if ("live_companion".equals(mode)) {
             if (now - lastLiveSpeakAt < 1200L) { proxy.close(); return; }
             liveProcessing = true;
-            InputImage img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+            final InputImage img;
+            try {
+                img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+            } catch (RuntimeException error) {
+                liveProcessing = false;
+                try { proxy.close(); } catch (Exception ignored) {}
+                return;
+            }
             // One camera session performs OCR and offline object labelling in sequence.
             // The ImageProxy remains open until both analyzers finish.
             ocr.process(img)
@@ -430,7 +459,14 @@ public class VisionActivity extends AppCompatActivity {
         } else if ("barcode".equals(mode)) {
             if (now - lastLiveSpeakAt < 2200L || barcodeScanner == null) { proxy.close(); return; }
             liveProcessing = true;
-            InputImage img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+            final InputImage img;
+            try {
+                img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+            } catch (RuntimeException error) {
+                liveProcessing = false;
+                try { proxy.close(); } catch (Exception ignored) {}
+                return;
+            }
             barcodeScanner.process(img)
                     .addOnSuccessListener(barcodes -> {
                         if (!barcodes.isEmpty()) {
@@ -452,7 +488,14 @@ public class VisionActivity extends AppCompatActivity {
         } else if ("digital_screen".equals(mode)) {
             if (now - lastLiveSpeakAt < 2500L) { proxy.close(); return; }
             liveProcessing = true;
-            InputImage img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+            final InputImage img;
+            try {
+                img = InputImage.fromMediaImage(proxy.getImage(), proxy.getImageInfo().getRotationDegrees());
+            } catch (RuntimeException error) {
+                liveProcessing = false;
+                try { proxy.close(); } catch (Exception ignored) {}
+                return;
+            }
             ocr.process(img)
                     .addOnSuccessListener(res -> {
                         String raw = res.getText() != null ? res.getText().trim() : "";
