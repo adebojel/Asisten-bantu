@@ -40,6 +40,22 @@ public class PermsTest {
     }
 
     @Test
+    public void placeCallGroupDoesNotRequestAnswerOrPhoneStatePermissions() {
+        assertArrayEquals(
+                new String[] { Manifest.permission.CALL_PHONE },
+                Perms.forGroup(Perms.GROUP_CALLS)
+        );
+    }
+
+    @Test
+    public void phoneStateGroupIsIndependent() {
+        assertArrayEquals(
+                new String[] { Manifest.permission.READ_PHONE_STATE },
+                Perms.forGroup(Perms.GROUP_PHONE_STATE)
+        );
+    }
+
+    @Test
     public void answerCallGroupDoesNotRequestUnrelatedPhonePermissions() {
         assertArrayEquals(
                 new String[] { Manifest.permission.ANSWER_PHONE_CALLS },
@@ -49,7 +65,7 @@ public class PermsTest {
 
     @Test
     public void permissionPickerHasOneLabelPerGroup() {
-        assertEquals(Perms.groupLabels().length, Perms.GROUP_ANSWER_CALLS + 1);
+        assertEquals(Perms.groupLabels().length, Perms.GROUP_PHONE_STATE + 1);
     }
 
     @Test
