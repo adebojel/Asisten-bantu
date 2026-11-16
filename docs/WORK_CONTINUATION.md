@@ -266,3 +266,14 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Source commit: `3ef596ccd898dffa9d64d3470e34021dee6ade54`; test commit: `58d2d48a2b4e3a36005e7f764c6f02580c22a992`.
 - CI for the latest test commit has not yet appeared in the GitHub workflow-run lookup. Do not treat this hardening as build-verified until the full unit-test and APK build workflow succeeds on this commit or a later head.
 - Existing macros containing typing or coordinate actions are intentionally rejected at runtime; users can still list or clear them. They must be recreated using only the supported navigation actions after a future safe recorder is implemented.
+
+
+## Recovery dialog and macro app-boundary hardening — 16 November 2026
+
+- Found a second legacy automation boundary: recovery previously treated Android permission buttons such as `Allow`, `Izinkan`, `Hanya kali ini`, and generic `OK` as safe pop-up dismissals. That could grant permissions or accept a system dialog without the user.
+- Restricted automatic recovery clicks to exact explicit dismissal/refusal labels only: Skip/Lewati, Close/Tutup, Later/Nanti, Not now/Tidak sekarang, and No thanks/Tidak terima kasih. Permission grants and generic acknowledgements are never auto-clicked.
+- Added regression tests for both allowed dismissals and forbidden permission/confirmation labels.
+- Further hardened legacy macro replay: a stored macro must be bound to a non-empty recorded Android package. The initial open-app step may start outside that package; after launch, and before/after every subsequent step, the active window package must match exactly. If the package cannot be read or changes, execution stops before further steps.
+- Added tests for exact package matching and fail-closed behavior for blank/mismatched package names.
+- Macro package-boundary source/test commits: `d9c23fb8f0cacc3891f1a64b47b1e8db2349948b`, `830a308409bd4b9ed84490be8e3e8ae1f0180a0b`. Recovery dismissal hardening is included in the current branch head.
+- CI must complete successfully on the latest PR head before these changes are considered build-verified. No physical-device validation has been performed.
