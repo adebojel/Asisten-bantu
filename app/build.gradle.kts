@@ -1,5 +1,6 @@
 import java.net.URL
 import java.net.URLConnection
+import java.security.MessageDigest
 plugins {
     id("com.android.application")
 }
