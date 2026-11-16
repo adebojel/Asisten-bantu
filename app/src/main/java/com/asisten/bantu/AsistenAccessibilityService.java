@@ -99,6 +99,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private LocalLlmEngine localLlmEngine;
     private Handler main;
     private SpeechRecognizer recognizer;
+    private long recognizerGeneration = 0L;
     private Intent recognizerIntent;
     private boolean listening = false;
     private volatile boolean serviceActive = false;
@@ -632,7 +633,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         } else {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this);
         }
-        recognizer.setRecognitionListener(recognitionListener);
+        final long sessionGeneration = ++recognizerGeneration;
+        recognizer.setRecognitionListener(createRecognitionListener(sessionGeneration));
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID");
@@ -644,6 +646,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void destroyRecognizer() {
+        // Invalidate callbacks from the old SpeechRecognizer before releasing it.
+        recognizerGeneration++;
         listening = false;
         if (recognizer != null) {
             try { recognizer.destroy(); } catch (Exception ignored) { }
@@ -651,93 +655,95 @@ public class AsistenAccessibilityService extends AccessibilityService {
         recognizer = null;
     }
 
-    private final RecognitionListener recognitionListener = new RecognitionListener() {
-        @Override public void onReadyForSpeech(Bundle params) {
-            if (!serviceActive) return;
-            updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING);
-        }
-        @Override public void onBeginningOfSpeech() { }
-        @Override public void onRmsChanged(float rmsdB) { }
-        @Override public void onBufferReceived(byte[] buffer) { }
-        @Override public void onEndOfSpeech() {
-            // Keep the recognizer marked busy until onResults/onError arrives.
-            // Clearing this flag here lets the watchdog start a second session
-            // while Android is still delivering the first session's result.
-            updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
-        }
-        @Override public void onPartialResults(Bundle partialResults) {
-            if (!serviceActive || speaker == null || !speaker.isSpeaking() || config == null
-                    || !config.isBargeInEnabled() || !micOn || partialResults == null) return;
-            ArrayList<String> partial = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (partial == null) return;
-            for (String candidate : partial) {
-                if (VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand(candidate)) {
-                    // Destroy the active recognizer before stopping TTS so its later
-                    // ERROR_CLIENT callback cannot restart listening over the user's stop.
-                    destroyRecognizer();
-                    handleSpoken(candidate);
-                    return;
+    private boolean isCurrentRecognitionSession(long generation) {
+        return serviceActive && generation == recognizerGeneration;
+    }
+
+    private RecognitionListener createRecognitionListener(final long generation) {
+        return new RecognitionListener() {
+            @Override public void onReadyForSpeech(Bundle params) {
+                if (!isCurrentRecognitionSession(generation)) return;
+                updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING);
+            }
+            @Override public void onBeginningOfSpeech() { }
+            @Override public void onRmsChanged(float rmsdB) { }
+            @Override public void onBufferReceived(byte[] buffer) { }
+            @Override public void onEndOfSpeech() {
+                if (!isCurrentRecognitionSession(generation)) return;
+                // Keep the recognizer marked busy until onResults/onError arrives.
+                updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
+            }
+            @Override public void onPartialResults(Bundle partialResults) {
+                if (!isCurrentRecognitionSession(generation) || speaker == null || !speaker.isSpeaking()
+                        || config == null || !config.isBargeInEnabled() || !micOn || partialResults == null) return;
+                ArrayList<String> partial = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (partial == null) return;
+                for (String candidate : partial) {
+                    if (VoiceSilenceCommandParser.isImmediateSpeechInterruptCommand(candidate)) {
+                        // Invalidate this session before handling the interrupt.
+                        destroyRecognizer();
+                        handleSpoken(candidate);
+                        return;
+                    }
                 }
             }
-        }
-        @Override public void onEvent(int eventType, Bundle params) { }
+            @Override public void onEvent(int eventType, Bundle params) { }
 
-        @Override public void onError(int error) {
-            if (!serviceActive) return;
-            listening = false;
-            // Android can report on-device recognition as available even when the
-            // Indonesian language pack is absent. Fall back once to the system
-            // recognizer instead of retrying the same unavailable offline engine.
-            boolean canFallbackToSystem = recognizerUsesOnDevice
-                    && (error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
-                    || error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
-                    || error == SpeechRecognizer.ERROR_NETWORK
-                    || error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
-                    || error == SpeechRecognizer.ERROR_SERVER
-                    || error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED);
-            if (canFallbackToSystem) {
-                preferSystemRecognizer = true;
-                destroyRecognizer();
-                updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
-                scheduleRetry(350);
-                return;
-            }
-            switch (error) {
-                case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                case SpeechRecognizer.ERROR_CLIENT:
+            @Override public void onError(int error) {
+                if (!isCurrentRecognitionSession(generation)) return;
+                listening = false;
+                // Fall back once when the Indonesian on-device language pack is unavailable.
+                boolean canFallbackToSystem = recognizerUsesOnDevice
+                        && (error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
+                        || error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
+                        || error == SpeechRecognizer.ERROR_NETWORK
+                        || error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
+                        || error == SpeechRecognizer.ERROR_SERVER
+                        || error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED);
+                if (canFallbackToSystem) {
+                    preferSystemRecognizer = true;
                     destroyRecognizer();
                     updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
-                    scheduleRetry(1500);
-                    break;
-                case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                    updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
-                    break;
-                case SpeechRecognizer.ERROR_NO_MATCH:
-                case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                    updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
-                    scheduleRetry(300);
-                    break;
-                default:
-                    updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
-                    scheduleRetry(1500);
-                    break;
+                    scheduleRetry(350);
+                    return;
+                }
+                switch (error) {
+                    case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                    case SpeechRecognizer.ERROR_CLIENT:
+                        destroyRecognizer();
+                        updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
+                        scheduleRetry(1500);
+                        break;
+                    case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                        updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
+                        break;
+                    case SpeechRecognizer.ERROR_NO_MATCH:
+                    case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                        updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
+                        scheduleRetry(300);
+                        break;
+                    default:
+                        updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
+                        scheduleRetry(1500);
+                        break;
+                }
             }
-        }
 
-        @Override public void onResults(Bundle results) {
-            if (!serviceActive) return;
-            listening = false;
-            updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
-            ArrayList<String> matches = results == null
-                    ? null
-                    : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-            if (matches != null && !matches.isEmpty()) handleSpoken(matches.get(0));
-            Speaker activeSpeaker = speaker;
-            if (micOn && activeSpeaker != null && !activeSpeaker.isSpeaking()) {
-                scheduleRetry(300);
+            @Override public void onResults(Bundle results) {
+                if (!isCurrentRecognitionSession(generation)) return;
+                listening = false;
+                updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
+                ArrayList<String> matches = results == null
+                        ? null
+                        : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                if (matches != null && !matches.isEmpty()) handleSpoken(matches.get(0));
+                Speaker activeSpeaker = speaker;
+                if (micOn && activeSpeaker != null && !activeSpeaker.isSpeaking()) {
+                    scheduleRetry(300);
+                }
             }
-        }
-    };
+        };
+    }
 
     // ----------------------------------------------------------------- gelembung suara melayang 3D
 
