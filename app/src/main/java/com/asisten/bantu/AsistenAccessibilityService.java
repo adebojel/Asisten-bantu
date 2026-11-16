@@ -1924,7 +1924,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void answerCall() {
         if (!Perms.has(this, Manifest.permission.ANSWER_PHONE_CALLS)) {
-            say("Izin menjawab telepon belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_CALLS, "Izin menjawab telepon diperlukan.");
             return;
         }
         try {
@@ -1938,7 +1938,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private void endCall() {
         if (!Perms.has(this, Manifest.permission.ANSWER_PHONE_CALLS)) {
-            say("Izin mengakhiri telepon belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_CALLS, "Izin telepon diperlukan.");
             return;
         }
         try {
@@ -1952,12 +1952,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void startSendSms(String target) {
         if (target.isEmpty()) { say("Kirim SMS ke siapa? Contoh: kirim SMS ke Ibu."); return; }
         if (!Perms.has(this, Manifest.permission.SEND_SMS)) {
-            say("Izin SMS belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_SMS, "Izin mengirim SMS diperlukan.");
             return;
         }
         boolean digits = target.matches("[0-9+ ]{6,}");
         if (!digits && !Perms.has(this, Manifest.permission.READ_CONTACTS)) {
-            say("Izin kontak belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_CONTACTS, "Izin kontak diperlukan untuk mencari nama penerima.");
             return;
         }
         String[] found = digits ? new String[]{target, target.replace(" ", "")} : findContact(target);
@@ -2210,6 +2210,23 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     // ----------------------------------------------------------------- bicara
+
+    /**
+     * Open the exact feature permission request instead of asking the user to hunt
+     * through Settings. The user still confirms the Android runtime permission dialog.
+     */
+    private void openFeaturePermissionSettings(int group, String explanation) {
+        say(explanation + " Membuka pilihan izin Kobra.");
+        try {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            intent.putExtra(SettingsActivity.EXTRA_PERMISSION_GROUP, group);
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.w(TAG, "Tidak dapat membuka permintaan izin fitur", e);
+            say("Buka Kobra, masuk Pengaturan, lalu pilih izin fitur yang diperlukan.");
+        }
+    }
 
     private void say(String text) {
         if (text == null || text.isEmpty()) return;
