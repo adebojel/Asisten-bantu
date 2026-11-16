@@ -581,6 +581,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             }
             if (recognizer == null) createRecognizer();
             try {
+                prepareRecognitionSession();
                 recognizer.startListening(recognizerIntent);
                 listening = true;
                 updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING);
@@ -599,6 +600,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 || !SpeechRecognizer.isRecognitionAvailable(this)) return;
         if (recognizer == null) createRecognizer();
         try {
+            prepareRecognitionSession();
             recognizer.startListening(recognizerIntent);
             listening = true;
             updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING);
@@ -609,6 +611,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void stopMic() {
+        // A cancelled recognition request must not process callbacks after resume.
+        recognizerGeneration++;
         if (main != null) main.removeCallbacks(micRetry);
         if (recognizer != null && listening) {
             try { recognizer.cancel(); } catch (Exception ignored) { }
@@ -633,8 +637,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
         } else {
             recognizer = SpeechRecognizer.createSpeechRecognizer(this);
         }
-        final long sessionGeneration = ++recognizerGeneration;
-        recognizer.setRecognitionListener(createRecognitionListener(sessionGeneration));
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID");
@@ -643,6 +645,12 @@ public class AsistenAccessibilityService extends AccessibilityService {
         // offline language pack is missing; do not force it into offline-only mode.
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, recognizerUsesOnDevice);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+    }
+
+    private void prepareRecognitionSession() {
+        if (recognizer == null) return;
+        final long sessionGeneration = ++recognizerGeneration;
+        recognizer.setRecognitionListener(createRecognitionListener(sessionGeneration));
     }
 
     private void destroyRecognizer() {
