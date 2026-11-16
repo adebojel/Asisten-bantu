@@ -211,3 +211,12 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Widget voice taps now use an immutable explicit `PendingIntent.getActivity()` to `WidgetVoiceActivity`, a new `android:exported="false"` activity. Only the app's own widget PendingIntent can invoke the private trampoline; it preserves the previous behavior (request one voice listen when accessibility service is active, otherwise launch setup/main with `auto_listen=true`).
 - The provider remains exported solely for the Android AppWidget contract. Vision widget action remains an explicit PendingIntent to the non-exported `VisionActivity`.
 - Source changes: `WidgetVoiceActivity.java`, `KobraWidgetProvider.kt`, and `AndroidManifest.xml`. CI must pass before this fix is considered build-verified; widget interaction still requires later device validation.
+
+
+## Camera callback lifecycle hardening — 16 November 2026
+
+- Audited `VisionActivity` CameraX live analysis and one-shot capture paths. Existing analyzer uses `STRATEGY_KEEP_ONLY_LATEST` and closes frames on the ordinary OCR/barcode/object-labeling completion paths.
+- Added a volatile teardown flag. Camera provider callbacks now refuse to bind after the Activity has been destroyed/finished, and incoming analysis frames are immediately closed when teardown has begun.
+- Prevented the live companion's asynchronous OCR completion from recreating an object detector after Activity teardown; its retained `ImageProxy` is closed instead.
+- One-shot capture now closes `ImageProxy` in a `finally` block and discards/recycles its bitmap if the Activity is no longer active before UI delivery.
+- The camera executor now uses `shutdownNow()` during Activity destruction to cancel queued work. Runtime behavior, CameraX lifecycle unbinding, and device-specific camera release still require instrumentation/device validation; no physical-device test is claimed.
