@@ -1887,6 +1887,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "mulai pantau perjalanan", "pantau perjalanan", "mulai perjalanan")) {
+            if (!ensureVoiceLocationPermission(true, "Izin lokasi presisi diperlukan untuk menghitung perjalanan dan kecepatan GPS.")) return true;
             say(tripMonitor.start(msg -> say(msg)));
             return true;
         }
@@ -3118,7 +3119,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
         });
     }
 
+    /** Request location only when a voice feature actually needs it. */
+    private boolean ensureVoiceLocationPermission(boolean requirePrecise, String explanation) {
+        if (Perms.hasLocation(this, requirePrecise)) return true;
+        openFeaturePermissionSettings(Perms.GROUP_LOCATION, explanation);
+        return false;
+    }
+
     private void speakWhereAmI() {
+        if (!ensureVoiceLocationPermission(false, "Izin lokasi diperlukan untuk mengetahui posisi Anda.")) return;
         say("Mencari lokasi Anda sekarang.");
         CompassLocationHelper.fetchCurrentLocation(this, new CompassLocationHelper.LocationCallback() {
             @Override public void onLocation(Location loc, String addressText) {
@@ -3137,6 +3146,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void saveCurrentFavoritePlace(String rawLabel) {
+        if (!ensureVoiceLocationPermission(false, "Izin lokasi diperlukan untuk menyimpan lokasi favorit.")) return;
         final String label = rawLabel.trim().isEmpty() ? "Rumah" : rawLabel.trim();
         say("Menyimpan koordinat lokasi untuk " + label + ".");
         CompassLocationHelper.fetchCurrentLocation(this, new CompassLocationHelper.LocationCallback() {
@@ -3158,6 +3168,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             say("Lokasi " + queryLabel + " belum disimpan. Bilang Kobra simpan lokasi " + queryLabel + " saat berada di sana.");
             return;
         }
+        if (!ensureVoiceLocationPermission(false, "Izin lokasi diperlukan untuk memandu ke lokasi tersimpan.")) return;
         String resolved = config.getFavoritePlaceLabel(queryLabel);
         CompassLocationHelper.readHeadingOnce(this, new CompassLocationHelper.HeadingCallback() {
             @Override public void onHeading(int degrees, String cardinalName) {

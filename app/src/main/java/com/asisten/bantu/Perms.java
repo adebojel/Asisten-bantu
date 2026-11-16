@@ -133,6 +133,17 @@ public final class Perms {
         return forGroup(GROUP_MICROPHONE);
     }
 
+    /** Coarse location is sufficient for position lookup; trip-distance monitoring requires fine. */
+    public static boolean isLocationGrantSufficient(boolean fineGranted, boolean coarseGranted, boolean requirePrecise) {
+        return fineGranted || (!requirePrecise && coarseGranted);
+    }
+
+    public static boolean hasLocation(Context c, boolean requirePrecise) {
+        boolean fine = has(c, Manifest.permission.ACCESS_FINE_LOCATION);
+        boolean coarse = has(c, Manifest.permission.ACCESS_COARSE_LOCATION);
+        return isLocationGrantSufficient(fine, coarse, requirePrecise);
+    }
+
     public static boolean has(Context c, String permission) {
         return ContextCompat.checkSelfPermission(c, permission) == PackageManager.PERMISSION_GRANTED;
     }

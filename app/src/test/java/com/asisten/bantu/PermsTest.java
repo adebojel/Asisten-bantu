@@ -40,6 +40,15 @@ public class PermsTest {
     }
 
     @Test
+    public void approximateLocationIsEnoughForPositionButNotTripDistance() {
+        assertTrue(Perms.isLocationGrantSufficient(false, true, false));
+        assertEquals(false, Perms.isLocationGrantSufficient(false, true, true));
+        assertTrue(Perms.isLocationGrantSufficient(true, false, true));
+        assertTrue(Perms.isLocationGrantSufficient(true, true, true));
+        assertEquals(false, Perms.isLocationGrantSufficient(false, false, false));
+    }
+
+    @Test
     public void placeCallGroupDoesNotRequestAnswerOrPhoneStatePermissions() {
         assertArrayEquals(
                 new String[] { Manifest.permission.CALL_PHONE },
