@@ -45,6 +45,7 @@ public class NavigationActivity extends AppCompatActivity {
     private TextView tvStatus, tvObstacle, tvGuardianStatusNav;
     private Button btnStart, btnStop, btnEmergencySos, btnGuardianAck, btnGuardianCheckNow;
     private SafeObjectDetector detector;
+    private ProcessCameraProvider cameraProvider;
     private Speaker speaker;
     private Vibrator vibrator;
     private final KobraScreenHelper screenHelper = new KobraScreenHelper();
@@ -156,6 +157,11 @@ public class NavigationActivity extends AppCompatActivity {
 
     @Override protected void onDestroy() {
         navigating = false;
+        processing = false;
+        if (cameraProvider != null) {
+            try { cameraProvider.unbindAll(); } catch (Exception ignored) {}
+            cameraProvider = null;
+        }
         if (detector != null) {
             try { detector.close(); } catch (Exception ignored) {}
         }
@@ -175,8 +181,14 @@ public class NavigationActivity extends AppCompatActivity {
     private void startCamera() {
         ListenableFuture<ProcessCameraProvider> future = ProcessCameraProvider.getInstance(this);
         future.addListener(() -> {
+            if (isFinishing() || isDestroyed()) return;
             try {
                 ProcessCameraProvider provider = future.get();
+                if (isFinishing() || isDestroyed()) {
+                    provider.unbindAll();
+                    return;
+                }
+                cameraProvider = provider;
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
@@ -249,6 +261,7 @@ public class NavigationActivity extends AppCompatActivity {
     }
 
     public void startNavigation() {
+        if (isFinishing() || isDestroyed() || detector == null) return;
         navigating = true;
         tvStatus.setText("Sonar Radar 3D AKTIF");
         speaker.speak("Bantuan kamera aktif. Deteksi ini dapat melewatkan objek dan tidak mengukur jarak dengan pasti. Tetap gunakan tongkat atau anjing pemandu dan jangan menyeberang hanya berdasarkan radar.");
@@ -257,6 +270,7 @@ public class NavigationActivity extends AppCompatActivity {
     public void stopNavigation() {
         if (!navigating) return;
         navigating = false;
+        processing = false;
         if (sonarRadarView != null) sonarRadarView.updateObstacles(new ArrayList<>());
         tvStatus.setText("Sonar Radar berhenti");
         speaker.speak("Mode tongkat berhenti.");
