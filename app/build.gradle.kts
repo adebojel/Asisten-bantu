@@ -140,12 +140,19 @@ val downloadQwenModel by tasks.registering {
             for (attempt in 1..3) {
                 try {
                     logger.lifecycle("Downloading bundled Qwen3 model (attempt $attempt/3)")
-                    val connection: URLConnection = URL(modelUrl).openConnection().apply {
+                    val parsedModelUrl = URL(modelUrl)
+                    require(parsedModelUrl.protocol.equals("https", ignoreCase = true)) {
+                        "Qwen model URL must use HTTPS; refusing insecure download"
+                    }
+                    val connection: URLConnection = parsedModelUrl.openConnection().apply {
                         connectTimeout = 30_000
                         readTimeout = 180_000
                         setRequestProperty("User-Agent", "KobraOS-Android-Build")
                     }
                     connection.getInputStream().use { input ->
+                        require(connection.url.protocol.equals("https", ignoreCase = true)) {
+                            "Qwen model download redirected away from HTTPS; refusing insecure response"
+                        }
                         temporary.outputStream().buffered(1024 * 1024).use { output ->
                             val buffer = ByteArray(1024 * 1024)
                             while (true) {
