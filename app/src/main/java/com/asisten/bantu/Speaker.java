@@ -120,7 +120,7 @@ public class Speaker implements TextToSpeech.OnInitListener {
             public void onStop(String utteranceId, boolean interrupted) {
                 mainHandler.post(() -> finishUtterance(utteranceId));
             }
-        })
+        });
         String immediate;
         List<String> queued;
         synchronized (this) {
@@ -135,7 +135,6 @@ public class Speaker implements TextToSpeech.OnInitListener {
         for (String queuedText : queued) {
             speakQueued(queuedText);
         }
-;
     }
 
     private void finishUtterance(String utteranceId) {
