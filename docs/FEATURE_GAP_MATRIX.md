@@ -15,7 +15,7 @@ This matrix is based on source inspection of the current `main` tree, not README
 | Screen access | One `AsistenAccessibilityService`, accessibility tree snapshots, semantic nodes, gestures and voice targeting. | Implemented; provider/app differences remain. |
 | Screen agent | New bounded navigation agent on the active CommandRouter route. | Experimental; only low-risk navigation, model/API and device compatibility not field-tested. |
 | Camera and vision | `VisionActivity`, CameraX, ML Kit OCR, image labels/object detection, barcode/QR and stability filtering. | Implemented; avoid another camera owner. |
-| Navigation | GPS/location helper, compass and navigation activity. | Implemented; real route/obstacle reliability needs device testing. |
+| Navigation | `PedestrianMapActivity` uses MapLibre offline regions and BRouter with local OSM RD5 segments, SHA-256 cache checks, and Indonesian turn instructions; GPS/compass helpers remain separate. | Partial: map and route calculation can work offline after area/segments are downloaded. Off-route detection, automatic rerouting, indoor navigation, and field reliability are not verified. |
 | Haptics and sensors | `HapticFeedback`, `SensorManager`, proximity/accelerometer and fall/pocket logic. | Implemented. |
 | Contacts | `ContactsContract` phone lookup by name. | Partial: lookup found; full contact CRUD not established. |
 | SMS | `SmsManager` send flow with explicit multi-step confirmation. | Partial: sending found; SMS database read/search not found in audited paths. |
@@ -42,25 +42,34 @@ These API integrations were not found in the current Java/Kotlin service paths d
 
 ## Permission UX finding
 
-- The current manifest declares sensitive permissions for contacts, SMS, call log, calendar, phone calls, location, camera, microphone, Bluetooth, storage and more.
-- `Perms.required()` currently returns many of these together, and `SettingsActivity` requests that combined list.
-- `READ_CALENDAR` is used by today's agenda reader. `READ_CONTACTS` and `SEND_SMS` are used by existing flows. `READ_SMS` is gated at the SMS-reader entry point. Call-log database reading was not found; `READ_CALL_LOG` has therefore been removed from the manifest and its permission group now requests nothing.
-- This is broader than the least-privilege model used by droid-mcp, where each tool/module declares its own required permissions.
-- Next security/UX improvement: request only core microphone permission at onboarding; request camera, location, contacts, SMS, call log, calendar, media and Bluetooth permissions only when the user enables or invokes the corresponding feature. Remove or defer unused sensitive permissions until their feature exists. Explain each use and provide a revoke/disable route.
-- Do not silently expand permissions just because a repository offers a tool.
+- `Perms.required()` returns only the microphone baseline. `SettingsActivity` uses a feature-group picker and requests only the group the user selected; it no longer requests all sensitive permissions together.
+- Just-in-time checks are present at audited entry points for camera, location, contacts, calls, SMS send/read, calendar, activity recognition, and local audio. Voice location lookup, saving favorites and saved-place guidance now open the location permission flow when needed. GPS trip-distance monitoring requires precise location; approximate location remains sufficient for basic position lookup.
+- After a permission grant, the user repeats the original command. KOBRA does not automatically execute a pending call, message, location action, or other sensitive operation merely because permission was granted.
+- Bluetooth Connect and Android notification posting are separate user-selected runtime groups. Notification-listener access is a separate Android special-access setting and must not be confused with `POST_NOTIFICATIONS`.
+- `READ_CALENDAR` is used by today's agenda reader. `READ_CONTACTS`, `SEND_SMS`, and `READ_SMS` are used by scoped flows. Call-log reading and nearby Wi-Fi discovery are not implemented; their permission groups request nothing. Unused `READ_CALL_LOG`, `NEARBY_WIFI_DEVICES`, and `CHANGE_WIFI_STATE` declarations have been removed.
+- Remaining permission audit: verify every special access and manifest declaration against its exact entry point and Android-version-specific UX, especially overlay, exact alarms, battery-optimization exemption, package installation, notification listener, foreground-service types, and boot behavior.
+- Do not silently expand permissions because a repository offers a tool. Keep the explanation, explicit opt-in, denial path and revoke/disable route.
 
 ## Integration priority
 
 | Priority | Feature | Why | Safety gate |
 |---|---|---|---|
-| P0 | Permission-scoped capability registry | Prevents the app requesting SMS/call-log/calendar/location permissions all at once. | Per-feature explanation, just-in-time grant, disable and revoke path. |
+| P0 | Finish permission-entrypoint and special-access audit | The feature-group picker and many just-in-time gates exist; remaining call sites and special access still need full coverage. | Per-feature explanation, just-in-time grant, denial handling, disable and revoke path. |
 | P1 | Calendar create/update and date-range search | Today's agenda read already exists; expand the current CalendarContract implementation. | READ_CALENDAR for read; WRITE_CALENDAR only when a user enables write actions; confirm changes. |
 | P1 | Call-log read and SMS read/search | droid-mcp has mature contracts, but these are highly sensitive. | Separate explicit opt-in; remove unused permissions until built; never read aloud in public by default. |
 | P1 | File tools via SAF | TXT/PDF reading already exists; add selected-file search/metadata if needed. | User-picked URIs, no broad file crawl, writes/deletes require confirmation. |
 | P2 | Clipboard and app/device context tools | Improve contextual assistance. | Only read clipboard on explicit request; mask secrets and password fields. |
 | P2 | DND, NFC, brightness, Wi-Fi/Bluetooth controls | Extend device control. | Android API restrictions and explicit confirmation for state changes. |
-| P3 | Optional Indonesian Sherpa ASR | Strong offline speech fallback. | One mic owner; model download consent; verify model license/size and benchmark. |
+| P3 | Optional Indonesian Sherpa ASR/TTS | Strong standalone offline speech path beyond Android-installed speech packs. | One mic owner; PCM adapter; model download consent; verify model license/size and benchmark. |
 | P3 | Curated droid-mcp modules | Structured tool contracts and approval model. | No `droid-mcp-all`; no duplicate service/camera/overlay; measure Ktor/Netty APK impact. |
+
+## Offline pedestrian routing implementation status
+
+- MapLibre Native and OpenFreeMap are wired into `PedestrianMapActivity`; selected map regions are downloaded for offline use with bounded tile count and storage.
+- BRouter is embedded from the pinned `third_party/brouter` submodule. Its trekking profile is packaged from the submodule, while OSM RD5 routing segments are downloaded over HTTPS and locally SHA-256 verified.
+- Once the required map region and RD5 segments are cached, route calculation uses local files. The app announces BRouter turn hints in Indonesian and can announce arrival within the 20-metre threshold even when no turn hints are returned.
+- This is not yet a complete mobility-navigation system: automatic off-route detection/rerouting, indoor navigation, guaranteed sidewalk/crossing quality, and obstacle depth/distance are not implemented or field-validated. Do not claim route safety.
+- The map screen currently chooses a provider using fine-accuracy criteria; when only approximate location is granted, it must select a coarse-accuracy provider instead. This is being corrected in the current mainline work.
 
 ## Important non-goals
 

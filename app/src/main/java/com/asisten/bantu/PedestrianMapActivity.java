@@ -153,7 +153,11 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
 
     private String bestProvider() {
         Criteria criteria = new Criteria();
-        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        boolean preciseLocationGranted = ContextCompat.checkSelfPermission(
+                this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        // Do not request a fine-accuracy provider when the user chose approximate location.
+        criteria.setAccuracy(preciseLocationGranted
+                ? Criteria.ACCURACY_FINE : Criteria.ACCURACY_COARSE);
         return locationManager.getBestProvider(criteria, true);
     }
 

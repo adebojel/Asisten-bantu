@@ -2,37 +2,53 @@
 
 Updated: 2026-11-16 (Asia/Jakarta)
 
-## Active development branch
+## Source of truth
 
 - Repository: https://github.com/adebojel/Asisten-bantu
-- Main branch: `main`
-- Active PR: https://github.com/adebojel/Asisten-bantu/pull/16
-- Branch: `research/open-source-expansion-2026-11-15`
-- Live head SHA: see the PR link above (this file is updated on the same branch, so the head advances when the handoff is refreshed).
-- PR state: open, mergeable; deliberately not merged while more integration and final verification remain.
+- Authoritative branch: `main`
+- Pull request #16 (open-source expansion) is **merged**. There is no active integration PR for that work.
+- Use the current `main` head and the latest GitHub Actions run as the source of truth; do not resume from the old PR head.
+- Latest published release at this checkpoint: [Kobra OS Build #302](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-302).
+- Build workflow: https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml
+- Latest release alias: https://github.com/adebojel/Asisten-bantu/releases/latest
 
-## Implemented in this branch
+## Recent mainline work
 
-1. Expanded open-source repository catalog with verified license status and integration decisions.
-2. Added minimal-overlay contract: only the 44dp microphone orb is persistent; other visual surfaces stay hidden unless explicitly requested.
-3. Tightened transparent word-focus overlay: no fill, no dim layer, no touch interception, thinner stroke and smaller padding.
-4. Added strict `FocusedWordRangeResolver`: only one real selected word or the word touching a real caret can be outlined. Multi-word selections, absent selection metadata and guessed character-zero fallback are rejected.
-5. Added per-character geometry guard: only request `EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY` when the active accessibility provider advertises it. No whole-line/paragraph substitute.
-6. Added `TargetLabelMatcher` adapted from ScreenSaathi's MIT target-ranking design. It ranks exact/normalized/word-boundary matches, prefers smaller actionable targets, and rejects near-tied controls at different screen locations.
-7. Added unit tests for word-range selection, missing caret, paragraph rejection, Unicode boundaries, ambiguous labels, overlapping controls and risky agent targets.
-8. Connected explicit screen-analysis requests to `OnlineAiRouter.askBlocking()` using the current screenshot plus accessibility context. The router is restricted to configured, live-verified, zero-price, image-capable models. If unavailable, KOBRA honestly falls back to local accessibility text.
-9. Added a bounded screen-navigation agent for multi-step, low-risk navigation only: open app, uniquely resolved safe click, scroll, Back and Home. No typing, Enter, message sending, calls, payment, purchase, delete, permission grant, upload, settings toggle or generic confirmation action.
-10. The agent checks a fresh screen snapshot after each action, stops if the screen does not change, supports `hentikan agen layar` / `batalkan agen layar` / `stop agen layar`, and does not claim the user's goal succeeded merely because the model says `done`. It does not save unverified macros.
-11. Added `docs/THIRD_PARTY_NOTICES.md` for the ScreenSaathi MIT design reference.
-12. Added ADRs for offline Indonesian Sherpa ASR and droid-mcp tool integration boundaries.
+- `7974482`: removed simulated obstacle distance and false safe-path claims; added frontend navigation safety validation.
+- `4c6070b`: released detector-owned rotated bitmaps after synchronous MediaPipe or asynchronous ML Kit inference.
+- `bcf4255`: added just-in-time location permission checks for voice position lookup, favorite-place save/route guidance, and precise-location gating for GPS trip monitoring. Added tests distinguishing approximate and precise grants.
+- `f8806cb`: ensured pedestrian arrival is announced even when BRouter returns no turn hints; added tested 20-metre arrival threshold.
+- Builds #300, #301, and #302 completed successfully. Build #302 published APK and SHA256SUMS assets.
+- The APK produced by the workflow is a **debug build**. CI success verifies automated tests and compilation, not real-device camera, microphone, GPS, accessibility, battery, or safety performance.
 
-## CI status
+## Implemented capabilities and boundaries
 
-- Build and unit tests passed for commit `543c8ffdac2431e7a5a91321a444249dfe5d5955`: https://github.com/adebojel/Asisten-bantu/actions/runs/43740565298
-- Build passed for commit `687faec03594bf69ee7cf84c847167548728d6fd`: https://github.com/adebojel/Asisten-bantu/actions/runs/43740555011
-- Latest commits `70cf95ee...` and `2752ecfd...` add documentation/decision records only; their Actions runs were still in progress at handoff time.
-- Earlier intermediate commits failed due missing not-yet-added files and one test that correctly caught the `panggil` / `panggilan` prefix bug. These were fixed; the later code+test commit `543c8ff...` passed.
-- Device-level behavior remains unverified; physical-device testing is still deferred.
+- Voice input: one Android `SpeechRecognizer` owner, Indonesian `id-ID`, on-device-first with system-recognizer fallback if the offline Indonesian pack is unavailable. A standalone Sherpa/Vosk Indonesian ASR model is **not yet integrated**.
+- Voice output: Android TTS coordination and voice profiles. Offline speech output depends on an Indonesian voice installed on the device; no standalone TTS model is bundled.
+- Local AI: Qwen3/LiteRT-LM, model registry/installer and local knowledge store. Keep one local inference runtime.
+- Online AI: OpenRouter models are discovered and rechecked for zero input/output price. Availability and quotas are provider-controlled; no guarantee of perpetual free service.
+- Vision: CameraX, OCR, barcode/QR, MediaPipe EfficientDet bounding boxes and ML Kit label-only fallback. Position is relative to the camera frame; physical obstacle distance/depth is not measured.
+- Screen agent: experimental bounded low-risk navigation with fresh-screen checks and cancellation. It is not unrestricted phone/system control.
+- Pedestrian navigation: MapLibre offline map regions plus BRouter OSM RD5 segments, locally SHA-256 checked, with Indonesian turn instructions. Map tiles and routing segments must first be downloaded while online. Off-route detection/automatic rerouting and field validation remain incomplete.
+- Permissions: feature-group picker and just-in-time gates exist for many voice features. The user repeats the command after granting permission; actions do not auto-run as a side effect of a grant.
+- Device-level validation remains deferred until the implementation and final release-readiness checks are complete.
+
+## Branch consolidation decisions
+
+- The merged research branch is historical; do not treat it as active.
+- Several older feature branches are divergent and far behind `main`. Qwen packaging/local knowledge, voice silence parsing, Indonesian recognizer fallback, and local voice-profile work are already represented on `main`.
+- Do not bulk-merge stale branches. Review each remaining unique diff and port only missing, safe, tested functionality.
+- The paid OpenAI provider branch is not part of the free-first automatic routing policy. The auto-start-camera branch is intentionally not adopted: camera analysis remains an explicit user action after entering the mode.
+- Delete obsolete branches only after verifying their unique work is safely preserved on `main`. Preserve `main`; do not claim branch cleanup until GitHub confirms it.
+
+## Next combined work queue
+
+1. Finish remaining lifecycle, permission-entrypoint, and regression audits across camera, voice, location, service, executor, and worker shutdown paths.
+2. Complete offline Indonesian ASR/TTS architecture only after the model license/provenance, single microphone/PCM ownership, download integrity, RAM, battery and latency are verified. Do not start a second microphone owner.
+3. Improve pedestrian routing with accuracy-aware guidance, off-route handling and rerouting only when GPS quality and tests support safe behavior.
+4. Review remaining agent/task boundaries, special Android permissions and privacy disclosures; preserve explicit confirmation for sensitive actions.
+5. Refresh release documentation and verify the latest APK plus checksum assets before declaring the HP test gate open.
+6. Begin comprehensive physical-device testing only after those gates pass. No physical-device test is claimed yet.
 
 ## Open-source audit decisions
 

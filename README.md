@@ -57,7 +57,7 @@ Pengenalan suara menggunakan Android on-device recognition bila tersedia; jika p
 
 Layar peta menggunakan MapLibre Native Android 13.7.1 dan OpenFreeMap (gaya Liberty) dengan unduhan area offline yang dibatasi maksimum 3.000 tile atau 50 MB per area. Routing memakai BRouter (MIT), profil `trekking`, dan segmen OSM `.rd5` yang diunduh melalui HTTPS serta diverifikasi dengan SHA-256 lokal. Rute ditampilkan sebagai garis pada peta dan instruksi belokan BRouter diterjemahkan ke Bahasa Indonesia melalui TTS. Data OSM berada di bawah ODbL; atribusi OpenStreetMap/OpenFreeMap ditampilkan di layar.
 
-Area peta dan segmen routing harus diunduh saat internet tersedia; setelah tersimpan, perhitungan rute menggunakan data lokal. Kualitas rute bergantung pada kelengkapan data OSM dan kondisi nyata. Fitur ini tidak menjamin trotoar, penyeberangan, atau jalur aman; jangan menggantikan tongkat atau pendamping. Pengujian runtime perangkat masih diperlukan sebelum menyatakan P4 selesai.
+Area peta dan segmen routing harus diunduh saat internet tersedia; setelah tersimpan, perhitungan rute menggunakan data lokal. Panduan saat ini belum memiliki deteksi keluar jalur dan rerouting otomatis; jika menyimpang, hentikan panduan lalu hitung rute baru secara manual. Kualitas rute bergantung pada kelengkapan data OSM dan kondisi nyata. Fitur ini tidak menjamin trotoar, penyeberangan, atau jalur aman; jangan menggantikan tongkat atau pendamping. Pengujian runtime perangkat masih diperlukan sebelum menyatakan P4 selesai.
 
 ## Kemampuan utama
 
