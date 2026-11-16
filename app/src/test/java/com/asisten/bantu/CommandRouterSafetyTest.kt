@@ -7,6 +7,17 @@ import org.junit.Test
 class CommandRouterSafetyTest {
 
     @Test
+    fun recoveryDismissesOnlyExplicitSkipOrCloseActions() {
+        listOf("Lewati", "Skip", "Tutup", "Close", "Nanti saja", "Later", "Not now", "No thanks")
+            .forEach { assertTrue("Harus aman untuk ditutup: $it", RecoveryEngine.isSafeDismissPopupLabel(it)) }
+
+        listOf(
+            "Allow", "Izinkan", "Allow while using the app", "Hanya kali ini",
+            "OK", "Oke", "Got it", "Mengerti", "Accept", "Confirm", "Continue"
+        ).forEach { assertFalse("Tidak boleh diterima otomatis: $it", RecoveryEngine.isSafeDismissPopupLabel(it)) }
+    }
+
+    @Test
     fun blocksCommunicationTransactionsAndDestructiveActions() {
         val riskyTargets = listOf(
             "Kirim", "Send", "Bayar", "Transfer", "Beli", "Purchase",
