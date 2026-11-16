@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Pengelola Mesin LLM Offline (MediaPipe LLM Inference API 0.10.14) untuk Kobra OS.
@@ -64,6 +65,8 @@ public class LocalLlmEngine {
     private final Context context;
     private final Handler mainHandler;
     private final ExecutorService initExec = Executors.newSingleThreadExecutor();
+    // Invalidates queued initialization callbacks when the accessibility service releases this engine.
+    private final AtomicLong initGeneration = new AtomicLong(0L);
     private Speaker activeSpeaker;
     private StreamingCallback activeCallback;
     private final StringBuilder sentenceBuffer = new StringBuilder();
@@ -148,13 +151,19 @@ public class LocalLlmEngine {
      * Memuat model bahasa offline ke memori secara asinkron agar UI tidak terblokir.
      */
     public void initEngineAsync(boolean forceRetry, InitCallback callback) {
+        final long generation = initGeneration.get();
         initExec.execute(() -> {
+            // A service teardown/reset may happen while this task is waiting in the executor queue.
+            if (generation != initGeneration.get()) return;
             boolean ok = forceRetry ? forceInitEngine() : initEngine();
+            if (generation != initGeneration.get()) return;
             String msg = ok
                     ? "Model lokal siap digunakan."
                     : (getLastError().isEmpty() ? CRASH_SAFE_MODE_REASON : getLastError());
             if (callback != null) {
-                mainHandler.post(() -> callback.onCompleted(ok, msg));
+                mainHandler.post(() -> {
+                    if (generation == initGeneration.get()) callback.onCompleted(ok, msg);
+                });
             }
         });
     }
@@ -665,6 +674,8 @@ public class LocalLlmEngine {
 
     /** Membebaskan memori sistem saat service dihentikan. */
     public synchronized void close() {
+        // Prevent queued initialization work and its UI callback from reviving a released engine.
+        initGeneration.incrementAndGet();
         cleanupPartialInference();
         activeSpeaker = null;
         activeCallback = null;
