@@ -88,6 +88,12 @@ public class PermsTest {
     }
 
     @Test
+    public void unimplementedCallLogAndNearbyWifiGroupsRequestNoPermissions() {
+        assertEquals(0, Perms.forGroup(Perms.GROUP_CALL_HISTORY).length);
+        assertEquals(0, Perms.forGroup(Perms.GROUP_NEARBY_WIFI).length);
+    }
+
+    @Test
     public void permissionPickerHasOneLabelPerGroup() {
         assertEquals(Perms.groupLabels().length, Perms.GROUP_PHONE_STATE + 1);
     }
