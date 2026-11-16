@@ -427,11 +427,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
     @Override public void onDestroy() {
         serviceActive = false;
         isRunning = false;
+        micOn = false;
         instance = null;
         UnifiedAccessibilityEngine.onServiceDestroyed();
         stopMic();
         destroyRecognizer();
         if (speaker != null) {
+            // A service may be destroyed without a preceding onUnbind callback.
+            // Stop the singleton TTS before detaching its listener.
+            speaker.stop();
             speaker.removeListener(speechListener);
         }
         cancelFallCountdown(false);
