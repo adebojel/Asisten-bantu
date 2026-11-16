@@ -35,6 +35,26 @@ class CommandRouterSafetyTest {
     }
 
     @Test
+    fun legacyMacrosRejectTypingCoordinatesAndUnsafeTargets() {
+        assertFalse(CommandRouter.isSafeStoredMacroStep("type_text", "hello", -1, -1))
+        assertFalse(CommandRouter.isSafeStoredMacroStep("click_xy", "", 120, 240))
+        assertFalse(CommandRouter.isSafeStoredMacroStep("click_label", "Send", -1, -1))
+        assertFalse(CommandRouter.isSafeStoredMacroStep("click_label", "OK", -1, -1))
+        assertFalse(CommandRouter.isSafeStoredMacroStep("click_label", "Continue", -1, -1))
+        assertFalse(CommandRouter.isSafeStoredMacroStep("click_label", "Inbox", 120, 240))
+    }
+
+    @Test
+    fun legacyMacrosAllowOnlyNonCoordinateNavigation() {
+        assertTrue(CommandRouter.isSafeStoredMacroStep("open_app", "Chrome", -1, -1))
+        assertTrue(CommandRouter.isSafeStoredMacroStep("click_label", "Inbox", -1, -1))
+        assertTrue(CommandRouter.isSafeStoredMacroStep("scroll_down", "", -1, -1))
+        assertTrue(CommandRouter.isSafeStoredMacroStep("scroll_up", "", -1, -1))
+        assertTrue(CommandRouter.isSafeStoredMacroStep("back", "", -1, -1))
+        assertTrue(CommandRouter.isSafeStoredMacroStep("home", "", -1, -1))
+    }
+
+    @Test
     fun allowsOrdinaryNavigationLabels() {
         val safeTargets = listOf(
             "Settings", "Apps", "Home", "Back", "Menu",
