@@ -34,8 +34,44 @@ public final class OfflineVision {
         }
     }
 
+    private static final Object DETECTOR_LOCK = new Object();
     private static FaceDetector faceDetector;
     private static SafeObjectDetector safeObjectDetector;
+
+    private static FaceDetector getFaceDetector() {
+        synchronized (DETECTOR_LOCK) {
+            if (faceDetector == null) {
+                faceDetector = FaceDetection.getClient(new FaceDetectorOptions.Builder()
+                        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
+                        .build());
+            }
+            return faceDetector;
+        }
+    }
+
+    private static SafeObjectDetector getSafeObjectDetector() {
+        synchronized (DETECTOR_LOCK) {
+            if (safeObjectDetector == null) safeObjectDetector = new SafeObjectDetector(false);
+            return safeObjectDetector;
+        }
+    }
+
+    /**
+     * Releases the shared ML Kit clients when the owning vision screen is destroyed.
+     * A later screen may safely create fresh clients through the getters above.
+     */
+    public static void release() {
+        synchronized (DETECTOR_LOCK) {
+            if (faceDetector != null) {
+                try { faceDetector.close(); } catch (Exception ignored) { }
+                faceDetector = null;
+            }
+            if (safeObjectDetector != null) {
+                try { safeObjectDetector.close(); } catch (Exception ignored) { }
+                safeObjectDetector = null;
+            }
+        }
+    }
 
     private OfflineVision() {}
 
@@ -144,12 +180,8 @@ public final class OfflineVision {
     /** Menghitung wajah di gambar (offline, model bawaan ML Kit). */
     public static void countFaces(Bitmap bmp, Result cb) {
         if (bmp == null) { cb.onResult("Foto tidak bisa dibaca."); return; }
-        if (faceDetector == null) {
-            faceDetector = FaceDetection.getClient(new FaceDetectorOptions.Builder()
-                    .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-                    .build());
-        }
-        faceDetector.process(InputImage.fromBitmap(bmp, 0))
+        FaceDetector detector = getFaceDetector();
+        detector.process(InputImage.fromBitmap(bmp, 0))
                 .addOnSuccessListener(faces -> {
                     int n = faces.size();
                     if (n == 0) cb.onResult("Tidak ada wajah yang terlihat.");
@@ -162,8 +194,8 @@ public final class OfflineVision {
     /** Mengenali kategori benda besar di gambar (offline), dengan fallback Image Labeling. */
     public static void describe(Bitmap bmp, Result cb) {
         if (bmp == null) { cb.onResult("Foto tidak bisa dibaca."); return; }
-        if (safeObjectDetector == null) safeObjectDetector = new SafeObjectDetector(false);
-        safeObjectDetector.process(bmp, (items, usedFallback) -> {
+        SafeObjectDetector detector = getSafeObjectDetector();
+        detector.process(bmp, (items, usedFallback) -> {
             Set<String> names = new LinkedHashSet<>();
             for (SafeObjectDetector.DetectedItem item : items) {
                 if (item.label != null && !item.label.trim().isEmpty()) names.add(item.label);

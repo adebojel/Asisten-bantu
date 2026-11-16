@@ -24,7 +24,7 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian (16 November 2026):** perubahan PR #16 sudah tergabung ke `main` pada commit `79302e4`. CI #491 dan workflow rilis #262 berhasil; **Build 262** telah diterbitkan sebagai rilis Latest dengan aset `Kobra-OS-main.apk` dan `SHA256SUMS.txt`. APK ini adalah debug build yang sudah lulus tes unit dan kompilasi, tetapi belum diuji menyeluruh pada perangkat Android fisik. Pengujian HP sengaja ditunda sampai seluruh pekerjaan kode yang direncanakan selesai.
+> **Status pengujian:** APK yang tersedia pada [rilis Latest](https://github.com/adebojel/Asisten-bantu/releases/latest) adalah debug build yang lulus tes unit dan kompilasi pada workflow terkait. Rilis dan checksum harus diperiksa pada aset rilis yang sama sebelum distribusi. APK belum dinyatakan lulus pengujian perangkat Android fisik; pengujian HP ditunda sampai seluruh pekerjaan kode selesai. Tautan unduhan dan checksum di bagian bawah selalu mengikuti rilis Latest, bukan nomor build yang ditulis permanen di README.
 
 ## Tampilan aplikasi
 
@@ -103,7 +103,7 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - **Status build/publikasi otomatis:** [Kobra OS — Auto Build and Release](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml)
 - **Model offline Qwen3 0.6B:** build `main` saat ini sudah mengemas Qwen3 di dalam APK; impor manual dari [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) hanya diperlukan untuk paket model terpisah/pemulihan. Pastikan ruang penyimpanan dan RAM memadai.
 
-**Status distribusi:** rilis APK utama dibuat otomatis dari branch `main`; tautan [Latest Releases](https://github.com/adebojel/Asisten-bantu/releases/latest) dan unduhan langsung di atas selalu mengarah ke aset APK terbaru yang berhasil dipublikasikan. Build 262 adalah rilis terbaru saat pembaruan ini dibuat. Semua APK adalah debug build, bukan versi final yang sudah lulus uji perangkat.
+**Status distribusi:** rilis APK utama dibuat otomatis dari branch `main`; tautan [Latest Releases](https://github.com/adebojel/Asisten-bantu/releases/latest) dan unduhan langsung di atas selalu mengarah ke aset APK terbaru yang berhasil dipublikasikan. Gunakan halaman [Latest Releases](https://github.com/adebojel/Asisten-bantu/releases/latest) untuk melihat build terbaru yang berhasil dipublikasikan. Semua APK adalah debug build, bukan versi final yang sudah lulus uji perangkat.
 
 ## Status pengembangan
 

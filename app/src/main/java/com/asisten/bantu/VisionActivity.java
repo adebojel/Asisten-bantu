@@ -280,6 +280,7 @@ public class VisionActivity extends AppCompatActivity {
         }
         boundCamera = null;
         cameraExec.shutdownNow();
+        OfflineVision.release();
         super.onDestroy();
     }
 
@@ -1147,6 +1148,7 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private void done(String text) {
+        if (destroyed || isFinishing() || isDestroyed()) return;
         busy = false;
         tvStatus.setText("Selesai. Pilih mode pindai di bawah.");
         tvResult.setText(text);
