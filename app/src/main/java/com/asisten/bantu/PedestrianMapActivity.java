@@ -9,6 +9,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -63,6 +64,12 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
     private final List<RouteInstruction> routeInstructions = new ArrayList<>();
     private int nextInstructionIndex;
     private boolean routeActive;
+    private boolean rerouting;
+    private int routeGeneration;
+    private double[] activeRouteLatitudes;
+    private double[] activeRouteLongitudes;
+    private final PedestrianRouteProgress.OffRouteTracker offRouteTracker =
+            new PedestrianRouteProgress.OffRouteTracker();
     private boolean centeredOnLocation;
     private boolean destroyed;
 
@@ -266,6 +273,8 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
         }
         final Location start = new Location(currentLocation);
         final LatLng end = destination;
+        final int requestGeneration = ++routeGeneration;
+        rerouting = false;
         tvStatus.setText("Menyiapkan segmen OSM offline dan menghitung rute...");
         worker.execute(() -> {
             try {
@@ -278,15 +287,8 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
                         end.getLatitude(), end.getLongitude());
                 RouteData data = parseRoute(geoJson);
                 runOnUiThread(() -> {
-                    if (destroyed || map == null) return;
-                    if (routePolyline != null) map.removePolyline(routePolyline);
-                    routePolyline = map.addPolyline(new PolylineOptions()
-                            .addAll(data.points).color(Color.CYAN).width(5f));
-                    routeInstructions.clear();
-                    routeInstructions.addAll(data.instructions);
-                    nextInstructionIndex = 0;
-                    routeActive = true;
-                    startLocationUpdates();
+                    if (destroyed || map == null || requestGeneration != routeGeneration) return;
+                    installRouteData(data);
                     tvStatus.setText("Rute offline siap: " + data.distanceText
                             + " m. Estimasi " + data.durationText + " detik. Data OSM dapat berubah; tetap waspada.");
                     speaker.speak("Rute jalan kaki offline siap. Jarak sekitar "
@@ -295,8 +297,74 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {
-                    if (!destroyed) tvStatus.setText("Rute offline belum tersedia: " + safeMessage(error)
-                            + " Unduh area ketika internet tersedia.");
+                    if (!destroyed && requestGeneration == routeGeneration) {
+                        rerouting = false;
+                        tvStatus.setText("Rute offline belum tersedia: " + safeMessage(error)
+                                + " Unduh area ketika internet tersedia.");
+                    }
+                });
+            }
+        });
+    }
+
+    private void installRouteData(RouteData data) {
+        if (routePolyline != null) map.removePolyline(routePolyline);
+        routePolyline = map.addPolyline(new PolylineOptions()
+                .addAll(data.points).color(Color.CYAN).width(5f));
+        activeRouteLatitudes = new double[data.points.size()];
+        activeRouteLongitudes = new double[data.points.size()];
+        for (int i = 0; i < data.points.size(); i++) {
+            activeRouteLatitudes[i] = data.points.get(i).getLatitude();
+            activeRouteLongitudes[i] = data.points.get(i).getLongitude();
+        }
+        routeInstructions.clear();
+        routeInstructions.addAll(data.instructions);
+        nextInstructionIndex = 0;
+        offRouteTracker.reset();
+        rerouting = false;
+        routeActive = true;
+        startLocationUpdates();
+    }
+
+    private void requestAutomaticReroute(Location location) {
+        if (!routeActive || rerouting || destroyed || destination == null || location == null) return;
+        rerouting = true;
+        final int requestGeneration = ++routeGeneration;
+        final Location start = new Location(location);
+        final LatLng end = destination;
+        tvStatus.setText("Lokasi menyimpang dari garis rute. Menghitung ulang rute offline...");
+        speaker.speak("Anda tampaknya menyimpang dari rute. Saya sedang menghitung ulang rute offline.");
+        worker.execute(() -> {
+            try {
+                router.downloadSegmentsForBounds(
+                        Math.min(start.getLatitude(), end.getLatitude()),
+                        Math.min(start.getLongitude(), end.getLongitude()),
+                        Math.max(start.getLatitude(), end.getLatitude()),
+                        Math.max(start.getLongitude(), end.getLongitude()));
+                RouteData data = parseRoute(router.route(start.getLatitude(), start.getLongitude(),
+                        end.getLatitude(), end.getLongitude()));
+                runOnUiThread(() -> {
+                    if (destroyed || map == null || requestGeneration != routeGeneration) return;
+                    installRouteData(data);
+                    tvStatus.setText("Rute pedestrian diperbarui dari posisi terakhir. Tetap periksa kondisi sekitar.");
+                    speaker.speak("Rute baru siap. Panduan dilanjutkan dari lokasi Anda sekarang. Tetap waspada.");
+                });
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    if (destroyed || requestGeneration != routeGeneration) return;
+                    rerouting = false;
+                    routeActive = false;
+                    activeRouteLatitudes = null;
+                    activeRouteLongitudes = null;
+                    routeInstructions.clear();
+                    stopLocationUpdates();
+                    if (routePolyline != null) {
+                        map.removePolyline(routePolyline);
+                        routePolyline = null;
+                    }
+                    tvStatus.setText("Rute ulang gagal: " + safeMessage(error)
+                            + ". Panduan dihentikan; pilih hitung rute baru saat data tersedia.");
+                    speaker.speak("Rute ulang gagal. Panduan dihentikan agar tidak memberi arah yang keliru.");
                 });
             }
         });
@@ -337,8 +405,18 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
     }
 
     private void updateTurnGuidance(Location location) {
-        if (!routeActive) return;
+        if (!routeActive || rerouting) return;
         if (location.hasAccuracy() && location.getAccuracy() > 50f) return;
+        if (location.hasAccuracy() && activeRouteLatitudes != null && activeRouteLongitudes != null) {
+            float routeDistance = PedestrianRouteProgress.distanceToPolylineMeters(
+                    location.getLatitude(), location.getLongitude(),
+                    activeRouteLatitudes, activeRouteLongitudes);
+            if (offRouteTracker.shouldTriggerReroute(
+                    routeDistance, location.getAccuracy(), SystemClock.elapsedRealtime())) {
+                requestAutomaticReroute(location);
+                return;
+            }
+        }
         while (nextInstructionIndex < routeInstructions.size()) {
             RouteInstruction instruction = routeInstructions.get(nextInstructionIndex);
             float[] result = new float[1];
@@ -373,7 +451,12 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
     }
 
     private void stopRoute() {
+        routeGeneration++;
+        rerouting = false;
         routeActive = false;
+        activeRouteLatitudes = null;
+        activeRouteLongitudes = null;
+        offRouteTracker.reset();
         routeInstructions.clear();
         nextInstructionIndex = 0;
         stopLocationUpdates();
@@ -465,6 +548,8 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
     }
     @Override protected void onDestroy() {
         destroyed = true;
+        routeGeneration++;
+        rerouting = false;
         stopLocationUpdates();
         if (activeOfflineRegion != null) activeOfflineRegion.setObserver(null);
         worker.shutdownNow();
