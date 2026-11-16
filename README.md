@@ -7,7 +7,7 @@
 
 **Akses ponsel dengan suara. Baca informasi di sekitar. Tetap gunakan fungsi inti saat offline.**
 
-[**UNDUH APK KOBRA OS — BUILD MAIN TERBARU**](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk) · [Semua versi](https://github.com/adebojel/Asisten-bantu/releases) · [Status build APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/main) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
+**APK FINAL UNTUK PENGUJIAN BELUM DITERBITKAN — JANGAN GUNAKAN APK RILIS LAMA.** · [Status build APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/main) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
 
 ![Android](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
@@ -24,7 +24,7 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian:** build historis `57aa88f` dan APK rilis sebelumnya telah lulus. Untuk pembaruan aksesibilitas terbaru, workflow #360 sudah melewati tahap tes logika/unit; kompilasi APK masih berjalan. Belum ada verifikasi menyeluruh pada perangkat Android fisik. Build berhasil tidak membuktikan mikrofon, kamera, inferensi model, panggilan, WhatsApp, atau perilaku latar belakang bekerja sempurna.
+> **Status pengujian (16 November 2026):** APK rilis lama, termasuk Build 261, bukan APK untuk pengujian pembaruan PR #16. Build final dari perubahan terbaru belum diterbitkan. Workflow CI terbaru #483 sedang memeriksa tes dan kompilasi APK. Jangan mengunduh atau menguji APK lama; tautan unduhan akan dipasang kembali setelah perubahan digabung ke `main`, rilis baru benar-benar tersedia di GitHub Releases → Assets, dan file APK serta checksum diverifikasi. Belum ada verifikasi menyeluruh pada perangkat Android fisik.
 
 ## Tampilan aplikasi
 
