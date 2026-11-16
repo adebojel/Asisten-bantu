@@ -60,6 +60,18 @@ public class PermsTest {
     }
 
     @Test
+    public void bluetoothGroupRequestsConnectButNeverAdvertise() {
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            assertArrayEquals(
+                    new String[] { Manifest.permission.BLUETOOTH_CONNECT },
+                    Perms.forGroup(Perms.GROUP_BLUETOOTH)
+            );
+        } else {
+            assertEquals(0, Perms.forGroup(Perms.GROUP_BLUETOOTH).length);
+        }
+    }
+
+    @Test
     public void phoneStateGroupIsIndependent() {
         assertArrayEquals(
                 new String[] { Manifest.permission.READ_PHONE_STATE },
