@@ -111,3 +111,13 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Extended PermsTest to verify the location group contains only fine/coarse location permissions.
 - Added remaining-gap notes: voice-command/background location consumers and other communication features still need entrypoint-level permission UX; Compass currently requires a second tap after grant.
 - Latest commit in this continuation segment before the docs checkpoint: `c473fdf13e801a2235bd94ae92882a154e70ef35`; docs checkpoint follows it. Await CI for the latest branch head before calling this segment build-verified.
+
+
+## Voice-command permission recovery — 16 November 2026
+
+- Added SettingsActivity internal deep link `EXTRA_PERMISSION_GROUP`; it opens a confirmation dialog for the requested feature group, filters already granted permissions, then launches only Android's corresponding runtime prompt.
+- Voice commands for answer/end call and send SMS now route missing-permission cases into that exact prompt rather than leaving users to navigate Settings manually.
+- Added `GROUP_ANSWER_CALLS` for only `ANSWER_PHONE_CALLS`, and a unit test proving no unrelated phone permission is bundled.
+- SMS contact-name lookup remains a separate READ_CONTACTS request path. SMS send requires SEND_SMS only.
+- No action is auto-executed after permission grant; users must repeat the voice command, avoiding an unexpected call/message after a system prompt.
+- Newest code/test commits in this segment: `106e20dd9a03e83610d71a2003375224bc9a04cd`; docs changes follow. CI must verify the full current head.
