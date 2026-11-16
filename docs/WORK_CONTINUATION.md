@@ -220,3 +220,14 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Prevented the live companion's asynchronous OCR completion from recreating an object detector after Activity teardown; its retained `ImageProxy` is closed instead.
 - One-shot capture now closes `ImageProxy` in a `finally` block and discards/recycles its bitmap if the Activity is no longer active before UI delivery.
 - The camera executor now uses `shutdownNow()` during Activity destruction to cancel queued work. Runtime behavior, CameraX lifecycle unbinding, and device-specific camera release still require instrumentation/device validation; no physical-device test is claimed.
+
+
+## Optional telephony/Bluetooth permission audit — 16 November 2026
+
+- The Bluetooth monitor only observes connected/disconnected headset state and audio-route changes; no advertising API is used. Removed `BLUETOOTH_ADVERTISE` from the runtime Bluetooth group and manifest. Android 12+ asks only for `BLUETOOTH_CONNECT`.
+- Bluetooth monitor registration now skips on Android 12+ when `BLUETOOTH_CONNECT` is not granted. This avoids relying on a caught `SecurityException` as permission control. The monitor remains optional; no permission prompt is forced during service startup.
+- Incoming-caller announcement monitor now registers only when `READ_PHONE_STATE` is already granted, and its receiver rechecks the permission before reading the incoming-number extra. Without it, caller-number announcement is skipped; other accessibility and voice functions remain available.
+- Added `PermsTest.bluetoothGroupRequestsConnectButNeverAdvertise()` to enforce least privilege.
+- Source inspection found no current call sites for `READ_CALL_LOG`, `READ_CALENDAR`, or `NEARBY_WIFI_DEVICES`; their feature groups are still present as future capability placeholders and must not be described as currently implemented. No automatic request is made for these permissions. Follow-up should either implement the corresponding user-facing feature with a clear opt-in, or remove the placeholder groups and manifest declarations after checking all branches.
+- Wi-Fi diagnostics currently read connectivity/Wi-Fi state; no code path was found that toggles Wi-Fi. Do not claim KOBRA can turn Wi-Fi on/off through the current app code.
+- CI previously passed for camera lifecycle commit `c084c08` (workflow [43806805775](https://github.com/adebojel/Asisten-bantu/actions/runs/43806805775)); the subsequent documentation commit `46c062c` also passed (workflow [43806822754](https://github.com/adebojel/Asisten-bantu/actions/runs/43806822754)). The permission-scope commits in this section need their own CI confirmation.
