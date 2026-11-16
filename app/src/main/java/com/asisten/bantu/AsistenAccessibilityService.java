@@ -447,6 +447,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
         cancelFallCountdown(false);
         EmergencyBeacon.stopAll(this, torchId);
         SystemUtilityHelper.stopLocalAudio(this);
+        // Cancel every queued callback before scheduling final overlay removal.
+        // Selective removal below is not sufficient for delayed focus/network/UI tasks.
+        if (main != null) {
+            main.removeCallbacksAndMessages(null);
+        }
         removeScreenCurtain(false);
         removePocketGuard();
         if (tripMonitor != null && tripMonitor.isActive()) {
