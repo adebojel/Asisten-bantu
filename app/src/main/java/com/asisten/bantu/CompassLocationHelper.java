@@ -16,6 +16,11 @@ import android.os.Handler;
 import android.os.Looper;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Pembantu kompas suara offline (Sensor.TYPE_ROTATION_VECTOR), penentuan alamat GPS (Geocoder),
@@ -32,6 +37,21 @@ public final class CompassLocationHelper {
         void onLocation(Location location, String addressText);
         void onError(String message);
     }
+
+    // Geocoding is serialized and bounded so repeated location requests cannot spawn
+    // an unbounded number of short-lived threads or retain an unlimited task backlog.
+    private static final ThreadPoolExecutor GEOCODER_EXECUTOR = new ThreadPoolExecutor(
+            1, 1, 0L, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(8),
+            new ThreadFactory() {
+                @Override public Thread newThread(Runnable task) {
+                    Thread thread = new Thread(task, "Kobra-Geocoder");
+                    thread.setDaemon(true);
+                    return thread;
+                }
+            },
+            new ThreadPoolExecutor.AbortPolicy()
+    );
 
     private CompassLocationHelper() {}
 
@@ -202,7 +222,8 @@ public final class CompassLocationHelper {
 
     private static void resolveAddressAsync(Context context, Location loc, LocationCallback callback) {
         Handler main = new Handler(Looper.getMainLooper());
-        new Thread(() -> {
+        try {
+            GEOCODER_EXECUTOR.execute(() -> {
             String addrText = "";
             if (Geocoder.isPresent()) {
                 try {
@@ -224,7 +245,10 @@ public final class CompassLocationHelper {
             }
             final String finalAddr = addrText;
             main.post(() -> callback.onLocation(loc, finalAddr));
-        }).start();
+            });
+        } catch (RejectedExecutionException rejected) {
+            main.post(() -> callback.onError("Antrean pencarian alamat sedang penuh. Coba beberapa saat lagi."));
+        }
     }
 
     /** Menghitung panduan jarak meter dan arah jarum jam menuju koordinat tujuan. */
