@@ -2633,7 +2633,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
         if (!Perms.has(this, Manifest.permission.READ_CONTACTS)) {
-            say("Izin membaca kontak belum aktif. Aktifkan izin Kontak di pengaturan Kobra terlebih dahulu.");
+            openFeaturePermissionSettings(Perms.GROUP_CONTACTS, "Izin membaca kontak diperlukan untuk mencari penerima.");
             return;
         }
         List<String[]> matches = findContacts(target, 5);
@@ -2774,7 +2774,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private List<String[]> findContacts(String name, int maxResults) {
         List<String[]> out = new ArrayList<>();
         if (!Perms.has(this, Manifest.permission.READ_CONTACTS)) {
-            say("Izin kontak belum aktif. Buka Kobra, lalu tekan Izin.");
+            openFeaturePermissionSettings(Perms.GROUP_CONTACTS, "Izin kontak diperlukan untuk mencari nama.");
             return out;
         }
         try (Cursor c = getContentResolver().query(
