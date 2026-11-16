@@ -92,3 +92,13 @@ This is a least-privilege improvement to the Settings permission workflow. It is
 - Denial is announced and the feature remains stopped. The UI does not silently proceed or use a guessed location.
 - Remaining limitation: after granting permission the user must tap the feature again. A pending-action resume can be added later if lifecycle and duplicate-action behavior are tested.
 - This change is scoped to the compass location screen. Other consumers (voice-command location, background trip monitor, etc.) still need their own just-in-time permission UX and denial tests.
+
+
+## Voice-action permission deep links — 16 November 2026
+
+- SettingsActivity now accepts an internal feature-group deep link and opens a confirmation dialog for only that feature's missing permissions.
+- Voice-command attempts to answer/end a call and send SMS now open the exact permission request instead of only saying "go to Settings".
+- Answer/end-call permission is isolated as `GROUP_ANSWER_CALLS` containing only `ANSWER_PHONE_CALLS`; it does not request call placement, phone state, contacts, or call history.
+- SMS recipient lookup still requests contacts only when the target is a contact name; sending SMS requires only SEND_SMS.
+- The user must still confirm the app's explanation dialog and Android's system permission prompt. A permission grant does not automatically execute the pending call/SMS action; the user must repeat the command. This is intentional for safety.
+- The existing Settings group "Telepon" remains a broader user-selected bundle; action-level voice requests use the narrower answer-call group.
