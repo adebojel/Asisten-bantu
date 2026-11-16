@@ -197,7 +197,7 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
         OfflineTilePyramidRegionDefinition definition = new OfflineTilePyramidRegionDefinition(
                 STYLE_URL, bounds, 12.0, 16.0,
                 getResources().getDisplayMetrics().density);
-        byte[] metadata = ("{\\"name\\":\\"Kobra pedestrian area\\",\\"created\\":"
+        byte[] metadata = ("{\"name\":\"Kobra pedestrian area\",\"created\":"
                 + System.currentTimeMillis() + "}").getBytes(StandardCharsets.UTF_8);
         OfflineManager.getInstance(this).createOfflineRegion(
                 definition, metadata, new OfflineManager.CreateOfflineRegionCallback() {
