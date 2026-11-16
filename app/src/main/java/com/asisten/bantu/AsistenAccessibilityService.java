@@ -101,6 +101,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private SpeechRecognizer recognizer;
     private Intent recognizerIntent;
     private boolean listening = false;
+    private volatile boolean serviceActive = false;
     private boolean recognizerUsesOnDevice = false;
     private boolean preferSystemRecognizer = false;
     private boolean micOn = true;
@@ -276,6 +277,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     @Override protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        serviceActive = true;
         isRunning = true;
         main = new Handler(Looper.getMainLooper());
         config = new KobraConfig(this);
@@ -357,13 +359,34 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     @Override public boolean onUnbind(Intent intent) {
+        // Android may unbind an accessibility service before onDestroy is delivered.
+        // Stop audio and UI owners here so the microphone cannot outlive the service.
+        serviceActive = false;
         isRunning = false;
+        micOn = false;
+        stopMic();
+        destroyRecognizer();
+        if (main != null) {
+            main.removeCallbacksAndMessages(null);
+        }
+        if (speaker != null) {
+            speaker.removeListener(speechListener);
+        }
+        if (voiceAccessEngine != null) {
+            voiceAccessEngine.onDestroy();
+            voiceAccessEngine = null;
+        }
+        if (floatingOrbManager != null) {
+            floatingOrbManager.destroy();
+            floatingOrbManager = null;
+        }
         if (instance == this) instance = null;
         UnifiedAccessibilityEngine.onServiceDestroyed();
         return super.onUnbind(intent);
     }
 
     @Override public void onDestroy() {
+        serviceActive = false;
         isRunning = false;
         instance = null;
         UnifiedAccessibilityEngine.onServiceDestroyed();
@@ -493,8 +516,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
     };
 
     private void startListening() {
+        if (!serviceActive || main == null) return;
         main.post(() -> {
-            if (!micOn || listening || pocketLocked || (config != null && config.isPrivacyMode())
+            if (!serviceActive || !micOn || listening || pocketLocked || (config != null && config.isPrivacyMode())
                     || speaker == null || (speaker.isSpeaking() && (config == null || !config.isBargeInEnabled()))) return;
             if (!Perms.has(this, Manifest.permission.RECORD_AUDIO)) {
                 updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
@@ -525,7 +549,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void startListeningForBargeIn() {
-        if (config == null || !config.isBargeInEnabled() || !micOn || listening
+        if (!serviceActive || config == null || !config.isBargeInEnabled() || !micOn || listening
                 || pocketLocked || config.isPrivacyMode()
                 || !Perms.has(this, Manifest.permission.RECORD_AUDIO)
                 || !SpeechRecognizer.isRecognitionAvailable(this)) return;
@@ -613,6 +637,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         @Override public void onEvent(int eventType, Bundle params) { }
 
         @Override public void onError(int error) {
+            if (!serviceActive) return;
             listening = false;
             // Android can report on-device recognition as available even when the
             // Indonesian language pack is absent. Fall back once to the system
@@ -654,6 +679,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         @Override public void onResults(Bundle results) {
+            if (!serviceActive) return;
             listening = false;
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
             ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
