@@ -135,3 +135,12 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Added contact and microphone deep links from the accessibility voice service to the exact permission group picker. No pending call or message is auto-executed after permission grant.
 - Split phone permission groups further: CALL_PHONE, ANSWER_PHONE_CALLS, and READ_PHONE_STATE are separate groups; answer/end voice actions request only ANSWER_PHONE_CALLS. Unit tests cover each mapping.
 - Latest code/test commits: `5a7a2c6a885bf68446d033d45099e43e10ec4c96`; docs checkpoint follows. The most recent completed success is earlier than these code changes; await CI for this segment.
+
+
+## Voice SMS-read permission recovery — 16 November 2026
+
+- The voice-command entry point for `baca SMS`, `baca pesan singkat`, and `SMS terbaru` now checks `READ_SMS` before invoking `MessageReader.latestSms()`.
+- If missing, it opens `SettingsActivity` with `GROUP_SMS_READ`; the scoped explanation and Android runtime prompt are shown before any inbox query.
+- Granting permission does not resume the read automatically. The user repeats the voice command, preventing unexpected disclosure immediately after a permission prompt.
+- Without `READ_CONTACTS`, sender names remain unresolved and the reader reports the sender number.
+- This is a source-level change only; await CI for the new head. Device behavior remains unverified and device testing stays deferred.
