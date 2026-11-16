@@ -124,3 +124,10 @@ This is a least-privilege improvement to the Settings permission workflow. It is
 - If permission is missing, KOBRA opens the scoped `GROUP_ACTIVITY` prompt and stops the command. The user repeats the request after granting; no step sensor is registered before permission.
 - Added a unit test for the activity-recognition group mapping (Android 10+ only).
 - Accelerometer-based fall/pocket sensing remains separate; this permission gate applies to the step-counter/step-detector sensors.
+
+## Just-in-time local-audio permission — 16 November 2026
+
+- Voice commands to play local music now check the Android-version-specific audio-read permission before querying `MediaStore`.
+- Missing permission opens only `GROUP_MEDIA`; playback does not start until the user grants permission and repeats the command.
+- Android 13+ uses `READ_MEDIA_AUDIO`; earlier supported versions use `READ_EXTERNAL_STORAGE` as already mapped by `Perms.forGroup(GROUP_MEDIA)`.
+- This protects the voice entry point. Document-picker access remains separately mediated by Android's Storage Access Framework and does not require broad media-library access.
