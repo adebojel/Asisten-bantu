@@ -277,3 +277,11 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Added tests for exact package matching and fail-closed behavior for blank/mismatched package names.
 - Macro package-boundary source/test commits: `d9c23fb8f0cacc3891f1a64b47b1e8db2349948b`, `830a308409bd4b9ed84490be8e3e8ae1f0180a0b`. Recovery dismissal hardening is included in the current branch head.
 - CI must complete successfully on the latest PR head before these changes are considered build-verified. No physical-device validation has been performed.
+
+
+## Calendar permission entry-point recovery — 16 November 2026
+
+- The voice command for today's Android calendar agenda now checks `READ_CALENDAR` before querying CalendarContract.
+- If access is missing, KOBRA opens only the calendar permission group; no calendar query occurs until Android grants access and the user repeats the command.
+- The local KOBRA reminder agenda remains available independently of Android calendar permission.
+- CI must pass on the latest branch head; no device validation has been performed.
