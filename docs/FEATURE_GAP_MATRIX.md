@@ -117,3 +117,10 @@ This is a least-privilege improvement to the Settings permission workflow. It is
 - After granting, the user repeats the voice command. No SMS is read automatically as a side effect of granting permission.
 - `READ_CONTACTS` remains optional for resolving a sender's name; without it, the SMS reader uses the sender's number.
 - This covers the audited voice entry point. Any future SMS-reading UI or background task must independently enforce the same permission check.
+
+## Just-in-time activity-recognition permission — 16 November 2026
+
+- Voice requests for the step count now check `ACTIVITY_RECOGNITION` on Android 10+ before reading or registering the hardware step sensor.
+- If permission is missing, KOBRA opens the scoped `GROUP_ACTIVITY` prompt and stops the command. The user repeats the request after granting; no step sensor is registered before permission.
+- Added a unit test for the activity-recognition group mapping (Android 10+ only).
+- Accelerometer-based fall/pocket sensing remains separate; this permission gate applies to the step-counter/step-detector sensors.
