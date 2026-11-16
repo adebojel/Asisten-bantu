@@ -583,9 +583,21 @@ object CommandRouter {
                     }
 
                     val beforeFingerprint = snapshot.fingerprint
-                    val accepted = executeAgentStep(service, parsed)
+                    // Serialize the final cancellation check with the UI action. A stop
+                    // request can no longer slip between the check and action dispatch.
+                    val accepted = synchronized(screenAgentLock) {
+                        if (screenAgentCancelRequested.get() || !screenAgentRunning.get()) {
+                            false
+                        } else {
+                            executeAgentStep(service, parsed)
+                        }
+                    }
                     if (!accepted) {
-                        finalMessage = "Saya menolak langkah yang tidak aman, ambigu, atau tidak didukung oleh kontrol aksesibilitas."
+                        finalMessage = if (screenAgentCancelRequested.get()) {
+                            "Agen layar dihentikan sesuai permintaan."
+                        } else {
+                            "Saya menolak langkah yang tidak aman, ambigu, atau tidak didukung oleh kontrol aksesibilitas."
+                        }
                         break
                     }
 
