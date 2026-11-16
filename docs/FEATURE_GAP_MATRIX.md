@@ -102,3 +102,10 @@ This is a least-privilege improvement to the Settings permission workflow. It is
 - SMS recipient lookup still requests contacts only when the target is a contact name; sending SMS requires only SEND_SMS.
 - The user must still confirm the app's explanation dialog and Android's system permission prompt. A permission grant does not automatically execute the pending call/SMS action; the user must repeat the command. This is intentional for safety.
 - The existing Settings group "Telepon" remains a broader user-selected bundle; action-level voice requests use the narrower answer-call group.
+
+
+## Narrowed communication permission groups — 16 November 2026
+
+- Split phone permissions into three independent user-selectable groups: place a call (`CALL_PHONE`), answer/end a call (`ANSWER_PHONE_CALLS`), and read phone state (`READ_PHONE_STATE`).
+- Voice answer/end actions request only `ANSWER_PHONE_CALLS`. Dialing through the app's call action can continue to fall back to the system dialer without CALL_PHONE.
+- Unit tests assert each group contains only its own permission.
