@@ -130,3 +130,8 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Added microphone permission deep link from the accessibility service, plus contact-permission deep links for voice-driven contact lookup/message recipient resolution. The app still does not auto-send a message or place a call after permission grant; the user repeats the command.
 - Contact access is requested only when a user asks to resolve a contact name; numeric phone targets do not need READ_CONTACTS.
 - Latest code commit: `5ff742a5a0cc5a2aa99fe97d255265520a99e161`. CI for this and subsequent commits must pass before merge.
+
+
+- Added contact and microphone deep links from the accessibility voice service to the exact permission group picker. No pending call or message is auto-executed after permission grant.
+- Split phone permission groups further: CALL_PHONE, ANSWER_PHONE_CALLS, and READ_PHONE_STATE are separate groups; answer/end voice actions request only ANSWER_PHONE_CALLS. Unit tests cover each mapping.
+- Latest code/test commits: `5a7a2c6a885bf68446d033d45099e43e10ec4c96`; docs checkpoint follows. The most recent completed success is earlier than these code changes; await CI for this segment.
