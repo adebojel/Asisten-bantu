@@ -53,6 +53,7 @@ public class NavigationActivity extends AppCompatActivity {
     private final ExecutorService analyzerExec = Executors.newSingleThreadExecutor();
     private volatile boolean navigating = false;
     private volatile boolean processing = false;
+    private volatile int frameGeneration = 0;
     private long lastSpeakAt = 0L;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -158,6 +159,7 @@ public class NavigationActivity extends AppCompatActivity {
 
     @Override protected void onDestroy() {
         navigating = false;
+        frameGeneration++;
         processing = false;
         if (analysisUseCase != null) {
             try { analysisUseCase.clearAnalyzer(); } catch (Exception ignored) {}
@@ -227,21 +229,22 @@ public class NavigationActivity extends AppCompatActivity {
             return;
         }
         processing = true;
+        final int generation = frameGeneration;
         try {
             int rot = proxy.getImageInfo().getRotationDegrees();
             InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
             detector.process(img, (items, usedFallback) -> {
                 try {
-                    if (!isFinishing() && !isDestroyed() && navigating) onLabels(items);
+                    if (generation == frameGeneration && !isFinishing() && !isDestroyed() && navigating) onLabels(items);
                 } catch (RuntimeException ignored) {
                     // A UI/render failure must never retain the camera frame.
                 } finally {
-                    processing = false;
+                    if (generation == frameGeneration) processing = false;
                     try { proxy.close(); } catch (Exception ignored) {}
                 }
             });
         } catch (RuntimeException error) {
-            processing = false;
+            if (generation == frameGeneration) processing = false;
             try { proxy.close(); } catch (Exception ignored) {}
         }
     }
@@ -277,6 +280,7 @@ public class NavigationActivity extends AppCompatActivity {
 
     public void startNavigation() {
         if (isFinishing() || isDestroyed() || detector == null) return;
+        frameGeneration++;
         navigating = true;
         if (analysisUseCase != null) {
             try { analysisUseCase.setAnalyzer(analyzerExec, this::analyzeFrame); } catch (Exception ignored) {}
