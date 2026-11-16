@@ -87,12 +87,10 @@ public class Speaker implements TextToSpeech.OnInitListener {
     public void onInit(int status) {
         if (status != TextToSpeech.SUCCESS) return;
         if (tts == null) return;
-        ready = true;
         int r = tts.setLanguage(new Locale("id", "ID"));
         if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
             tts.setLanguage(Locale.getDefault());
         }
-        applyVoiceSettings();
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
@@ -124,11 +122,13 @@ public class Speaker implements TextToSpeech.OnInitListener {
         String immediate;
         List<String> queued;
         synchronized (this) {
+            ready = true;
             immediate = pendingImmediateText;
             pendingImmediateText = null;
             queued = new ArrayList<>(pendingQueuedTexts);
             pendingQueuedTexts.clear();
         }
+        applyVoiceSettings();
         if (immediate != null && !immediate.trim().isEmpty()) {
             speak(immediate);
         }
@@ -187,21 +187,23 @@ public class Speaker implements TextToSpeech.OnInitListener {
 
     public void speak(String teks) {
         if (teks == null || teks.trim().isEmpty()) return;
-        if (!ready || tts == null) {
-            synchronized (this) {
+        TextToSpeech engine;
+        synchronized (this) {
+            engine = ready ? tts : null;
+            if (engine == null) {
                 // QUEUE_FLUSH semantics: replace any speech waiting for engine startup.
                 pendingImmediateText = teks;
                 pendingQueuedTexts.clear();
+                return;
             }
-            return;
         }
-        // Tandai sedang bicara sejak pemanggilan untuk mencegah loop mikrofon
+        // Tandai sedang bicara sejak pemanggilan untuk mencegah loop mikrofon.
         String utteranceId = "kobra_" + utteranceSequence.incrementAndGet();
         activeUtteranceId = utteranceId;
         notifySpeechStart();
         try {
-            tts.stop();
-            int result = tts.speak(teks, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
+            engine.stop();
+            int result = engine.speak(teks, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
             if (result == TextToSpeech.ERROR) finishUtterance(utteranceId);
         } catch (Exception e) {
             finishUtterance(utteranceId);
@@ -210,18 +212,18 @@ public class Speaker implements TextToSpeech.OnInitListener {
 
     public void speakQueued(String teks) {
         if (teks == null || teks.trim().isEmpty()) return;
-        if (!ready || tts == null) {
-            synchronized (this) {
+        TextToSpeech engine;
+        synchronized (this) {
+            engine = ready ? tts : null;
+            if (engine == null) {
                 pendingQueuedTexts.add(teks);
+                return;
             }
-            return;
         }
-        if (tts != null) {
-            try {
-                String utteranceId = "kobra_q_" + utteranceSequence.incrementAndGet();
-                tts.speak(teks, TextToSpeech.QUEUE_ADD, null, utteranceId);
-            } catch (Exception ignored) {}
-        }
+        try {
+            String utteranceId = "kobra_q_" + utteranceSequence.incrementAndGet();
+            engine.speak(teks, TextToSpeech.QUEUE_ADD, null, utteranceId);
+        } catch (Exception ignored) {}
     }
 
     public void stop() {
