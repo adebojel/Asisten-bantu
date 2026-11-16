@@ -80,13 +80,15 @@ public final class PedestrianRouteProgress {
                 consecutiveOffRouteFixes = 0;
                 return false;
             }
+            // Do not accumulate off-route fixes while the cooldown is active.
+            // Require a fresh three-fix sequence after the cooldown expires.
+            if (lastRerouteAtMs >= 0L && nowMs - lastRerouteAtMs < REROUTE_COOLDOWN_MS) {
+                consecutiveOffRouteFixes = 0;
+                return false;
+            }
             consecutiveOffRouteFixes = Math.min(
                     REQUIRED_OFF_ROUTE_FIXES, consecutiveOffRouteFixes + 1);
             if (consecutiveOffRouteFixes < REQUIRED_OFF_ROUTE_FIXES) return false;
-            if (lastRerouteAtMs >= 0L && nowMs - lastRerouteAtMs < REROUTE_COOLDOWN_MS) {
-                consecutiveOffRouteFixes = REQUIRED_OFF_ROUTE_FIXES - 1;
-                return false;
-            }
             lastRerouteAtMs = nowMs;
             consecutiveOffRouteFixes = 0;
             return true;
