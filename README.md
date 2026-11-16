@@ -41,6 +41,10 @@ Artwork 3D di bagian atas adalah ilustrasi identitas produk. Screenshot aplikasi
 - Dialog dan menu lebih ringkas, mudah dibaca, serta tetap nyaman disentuh.
 - Kontras teks dan label tombol harus tetap tinggi. Minimalis tidak boleh mengurangi aksesibilitas.
 
+## Integritas model dan build
+
+Model Qwen3 LiteRT-LM yang dibundel di APK diambil dari revisi Hugging Face yang dipatok (bukan cabang `main` yang dapat berubah). Proses Gradle memvalidasi ukuran file tepat 347.251.840 byte dan SHA-256 `2df6821ec12702dafd33915e7a1a1adc7c4b053f3672fd9555dfaf3a114c4139` untuk cache maupun unduhan baru. Unduhan yang tidak cocok ditolak sebelum dimasukkan ke APK. Model berlisensi Apache-2.0; lihat [model card upstream](https://huggingface.co/litert-community/Qwen3-0.6B-int4).
+
 ## Kemampuan utama
 
 | Modul | Fungsi |

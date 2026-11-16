@@ -118,28 +118,45 @@ dependencies {
 }
 
 
-// Qwen3 is downloaded once into the Gradle build cache and packaged as an APK asset.
-// The binary is intentionally not committed to Git; release builds remain reproducible
-// against the pinned Hugging Face artifact URL and validate its expected size.
+// Qwen3 is intentionally kept out of Git and fetched from an immutable upstream revision.
+// The build verifies exact byte length and SHA-256 for both cached and freshly downloaded files.
 val qwenModelFileName = "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
+val qwenModelExpectedSize = 347_251_840L
+val qwenModelExpectedSha256 = "2df6821ec12702dafd33915e7a1a1adc7c4b053f3672fd9555dfaf3a114c4139"
+val qwenModelRevision = "6aa2daf8aba4aa456797fb8040b36a3948bcfda7"
 val qwenAssetDirectory = layout.buildDirectory.dir("generated/qwenModelAssets")
+
+fun qwenSha256(file: File): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    file.inputStream().buffered().use { input ->
+        val buffer = ByteArray(1024 * 1024)
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            digest.update(buffer, 0, count)
+        }
+    }
+    return digest.digest().joinToString("") { byte -> "%02x".format(byte.toInt() and 0xff) }
+}
+
 val downloadQwenModel by tasks.registering {
     val outputFile = qwenAssetDirectory.map { it.file(qwenModelFileName) }
     outputs.file(outputFile)
     doLast {
         val target = outputFile.get().asFile
         target.parentFile.mkdirs()
-        if (target.isFile && target.length() in (250L * 1024L * 1024L)..(450L * 1024L * 1024L)) {
-            logger.lifecycle("Qwen3 model already cached: ${target.length()} bytes")
+        if (target.isFile && target.length() == qwenModelExpectedSize
+            && qwenSha256(target).equals(qwenModelExpectedSha256, ignoreCase = true)) {
+            logger.lifecycle("Qwen3 model cache verified: ${target.length()} bytes, SHA-256 OK")
         } else {
             val temporary = File(target.parentFile, target.name + ".download")
             temporary.delete()
             val modelUrl = System.getenv("KOBRA_QWEN_MODEL_URL")?.takeIf { it.isNotBlank() }
-                ?: "https://huggingface.co/litert-community/Qwen3-0.6B-int4/resolve/main/qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm?download=true"
+                ?: "https://huggingface.co/litert-community/Qwen3-0.6B-int4/resolve/${qwenModelRevision}/${qwenModelFileName}?download=true"
             var lastError: Exception? = null
             for (attempt in 1..3) {
                 try {
-                    logger.lifecycle("Downloading bundled Qwen3 model (attempt $attempt/3)")
+                    logger.lifecycle("Downloading pinned Qwen3 model (attempt $attempt/3)")
                     val parsedModelUrl = URL(modelUrl)
                     require(parsedModelUrl.protocol.equals("https", ignoreCase = true)) {
                         "Qwen model URL must use HTTPS; refusing insecure download"
@@ -163,12 +180,17 @@ val downloadQwenModel by tasks.registering {
                         }
                     }
                     val size = temporary.length()
-                    require(size in (250L * 1024L * 1024L)..(450L * 1024L * 1024L)) {
-                        "Downloaded Qwen3 model has unexpected size: $size bytes"
+                    require(size == qwenModelExpectedSize) {
+                        "Downloaded Qwen3 model size mismatch: expected $qwenModelExpectedSize, got $size bytes"
                     }
-                    if (target.exists()) target.delete()
-                    check(temporary.renameTo(target)) { "Could not move downloaded Qwen3 model into asset directory" }
+                    val actualSha256 = qwenSha256(temporary)
+                    require(actualSha256.equals(qwenModelExpectedSha256, ignoreCase = true)) {
+                        "Downloaded Qwen3 model SHA-256 mismatch: $actualSha256"
+                    }
+                    if (target.exists()) check(target.delete()) { "Could not replace invalid cached Qwen3 model" }
+                    check(temporary.renameTo(target)) { "Could not move verified Qwen3 model into asset directory" }
                     lastError = null
+                    logger.lifecycle("Pinned Qwen3 model verified: $size bytes, SHA-256 OK")
                     break
                 } catch (error: Exception) {
                     lastError = error
@@ -176,7 +198,7 @@ val downloadQwenModel by tasks.registering {
                     if (attempt < 3) Thread.sleep(attempt * 2_000L)
                 }
             }
-            if (lastError != null) throw GradleException("Unable to download bundled Qwen3 model", lastError)
+            if (lastError != null) throw GradleException("Unable to download and verify pinned Qwen3 model", lastError)
         }
     }
 }

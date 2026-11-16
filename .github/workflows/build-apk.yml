@@ -1,7 +1,7 @@
 name: Build Kobra OS APK
 on:
   push:
-    branches: [ "main", "kobra-os-v7" ]
+    branches: [ "kobra-os-v7" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
