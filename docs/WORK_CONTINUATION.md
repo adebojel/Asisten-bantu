@@ -121,3 +121,7 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - SMS contact-name lookup remains a separate READ_CONTACTS request path. SMS send requires SEND_SMS only.
 - No action is auto-executed after permission grant; users must repeat the voice command, avoiding an unexpected call/message after a system prompt.
 - Newest code/test commits in this segment: `106e20dd9a03e83610d71a2003375224bc9a04cd`; docs changes follow. CI must verify the full current head.
+
+
+- Added microphone permission recovery from the accessibility voice service: when microphone permission is missing, KOBRA opens the scoped microphone permission dialog in SettingsActivity once (guarded by the existing one-time warning flag) rather than only telling the user to navigate manually. Voice listening still does not start until Android grants the permission; no command is executed by the permission callback.
+- Latest additional code commit: `5dd893aa84cf8754726413547d462acce70e6cd8`. Await CI for this commit or a later code commit.
