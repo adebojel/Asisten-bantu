@@ -87,7 +87,6 @@ public final class Perms {
             case GROUP_BLUETOOTH:
                 if (Build.VERSION.SDK_INT >= 31) {
                     permissions.add(Manifest.permission.BLUETOOTH_CONNECT);
-                    permissions.add(Manifest.permission.BLUETOOTH_ADVERTISE);
                 }
                 break;
             case GROUP_NOTIFICATIONS:
