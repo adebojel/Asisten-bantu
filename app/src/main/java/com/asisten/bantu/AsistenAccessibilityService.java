@@ -361,17 +361,54 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     @Override public boolean onUnbind(Intent intent) {
         // Android may unbind an accessibility service before onDestroy is delivered.
-        // Stop audio and UI owners here so the microphone cannot outlive the service.
+        // Release every owner here: an unbound service must not retain the microphone,
+        // camera-related audio, sensors, callbacks, receivers, overlays, or local model.
         serviceActive = false;
         isRunning = false;
         micOn = false;
+        cancelFallCountdown(false);
         stopMic();
         destroyRecognizer();
+        UnifiedAccessibilityEngine.stopExternalTts();
+        UnifiedAccessibilityEngine.onServiceDestroyed();
+        if (speaker != null) {
+            speaker.stop();
+            speaker.removeListener(speechListener);
+        }
+        EmergencyBeacon.stopAll(this, torchId);
+        SystemUtilityHelper.stopLocalAudio(this);
+        removeScreenCurtain(false);
+        removePocketGuard();
+        if (tripMonitor != null && tripMonitor.isActive()) {
+            tripMonitor.stop(false);
+        }
         if (main != null) {
             main.removeCallbacksAndMessages(null);
+            for (ActiveTimer timer : activeTimers) {
+                if (timer.task != null) main.removeCallbacks(timer.task);
+            }
         }
-        if (speaker != null) {
-            speaker.removeListener(speechListener);
+        activeTimers.clear();
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(hardwareSensorListener);
+        }
+        NetworkState.unwatch(this, networkCallback);
+        networkCallback = null;
+        if (batteryReceiverRegistered) {
+            try { unregisterReceiver(batteryReceiver); } catch (Exception ignored) { }
+            batteryReceiverRegistered = false;
+        }
+        if (bluetoothReceiverRegistered) {
+            try { unregisterReceiver(bluetoothReceiver); } catch (Exception ignored) { }
+            bluetoothReceiverRegistered = false;
+        }
+        if (phoneStateReceiverRegistered) {
+            try { unregisterReceiver(phoneStateReceiver); } catch (Exception ignored) { }
+            phoneStateReceiverRegistered = false;
+        }
+        if (localLlmEngine != null) {
+            localLlmEngine.close();
+            localLlmEngine = null;
         }
         if (voiceAccessEngine != null) {
             voiceAccessEngine.onDestroy();
@@ -382,7 +419,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
             floatingOrbManager = null;
         }
         if (instance == this) instance = null;
-        UnifiedAccessibilityEngine.onServiceDestroyed();
         return super.onUnbind(intent);
     }
 
