@@ -2,6 +2,7 @@ package com.asisten.bantu;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.VibrationEffect;
@@ -43,7 +44,7 @@ public class NavigationActivity extends AppCompatActivity {
     private PreviewView previewView;
     private SonarRadarView sonarRadarView;
     private TextView tvStatus, tvObstacle, tvGuardianStatusNav;
-    private Button btnStart, btnStop, btnEmergencySos, btnGuardianAck, btnGuardianCheckNow;
+    private Button btnStart, btnStop, btnEmergencySos, btnGuardianAck, btnGuardianCheckNow, btnOfflineMap;
     private SafeObjectDetector detector;
     private ProcessCameraProvider cameraProvider;
     private ImageAnalysis analysisUseCase;
@@ -71,6 +72,9 @@ public class NavigationActivity extends AppCompatActivity {
         btnEmergencySos = findViewById(R.id.btnEmergencySosNav);
         btnGuardianAck = findViewById(R.id.btnGuardianAckNav);
         btnGuardianCheckNow = findViewById(R.id.btnGuardianCheckNowNav);
+        btnOfflineMap = findViewById(R.id.btnOfflinePedestrianMap);
+        btnOfflineMap.setOnClickListener(v ->
+                startActivity(new Intent(this, PedestrianMapActivity.class)));
         ImageButton btnBackRadar = findViewById(R.id.btnBackRadar);
         if (btnBackRadar != null) btnBackRadar.setOnClickListener(v -> finish());
 

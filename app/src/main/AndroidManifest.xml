@@ -96,6 +96,7 @@
         <activity android:name=".VisionActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".MataKeduaActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".NavigationActivity" android:exported="false" android:screenOrientation="portrait" />
+        <activity android:name=".PedestrianMapActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".ChatActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".AiChatActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".SosSetupActivity" android:exported="false" />

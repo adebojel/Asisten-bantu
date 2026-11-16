@@ -116,6 +116,7 @@ dependencies {
     // MediaPipe LLM Inference API (Pengolahan Bahasa Offline On-Device Gemma 3 1B)
     implementation("com.google.mediapipe:tasks-genai:0.10.14")
     implementation("com.google.mediapipe:tasks-vision:0.10.35")
+    implementation("org.maplibre.gl:android-sdk:13.7.1")
 
     // LiteRT-LM 0.16.1: compatible with the project Kotlin 2.2.x compiler; runs external .litertlm models.
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.1")

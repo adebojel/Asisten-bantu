@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#07111D">
+
+    <org.maplibre.android.maps.MapView
+        android:id="@+id/pedestrianMapView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="#DD07111D">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="NAVIGASI JALAN KAKI OFFLINE"
+            android:textColor="#00E5FF"
+            android:textStyle="bold"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/tvPedestrianMapStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="Menyiapkan peta. Sentuh peta untuk memilih tujuan."
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:contentDescription="Status navigasi pedestrian" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="#EE07111D">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnPedestrianLocation"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="5dp"
+                android:text="LOKASI SAYA"
+                android:textAllCaps="false"
+                android:contentDescription="Pusatkan peta ke lokasi saya" />
+
+            <Button
+                android:id="@+id/btnPedestrianDownload"
+                android:layout_width="0dp"
+                android:layout_height="46dp"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:text="UNDUH AREA"
+                android:textAllCaps="false"
+                android:contentDescription="Unduh peta dan data rute untuk penggunaan offline" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnPedestrianRoute"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="5dp"
+                android:text="BUAT RUTE JALAN KAKI"
+                android:textAllCaps="false"
+                android:contentDescription="Buat rute jalan kaki offline ke tujuan yang dipilih" />
+
+            <Button
+                android:id="@+id/btnPedestrianStop"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginStart="5dp"
+                android:text="HENTIKAN"
+                android:textAllCaps="false"
+                android:contentDescription="Hentikan panduan rute" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:text="© OpenStreetMap contributors · OpenFreeMap. Unduh area saat online; batas area peta 3.000 tile / 50 MB. Kondisi lapangan harus tetap diperiksa."
+            android:textColor="#CBD5E1"
+            android:textSize="10sp"
+            android:gravity="center" />
+    </LinearLayout>
+</FrameLayout>

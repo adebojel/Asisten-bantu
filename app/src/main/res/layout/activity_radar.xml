@@ -184,6 +184,19 @@
 
         <!-- Large 3D Emergency SOS Button -->
         <Button
+            android:id="@+id/btnOfflinePedestrianMap"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_glass_button_secondary"
+            android:contentDescription="Buka peta dan navigasi jalan kaki offline"
+            android:text="PETA JALAN KAKI OFFLINE"
+            android:textAllCaps="false"
+            android:textColor="#00E5FF"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <Button
             android:id="@+id/btnEmergencySosNav"
             android:layout_width="match_parent"
             android:layout_height="52dp"

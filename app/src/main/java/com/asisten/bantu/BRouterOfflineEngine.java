@@ -244,10 +244,7 @@ public final class BRouterOfflineEngine {
     private boolean isSegmentCacheValid(File segment) throws IOException {
         if (!segment.isFile() || segment.length() < 1024) return false;
         File digestFile = new File(segment.getParentFile(), segment.getName() + ".sha256");
-        if (!digestFile.isFile()) {
-            writeDigestFile(segment, sha256(segment));
-            return true;
-        }
+        if (!digestFile.isFile()) return false;
         String expected;
         try (FileInputStream input = new FileInputStream(digestFile)) {
             byte[] bytes = new byte[(int) Math.min(256, digestFile.length())];
