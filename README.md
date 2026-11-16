@@ -55,7 +55,8 @@ Pengenalan suara menggunakan Android on-device recognition bila tersedia; jika p
 
 ### Navigasi pedestrian offline
 
-Navigasi peta pedestrian offline berbasis OSM/MapLibre dan mesin routing belum selesai dan belum boleh dianggap tersedia. Layar navigasi saat ini memberi informasi deteksi kamera, bukan petunjuk rute pedestrian. Integrasi data peta, lisensi tile, routing graph offline, dan pengujian rute masih menjadi pekerjaan P4.
+Fondasi routing offline menggunakan BRouter (MIT), profil `trekking`, dan data segmen OSM `.rd5` yang dapat diunduh melalui HTTPS lalu disimpan lokal. Data segmen berasal dari OpenStreetMap (ODbL) dan disertai atribusi. Mesin routing dapat menghasilkan GeoJSON setelah segmen wilayah tersedia. **UI peta MapLibre, pengunduhan tile offline, panduan belokan suara, serta integrasi alur navigasi masih dalam pengerjaan**; fitur P4 belum dinyatakan selesai.
+
 
 ## Kemampuan utama
 

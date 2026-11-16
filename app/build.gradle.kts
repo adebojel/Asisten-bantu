@@ -275,4 +275,14 @@ val downloadObjectDetectorModel by tasks.registering {
 
 android.sourceSets.getByName("main").assets.srcDir(qwenAssetDirectory.get().asFile)
 android.sourceSets.getByName("main").assets.srcDir(objectDetectorAssetDirectory.get().asFile)
+android.sourceSets.getByName("main").java.srcDirs(
+    rootProject.file("third_party/brouter/brouter-core/src/main/java"),
+    rootProject.file("third_party/brouter/brouter-mapaccess/src/main/java"),
+    rootProject.file("third_party/brouter/brouter-expressions/src/main/java"),
+    rootProject.file("third_party/brouter/brouter-codec/src/main/java"),
+    rootProject.file("third_party/brouter/brouter-util/src/main/java")
+)
+android.sourceSets.getByName("main").assets.srcDir(
+    rootProject.file("third_party/brouter/misc/profiles2")
+)
 tasks.named("preBuild").configure { dependsOn(downloadQwenModel, downloadObjectDetectorModel) }
