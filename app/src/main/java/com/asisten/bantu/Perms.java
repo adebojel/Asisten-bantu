@@ -32,6 +32,7 @@ public final class Perms {
     public static final int GROUP_NEARBY_WIFI = 12;
     public static final int GROUP_SMS_READ = 13;
     public static final int GROUP_ANSWER_CALLS = 14;
+    public static final int GROUP_PHONE_STATE = 15;
 
     public static String[] groupLabels() {
         return new String[] {
@@ -39,7 +40,7 @@ public final class Perms {
             "Kamera — pembaca objek dan teks",
             "Lokasi — navigasi dan posisi",
             "Kontak — mencari nomor kontak",
-            "Telepon — melakukan/menjawab panggilan",
+            "Telepon — melakukan panggilan",
             "SMS — mengirim pesan",
             "Riwayat panggilan — membaca log telepon",
             "Kalender — membaca agenda",
@@ -49,7 +50,8 @@ public final class Perms {
             "Audio — memilih berkas suara",
             "Wi-Fi sekitar — pemindaian perangkat/jaringan",
             "Baca SMS — mengakses pesan masuk",
-            "Angkat atau akhiri panggilan — kontrol panggilan masuk"
+            "Angkat atau akhiri panggilan — kontrol panggilan masuk",
+            "Status telepon — membaca status jaringan dan perangkat telepon"
         };
     }
 
@@ -72,8 +74,6 @@ public final class Perms {
                 break;
             case GROUP_CALLS:
                 permissions.add(Manifest.permission.CALL_PHONE);
-                permissions.add(Manifest.permission.ANSWER_PHONE_CALLS);
-                permissions.add(Manifest.permission.READ_PHONE_STATE);
                 break;
             case GROUP_SMS:
                 permissions.add(Manifest.permission.SEND_SMS);
@@ -117,6 +117,9 @@ public final class Perms {
                 break;
             case GROUP_ANSWER_CALLS:
                 permissions.add(Manifest.permission.ANSWER_PHONE_CALLS);
+                break;
+            case GROUP_PHONE_STATE:
+                permissions.add(Manifest.permission.READ_PHONE_STATE);
                 break;
             default:
                 return new String[0];
