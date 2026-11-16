@@ -101,3 +101,13 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Corrected `PermsTest.java` to use the existing JUnit dependency only, static assertion imports, and no Robolectric runner. Tests cover only permission constants, group labels, and pure mapping behavior, so they do not need an Android runtime.
 - Latest code commit: `dc1ad0b6aeca29b51a616fc57cf5ba53959492e2`.
 - No completed CI run for this latest code commit was visible at the time of this checkpoint. Do not claim the permission-group change is build-verified until a workflow run for this commit or a later commit succeeds.
+
+
+## Follow-on permission implementation — 16 November 2026
+
+- Confirmed workflow run [43742950118](https://github.com/adebojel/Asisten-bantu/actions/runs/43742950118) succeeded for commit `3d7c66070be155f9edae2c317842c34cfd385cba`: Gradle build, debug APK, and artifact upload all succeeded.
+- Audited runtime permission callers. VisionActivity already requests camera only when camera feature opens. Accessibility voice engine checks RECORD_AUDIO and stops when unavailable. CompassLocationHelper previously only returned an error if location was missing.
+- Added just-in-time location permission checks to the three CompassActivity actions: current location, save place, and guide to saved place. They request only `Perms.GROUP_LOCATION` and do not access location until user grants it and taps the action again. Denial leaves the feature stopped.
+- Extended PermsTest to verify the location group contains only fine/coarse location permissions.
+- Added remaining-gap notes: voice-command/background location consumers and other communication features still need entrypoint-level permission UX; Compass currently requires a second tap after grant.
+- Latest commit in this continuation segment before the docs checkpoint: `c473fdf13e801a2235bd94ae92882a154e70ef35`; docs checkpoint follows it. Await CI for the latest branch head before calling this segment build-verified.
