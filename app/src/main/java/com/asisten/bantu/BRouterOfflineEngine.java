@@ -1,6 +1,7 @@
 package com.asisten.bantu;
 
 import android.content.Context;
+import android.os.StatFs;
 import android.content.res.AssetManager;
 import btools.router.FormatJson;
 import btools.router.OsmNodeNamed;
@@ -34,7 +35,9 @@ import java.util.Map;
 public final class BRouterOfflineEngine {
     private static final String SEGMENT_BASE_URL = "https://brouter.de/brouter/segments4/";
     private static final long ROUTE_TIMEOUT_MS = 120_000L;
-    private static final int MAX_SEGMENTS_PER_DOWNLOAD = 9;
+    private static final int MAX_SEGMENTS_PER_DOWNLOAD = 4;
+    private static final long MAX_SEGMENT_BYTES = 150L * 1024L * 1024L;
+    private static final long MAX_TOTAL_SEGMENT_BYTES = 250L * 1024L * 1024L;
 
     private final Context context;
     private final File baseDirectory;
@@ -90,10 +93,17 @@ public final class BRouterOfflineEngine {
             double south, double west, double north, double east) throws IOException {
         ensureDirectories();
         List<String> names = segmentNamesForBounds(south, west, north, east);
+        long cachedBytes = currentSegmentBytes();
         for (String name : names) {
             File target = new File(segmentDirectory, name);
             if (isSegmentCacheValid(target)) continue;
-            downloadSegment(name, target);
+            long previousLength = target.isFile() ? target.length() : 0L;
+            long remainingBudget = MAX_TOTAL_SEGMENT_BYTES - cachedBytes + previousLength;
+            if (remainingBudget <= 0) {
+                throw new IOException("Batas penyimpanan data rute offline 250 MB tercapai");
+            }
+            downloadSegment(name, target, Math.min(MAX_SEGMENT_BYTES, remainingBudget));
+            cachedBytes = cachedBytes - previousLength + target.length();
         }
         return names;
     }
@@ -199,7 +209,7 @@ public final class BRouterOfflineEngine {
         }
     }
 
-    private void downloadSegment(String name, File target) throws IOException {
+    private void downloadSegment(String name, File target, long maxAllowedBytes) throws IOException {
         File temporary = new File(segmentDirectory, name + ".download");
         HttpURLConnection connection = null;
         temporary.delete();
@@ -218,14 +228,25 @@ public final class BRouterOfflineEngine {
                 throw new IOException("Unduhan segmen dialihkan keluar dari HTTPS");
             }
             long expectedLength = connection.getContentLengthLong();
+            long allowedBytes = Math.min(MAX_SEGMENT_BYTES, maxAllowedBytes);
+            if (expectedLength > allowedBytes) {
+                throw new IOException("Segmen " + name + " melebihi batas ukuran per file");
+            }
+            StatFs storage = new StatFs(segmentDirectory.getAbsolutePath());
+            long minimumFreeBytes = (expectedLength > 0 ? expectedLength : 16L * 1024L * 1024L)
+                    + 16L * 1024L * 1024L;
+            if (storage.getAvailableBytes() < minimumFreeBytes) {
+                throw new IOException("Ruang penyimpanan tidak cukup untuk segmen " + name);
+            }
             long written = 0;
             try (InputStream input = connection.getInputStream();
                  FileOutputStream output = new FileOutputStream(temporary)) {
                 byte[] buffer = new byte[256 * 1024];
                 int count;
                 while ((count = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, count);
                     written += count;
+                    if (written > allowedBytes) throw new IOException("Segmen " + name + " melewati batas ukuran");
+                    output.write(buffer, 0, count);
                 }
             }
             if (written < 1024 || (expectedLength > 0 && written != expectedLength)) {
@@ -239,6 +260,13 @@ public final class BRouterOfflineEngine {
             if (connection != null) connection.disconnect();
             temporary.delete();
         }
+    }
+
+    private long currentSegmentBytes() {
+        File[] files = segmentDirectory.listFiles((dir, name) -> name.endsWith(".rd5"));
+        long total = 0L;
+        if (files != null) for (File file : files) total += file.length();
+        return total;
     }
 
     private boolean isSegmentCacheValid(File segment) throws IOException {

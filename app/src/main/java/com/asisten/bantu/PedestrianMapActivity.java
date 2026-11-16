@@ -86,12 +86,13 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
         btnRoute.setOnClickListener(v -> createRoute());
         btnStop.setOnClickListener(v -> stopRoute());
 
-        OfflineManager.getInstance(this).setOfflineMapboxTileCountLimit(MAX_OFFLINE_TILE_COUNT);
+        OfflineManager.getInstance(this).setMaximumAmbientCacheSize(MAX_OFFLINE_RESOURCE_BYTES, null);
 
         mapView.getMapAsync(mapLibreMap -> {
             map = mapLibreMap;
             map.setStyle(new Style.Builder().fromUri(STYLE_URL), style -> {
                 map.addOnMapClickListener(point -> {
+                    if (routeActive) stopRoute();
                     destination = point;
                     if (destinationMarker != null) map.removeMarker(destinationMarker);
                     destinationMarker = map.addMarker(new MarkerOptions()
@@ -165,8 +166,8 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
     }
 
     private void downloadOfflineArea() {
-        if (map == null || !hasLocationPermission()) {
-            tvStatus.setText("Tentukan lokasi dan tunggu peta siap sebelum mengunduh area.");
+        if (map == null || !hasLocationPermission() || currentLocation == null) {
+            tvStatus.setText("Tunggu lokasi GPS tersedia dan peta siap sebelum mengunduh area.");
             return;
         }
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
@@ -196,8 +197,8 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
         OfflineTilePyramidRegionDefinition definition = new OfflineTilePyramidRegionDefinition(
                 STYLE_URL, bounds, 12.0, 16.0,
                 getResources().getDisplayMetrics().density);
-        byte[] metadata = ("Kobra pedestrian area " + System.currentTimeMillis())
-                .getBytes(StandardCharsets.UTF_8);
+        byte[] metadata = ("{\\"name\\":\\"Kobra pedestrian area\\",\\"created\\":"
+                + System.currentTimeMillis() + "}").getBytes(StandardCharsets.UTF_8);
         OfflineManager.getInstance(this).createOfflineRegion(
                 definition, metadata, new OfflineManager.CreateOfflineRegionCallback() {
                     @Override public void onCreate(OfflineRegion region) {
@@ -261,9 +262,14 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
         }
         final Location start = new Location(currentLocation);
         final LatLng end = destination;
-        tvStatus.setText("Menghitung rute jalan kaki offline dari data OSM...");
+        tvStatus.setText("Menyiapkan segmen OSM offline dan menghitung rute...");
         worker.execute(() -> {
             try {
+                router.downloadSegmentsForBounds(
+                        Math.min(start.getLatitude(), end.getLatitude()),
+                        Math.min(start.getLongitude(), end.getLongitude()),
+                        Math.max(start.getLatitude(), end.getLatitude()),
+                        Math.max(start.getLongitude(), end.getLongitude()));
                 String geoJson = router.route(start.getLatitude(), start.getLongitude(),
                         end.getLatitude(), end.getLongitude());
                 RouteData data = parseRoute(geoJson);
@@ -282,9 +288,6 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
                     speaker.speak("Rute jalan kaki offline siap. Jarak sekitar "
                             + data.distanceText + " meter. Estimasi " + data.durationText
                             + " detik. Tetap perhatikan kondisi nyata dan gunakan alat bantu keselamatan.");
-                    if (!routeInstructions.isEmpty()) {
-                        speaker.speak("Arahan berikutnya: " + routeInstructions.get(0).text);
-                    }
                 });
             } catch (Exception error) {
                 runOnUiThread(() -> {

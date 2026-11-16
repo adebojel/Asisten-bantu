@@ -17,6 +17,10 @@ public class BRouterOfflineEngineTest {
                 BRouterOfflineEngine.segmentNamesForBounds(-7.2, 104.8, -6.0, 106.9));
     }
 
+    @Test public void allowsACompactFourSegmentArea() {
+        assertEquals(4, BRouterOfflineEngine.segmentNamesForBounds(-6.0, 100.0, -1.0, 106.0).size());
+    }
+
     @Test public void rejectsInvalidOrOversizedBounds() {
         assertThrows(IllegalArgumentException.class,
                 () -> BRouterOfflineEngine.segmentNamesForBounds(10, 10, -10, 20));
