@@ -422,8 +422,7 @@ object CommandRouter {
                 // A stored macro is bound to the package where it was recorded.
                 // The first open_app step may start from another app; every other
                 // step must begin on the expected app, and every transition is rechecked.
-                if (step.action != "open_app" ||
-                    idx > 0 && macro.steps.firstOrNull()?.action != "open_app") {
+                if (!(idx == 0 && step.action == "open_app")) {
                     if (!isMacroTargetPackageAllowed(macro.targetPackage, activeWindowPackage(service))) {
                         allOk = false
                         break
