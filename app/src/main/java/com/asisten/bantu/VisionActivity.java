@@ -103,6 +103,7 @@ public class VisionActivity extends AppCompatActivity {
     private String firstOutfitColor = null;
     private String lastCapturedRawText = "";
     private volatile boolean liveProcessing = false;
+    private volatile boolean destroyed = false;
     private long lastLiveSpeakAt = 0L;
     private long lastLiveBeepAt = 0L;
     private String lastLiveText = "";
@@ -251,6 +252,7 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     @Override protected void onDestroy() {
+        destroyed = true;
         disableTorch();
         if (toneGenerator != null) {
             try { toneGenerator.release(); } catch (Exception ignored) {}
@@ -266,7 +268,7 @@ public class VisionActivity extends AppCompatActivity {
         if (singleShotObjectDetector != null) {
             try { singleShotObjectDetector.close(); } catch (Exception ignored) {}
         }
-        cameraExec.shutdown();
+        cameraExec.shutdownNow();
         super.onDestroy();
     }
 
@@ -336,6 +338,7 @@ public class VisionActivity extends AppCompatActivity {
         future.addListener(() -> {
             try {
                 ProcessCameraProvider provider = future.get();
+                if (destroyed || isFinishing()) return;
                 Preview preview = new Preview.Builder().build();
                 preview.setSurfaceProvider(previewView.getSurfaceProvider());
                 imageCapture = new ImageCapture.Builder()
@@ -366,7 +369,7 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private void analyzeLiveFrame(ImageProxy proxy) {
-        if (busy || liveProcessing || proxy.getImage() == null) {
+        if (destroyed || isFinishing() || busy || liveProcessing || proxy.getImage() == null) {
             proxy.close();
             return;
         }
@@ -494,6 +497,11 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private void analyzeLiveObjectsThenClose(InputImage image, ImageProxy proxy) {
+        if (destroyed || isFinishing()) {
+            liveProcessing = false;
+            try { proxy.close(); } catch (Exception ignored) {}
+            return;
+        }
         if (streamObjectDetector == null) {
             streamObjectDetector = new SafeObjectDetector(true);
         }
@@ -571,9 +579,23 @@ public class VisionActivity extends AppCompatActivity {
         tvStatus.setText("Memotret...");
         imageCapture.takePicture(cameraExec, new ImageCapture.OnImageCapturedCallback() {
             @Override public void onCaptureSuccess(@NonNull ImageProxy image) {
-                Bitmap bmp = toBitmap(image);
-                image.close();
-                runOnUiThread(() -> analyze(bmp));
+                Bitmap bmp;
+                try {
+                    bmp = toBitmap(image);
+                } finally {
+                    try { image.close(); } catch (Exception ignored) {}
+                }
+                if (destroyed || isFinishing()) {
+                    if (bmp != null && !bmp.isRecycled()) bmp.recycle();
+                    return;
+                }
+                runOnUiThread(() -> {
+                    if (destroyed || isFinishing()) {
+                        if (bmp != null && !bmp.isRecycled()) bmp.recycle();
+                        return;
+                    }
+                    analyze(bmp);
+                });
             }
             @Override public void onError(@NonNull ImageCaptureException e) {
                 runOnUiThread(() -> {
