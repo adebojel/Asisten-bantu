@@ -83,3 +83,12 @@ The broad permission request from the Settings permission button has been replac
 - `PermsTest` covers the baseline, separate SMS grants, picker/group count, and invalid group IDs.
 
 This is a least-privilege improvement to the Settings permission workflow. It is not yet a complete just-in-time runtime permission system: individual feature entry points still need to request their own group when a permission is missing. Keep this gap visible until all feature flows are wired and tested.
+
+
+## Just-in-time location permission — 16 November 2026
+
+- `CompassActivity` now checks fine/coarse location permission when the user selects "Where am I", "Save place", or "Guide to saved place".
+- If missing, it requests only `Perms.GROUP_LOCATION`; no location is fetched until permission is granted and the user repeats the action.
+- Denial is announced and the feature remains stopped. The UI does not silently proceed or use a guessed location.
+- Remaining limitation: after granting permission the user must tap the feature again. A pending-action resume can be added later if lifecycle and duplicate-action behavior are tested.
+- This change is scoped to the compass location screen. Other consumers (voice-command location, background trip monitor, etc.) still need their own just-in-time permission UX and denial tests.
