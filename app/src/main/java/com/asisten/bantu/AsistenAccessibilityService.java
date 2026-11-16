@@ -243,7 +243,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 "tampilkan nomor", "munculkan nomor", "lihat nomor", "sembunyikan nomor",
                 "klik posisi", "ketuk posisi", "klik area", "ketuk area", "zoom", "perbesar", "dekati");
         if (!deviceCommand) return false;
-        service.main.post(() -> service.route(command));
+        Handler handler = service.main;
+        if (!service.serviceActive || handler == null) return false;
+        handler.post(() -> {
+            if (service.serviceActive && instance == service) service.route(command);
+        });
         return true;
     }
 
@@ -338,6 +342,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (!serviceActive) return;
         UnifiedAccessibilityEngine.onAccessibilityEvent(this, event);
         if (voiceAccessEngine != null && event != null) {
             voiceAccessEngine.onAccessibilityEvent(event);
@@ -346,7 +351,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 voiceAccessEngine.refreshOverlaysIfActive();
                 if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && main != null) {
                     main.postDelayed(() -> {
-                        if (voiceAccessEngine != null) voiceAccessEngine.refreshFocusOutline();
+                        if (serviceActive && voiceAccessEngine != null) voiceAccessEngine.refreshFocusOutline();
                     }, 180L);
                 }
             }
@@ -354,6 +359,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     @Override public boolean onGesture(AccessibilityGestureEvent gestureEvent) {
+        if (!serviceActive) return false;
         if (UnifiedAccessibilityEngine.onGesture(this, gestureEvent)) {
             return true;
         }
@@ -3592,6 +3598,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private final Runnable medicationCheckerTick = new Runnable() {
         @Override public void run() {
+            if (!serviceActive) return;
             if (productivity != null && (config == null || !config.isPrivacyMode())) {
                 ProductivityManager.MedSchedule due = productivity.findDueMedicationNow();
                 if (due != null) {
@@ -3605,7 +3612,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                     }
                 }
             }
-            if (main != null) {
+            if (serviceActive && main != null) {
                 main.postDelayed(this, 60_000L);
             }
         }
@@ -3613,6 +3620,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     private final Runnable hourlyReminderTick = new Runnable() {
         @Override public void run() {
+            if (!serviceActive) return;
             if (config != null && config.isHourlyReminderEnabled()
                     && !config.isPrivacyMode() && !survivalModeActive) {
                 Calendar cal = Calendar.getInstance();
@@ -3629,7 +3637,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                     }
                 }
             }
-            if (main != null) {
+            if (serviceActive && main != null) {
                 main.postDelayed(this, 30_000L);
             }
         }
