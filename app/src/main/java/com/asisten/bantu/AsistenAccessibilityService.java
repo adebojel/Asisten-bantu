@@ -652,7 +652,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private final RecognitionListener recognitionListener = new RecognitionListener() {
-        @Override public void onReadyForSpeech(Bundle params) { updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING); }
+        @Override public void onReadyForSpeech(Bundle params) {
+            if (!serviceActive) return;
+            updateOrbState(FloatingVoiceOrbManager.OrbState.LISTENING);
+        }
         @Override public void onBeginningOfSpeech() { }
         @Override public void onRmsChanged(float rmsdB) { }
         @Override public void onBufferReceived(byte[] buffer) { }
@@ -663,7 +666,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
         }
         @Override public void onPartialResults(Bundle partialResults) {
-            if (speaker == null || !speaker.isSpeaking() || config == null
+            if (!serviceActive || speaker == null || !speaker.isSpeaking() || config == null
                     || !config.isBargeInEnabled() || !micOn || partialResults == null) return;
             ArrayList<String> partial = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (partial == null) return;
@@ -725,7 +728,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
             if (!serviceActive) return;
             listening = false;
             updateOrbState(micOn ? FloatingVoiceOrbManager.OrbState.IDLE : FloatingVoiceOrbManager.OrbState.PAUSED);
-            ArrayList<String> matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+            ArrayList<String> matches = results == null
+                    ? null
+                    : results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
             if (matches != null && !matches.isEmpty()) handleSpoken(matches.get(0));
             Speaker activeSpeaker = speaker;
             if (micOn && activeSpeaker != null && !activeSpeaker.isSpeaking()) {
