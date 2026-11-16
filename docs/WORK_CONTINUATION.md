@@ -202,3 +202,12 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Change commit: `6850f9cff2790c5de0545c6978932dc2ea518d30`. CI for this commit must complete before the change is treated as build-verified.
 - Permission audit remains in progress. In particular, the manifest declares nearby Wi-Fi, Bluetooth advertise, phone state, call history, calendar, exact alarm, overlay, notification listener, battery-optimization exemption, package installation, broad package visibility, and foreground-service special use. Each requires a verified owning feature and Android-version-specific UX; no permission is removed merely to make the manifest shorter.
 - The widget provider is exported for the Android AppWidget broadcast contract and also declares a custom voice action. Its external-broadcast trust boundary needs a dedicated review before changing export behavior; avoid breaking launcher widget updates.
+
+
+## Widget broadcast security fix — 16 November 2026
+
+- Found a trust-boundary issue: the exported `KobraWidgetProvider` accepted the app's custom `ACTION_WIDGET_VOICE` broadcast. Because the receiver must remain exported for Android AppWidget framework delivery, another app could explicitly target that exported component and attempt to trigger voice listening.
+- Removed the custom voice action from the exported receiver's intent filter and removed its custom `onReceive` branch.
+- Widget voice taps now use an immutable explicit `PendingIntent.getActivity()` to `WidgetVoiceActivity`, a new `android:exported="false"` activity. Only the app's own widget PendingIntent can invoke the private trampoline; it preserves the previous behavior (request one voice listen when accessibility service is active, otherwise launch setup/main with `auto_listen=true`).
+- The provider remains exported solely for the Android AppWidget contract. Vision widget action remains an explicit PendingIntent to the non-exported `VisionActivity`.
+- Source changes: `WidgetVoiceActivity.java`, `KobraWidgetProvider.kt`, and `AndroidManifest.xml`. CI must pass before this fix is considered build-verified; widget interaction still requires later device validation.
