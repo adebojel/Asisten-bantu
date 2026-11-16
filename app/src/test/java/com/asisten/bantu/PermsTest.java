@@ -29,6 +29,17 @@ public class PermsTest {
     }
 
     @Test
+    public void locationGroupContainsOnlyLocationPermissions() {
+        assertArrayEquals(
+                new String[] {
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                },
+                Perms.forGroup(Perms.GROUP_LOCATION)
+        );
+    }
+
+    @Test
     public void permissionPickerHasOneLabelPerGroup() {
         assertEquals(Perms.groupLabels().length, Perms.GROUP_SMS_READ + 1);
     }
