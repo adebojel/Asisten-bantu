@@ -60,6 +60,7 @@ import java.util.concurrent.Executors;
  * 5) Keamanan, Daily Briefing, Guardian Check-In, Backup/Restore JSON, OTA & Crash Log
  */
 public class SettingsActivity extends AppCompatActivity {
+    public static final String EXTRA_PERMISSION_GROUP = "permission_group_to_request";
 
     private EditText etGeminiKey, etKey, etModel, etN8n, etNotes, etCustomAssistantName;
     private EditText etThemeBgHex, etThemeCardHex, etThemeAccentHex, etThemeTextHex, etAiThemePrompt;
@@ -116,28 +117,39 @@ public class SettingsActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Pilih izin berdasarkan fitur")
                 .setMessage("KOBRA hanya meminta izin untuk fitur yang Anda pilih. Izin lain tidak diminta bersamaan.")
-                .setItems(Perms.groupLabels(), (dialog, which) -> {
-                    try {
-                        String[] group = Perms.forGroup(which);
-                        java.util.ArrayList<String> missing = new java.util.ArrayList<>();
-                        for (String permission : group) {
-                            if (!Perms.has(this, permission)) missing.add(permission);
-                        }
-                        if (missing.isEmpty()) {
-                            Toast.makeText(this, "Izin fitur ini sudah tersedia atau tidak diperlukan pada versi Android ini.", Toast.LENGTH_LONG).show();
-                            return;
-                        }
-                        ActivityCompat.requestPermissions(
-                                this,
-                                missing.toArray(new String[0]),
-                                100 + which
-                        );
-                    } catch (Throwable t) {
-                        Toast.makeText(this, "Gagal meminta izin: " + t.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                })
+                .setItems(Perms.groupLabels(), (dialog, which) -> requestFeaturePermission(which))
                 .setNegativeButton("Batal", null)
                 .show();
+    }
+
+    private void requestFeaturePermission(int featureGroup) {
+        try {
+            String[] all = Perms.forGroup(featureGroup);
+            if (all.length == 0) {
+                Toast.makeText(this, "Izin tidak diperlukan atau tidak tersedia pada versi Android ini.", Toast.LENGTH_LONG).show();
+                return;
+            }
+            java.util.ArrayList<String> missing = new java.util.ArrayList<>();
+            for (String permission : all) {
+                if (!Perms.has(this, permission)) missing.add(permission);
+            }
+            if (missing.isEmpty()) {
+                Toast.makeText(this, "Izin fitur ini sudah tersedia.", Toast.LENGTH_LONG).show();
+                refreshSystemPermSummary();
+                return;
+            }
+            String label = Perms.groupLabels()[featureGroup];
+            new AlertDialog.Builder(this)
+                    .setTitle("Izin untuk " + label)
+                    .setMessage("KOBRA hanya akan meminta izin yang diperlukan fitur ini.")
+                    .setPositiveButton("Beri izin", (dialog, which) ->
+                            ActivityCompat.requestPermissions(
+                                    this, missing.toArray(new String[0]), 100 + featureGroup))
+                    .setNegativeButton("Batal", null)
+                    .show();
+        } catch (Throwable t) {
+            Toast.makeText(this, "Gagal meminta izin: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -566,6 +578,11 @@ public class SettingsActivity extends AppCompatActivity {
             saveFields();
             finish();
         });
+
+        if (getIntent().hasExtra(EXTRA_PERMISSION_GROUP)) {
+            int requestedGroup = getIntent().getIntExtra(EXTRA_PERMISSION_GROUP, -1);
+            mainHandler.postDelayed(() -> requestFeaturePermission(requestedGroup), 350L);
+        }
     }
 
     private void testOpenRouterFallback() {
