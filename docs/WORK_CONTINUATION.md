@@ -125,3 +125,8 @@ Updated: 2026-11-16 (Asia/Jakarta)
 
 - Added microphone permission recovery from the accessibility voice service: when microphone permission is missing, KOBRA opens the scoped microphone permission dialog in SettingsActivity once (guarded by the existing one-time warning flag) rather than only telling the user to navigate manually. Voice listening still does not start until Android grants the permission; no command is executed by the permission callback.
 - Latest additional code commit: `5dd893aa84cf8754726413547d462acce70e6cd8`. Await CI for this commit or a later code commit.
+
+
+- Added microphone permission deep link from the accessibility service, plus contact-permission deep links for voice-driven contact lookup/message recipient resolution. The app still does not auto-send a message or place a call after permission grant; the user repeats the command.
+- Contact access is requested only when a user asks to resolve a contact name; numeric phone targets do not need READ_CONTACTS.
+- Latest code commit: `5ff742a5a0cc5a2aa99fe97d255265520a99e161`. CI for this and subsequent commits must pass before merge.
