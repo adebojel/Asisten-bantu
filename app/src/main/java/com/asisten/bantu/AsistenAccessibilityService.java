@@ -649,9 +649,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         Handler handler = main;
         if (!serviceActive || handler == null || !micOn) return;
         handler.removeCallbacks(micRetry);
-        handler.postDelayed(() -> {
-            if (serviceActive && micOn) micRetry.run();
-        }, ms);
+        handler.postDelayed(micRetry, ms);
     }
 
     private void createRecognizer() {
