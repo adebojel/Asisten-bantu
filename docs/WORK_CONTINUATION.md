@@ -158,3 +158,26 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Missing access opens only `GROUP_MEDIA`; playback is not resumed after the grant, so the user repeats the command.
 - Android 13+ uses `READ_MEDIA_AUDIO`; older supported versions use `READ_EXTERNAL_STORAGE`. Android document-picker access continues to use the Storage Access Framework separately.
 - Await CI for the latest source and documentation commits; no device test has been performed.
+
+## Open-source research wave and permission work — 16 November 2026
+
+- Latest confirmed CI success before this research wave: `bf0fa0b0581833279f2618e7020a7bc7da2c44bc`, workflow [43801860862](https://github.com/adebojel/Asisten-bantu/actions/runs/43801860862). This run includes the local-audio source change and the earlier SMS/step permission work.
+- Added just-in-time `READ_SMS` gating to the voice SMS reader; no inbox query happens before the permission grant and the user must repeat the command.
+- Added just-in-time `ACTIVITY_RECOGNITION` gating for step-count voice commands on Android 10+; sensor registration is blocked until permission is granted. Added pure permission mapping test.
+- Added just-in-time media permission gating to the local-audio voice command; it checks `READ_MEDIA_AUDIO` on Android 13+ or `READ_EXTERNAL_STORAGE` on earlier versions before querying MediaStore.
+- Expanded `docs/OPEN_SOURCE_REPOSITORY_CATALOG_2026-11.md` with a new research wave: Knotwork, MobileAgent, Atlas Sight, SightBuddy, Sailens, LocalChat, OfflineVoiceAI, CueMate, SENSEA, PhoneClaw and follow-up priorities.
+- Research decision: Knotwork is a strong agent workflow candidate but requires license, Android 14+/RAM and tool-boundary review; Sailens is Apache-2.0 but pre-release/BYO-model/high-end target; Atlas Sight claims MIT but root/model license and Android maturity still need verification; OfflineVoiceAI and several other candidates have unclear licensing and remain reference-only.
+- No third-party runtime dependency or source code from these newly researched repositories has been imported in this wave. Avoid duplicate AccessibilityService, CameraX, microphone and LiteRT-LM owners.
+- Current PR head when this note is authored: `ae17cf7f4e76eb8130cce07768551dcdcc887382`. CI for this head must be checked after the documentation commit; do not assume it passed.
+- PR #16 remains open; do not merge until latest head CI, code review, README/release accuracy, and pre-test gates are complete. Device testing remains deferred until implementation is ready and user authorizes the test phase.
+
+### Next work queue
+
+1. Check CI for `ae17cf7...`; if it fails, inspect job logs and fix before further feature work.
+2. Audit permission entry points for notification access, calendar, Bluetooth, phone state/call history, nearby Wi-Fi and all media access; remove unused manifest declarations or gate them at the actual feature entry point.
+3. Deep-audit Knotwork and MobileAgent source/license/dependencies for reusable isolated workflow and task-verification patterns; preserve KOBRA's single bounded agent and service.
+4. Deep-audit Sailens/Atlas Sight/SightBuddy perception code and model licenses; prioritize one measurable offline vision or navigation improvement rather than adding duplicate pipelines.
+5. Define and benchmark Indonesian offline ASR/TTS adapter with Sherpa-ONNX/Vosk candidates while preserving one microphone owner.
+6. Before approaching device testing, finish memory/lifecycle/error/cancellation audits, regression tests, permissions, privacy docs, and CI.
+7. Only near the test-ready gate: comprehensively refresh README with existing 3D artwork, genuine verified screenshots only, architecture and feature status, privacy/permissions, model sizes/licenses, install instructions, latest APK/release/checksum links. Ensure release assets are actually uploaded before linking.
+8. Merge reviewed work into `main` only after user-requested consolidation stage and all required CI gates pass. Verify main build and release APK assets/checksum. Delete obsolete branches only after confirming all unique work is safely on main; preserve main and any required release branch. Do not claim cleanup before verifying branch list.
