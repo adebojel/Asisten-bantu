@@ -2,6 +2,7 @@ package com.asisten.bantu;
 
 import android.Manifest;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -21,7 +22,6 @@ import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.mlkit.vision.common.InputImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -107,7 +107,7 @@ public class NavigationActivity extends AppCompatActivity {
             return;
         }
 
-        detector = new SafeObjectDetector(true);
+        detector = new SafeObjectDetector(this, true);
 
         btnStart.setOnClickListener(v -> startNavigation());
         btnStop.setOnClickListener(v -> stopNavigation());
@@ -233,8 +233,8 @@ public class NavigationActivity extends AppCompatActivity {
         final int generation = frameGeneration;
         try {
             int rot = proxy.getImageInfo().getRotationDegrees();
-            InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
-            detector.process(img, (items, usedFallback) -> {
+            Bitmap frame = proxy.toBitmap();
+            detector.process(frame, rot, (items, usedFallback) -> {
                 try {
                     if (generation == frameGeneration && !isFinishing() && !isDestroyed() && navigating) onLabels(items);
                 } catch (RuntimeException ignored) {
@@ -258,15 +258,27 @@ public class NavigationActivity extends AppCompatActivity {
             return;
         }
         StringBuilder names = new StringBuilder();
+        boolean hasBoxPosition = false;
         for (int i = 0; i < Math.min(3, items.size()); i++) {
             if (i > 0) names.append(", ");
-            names.append(items.get(i).label);
+            SafeObjectDetector.DetectedItem item = items.get(i);
+            names.append(item.label);
+            String position = item.positionLabel();
+            if (position != null) {
+                names.append(" di sisi ").append(position);
+                hasBoxPosition = true;
+            }
         }
-        tvObstacle.setText("Terdeteksi kemungkinan: " + names + ". Posisi dan jarak tidak tersedia.");
+        String safetyNote = hasBoxPosition
+                ? " Posisi hanya relatif pada bingkai kamera; jarak fisik tidak tersedia."
+                : " Kotak posisi tidak tersedia; arah dan jarak tidak diketahui.";
+        tvObstacle.setText("Terdeteksi kemungkinan: " + names + "." + safetyNote
+                + " Jalur belum dipastikan aman.");
         long now = System.currentTimeMillis();
         if (now - lastSpeakAt > SPEAK_COOLDOWN_MS) {
             lastSpeakAt = now;
-            speaker.speak("Saya mengenali kemungkinan " + names + ". Mode cadangan tidak dapat menentukan posisi atau jarak. Tetap gunakan tongkat atau pendamping.");
+            speaker.speak("Saya mengenali kemungkinan " + names + "." + safetyNote
+                    + " Tetap gunakan tongkat atau pendamping.");
         }
     }
 

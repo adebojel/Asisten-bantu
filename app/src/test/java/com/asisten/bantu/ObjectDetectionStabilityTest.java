@@ -2,6 +2,7 @@ package com.asisten.bantu;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,6 +50,22 @@ public class ObjectDetectionStabilityTest {
         assertTrue(stability.filter(high).isEmpty());
         assertTrue(stability.filter(high).isEmpty());
         assertEquals(1, stability.filter(high).size());
+    }
+
+    @Test
+    public void imagePositionClassifierUsesOnlyHorizontalFrameCoordinates() {
+        assertEquals("kiri", SafeObjectDetector.classifyPosition(0.15f));
+        assertEquals("tengah", SafeObjectDetector.classifyPosition(0.50f));
+        assertEquals("kanan", SafeObjectDetector.classifyPosition(0.85f));
+        assertEquals("tengah", SafeObjectDetector.classifyPosition(0.38f));
+        assertEquals("tengah", SafeObjectDetector.classifyPosition(0.62f));
+    }
+
+    @Test
+    public void imagePositionClassifierRejectsInvalidCoordinates() {
+        assertNull(SafeObjectDetector.classifyPosition(Float.NaN));
+        assertNull(SafeObjectDetector.classifyPosition(-0.1f));
+        assertNull(SafeObjectDetector.classifyPosition(1.1f));
     }
 
     @Test

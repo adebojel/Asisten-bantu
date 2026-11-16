@@ -110,6 +110,7 @@ dependencies {
 
     // MediaPipe LLM Inference API (Pengolahan Bahasa Offline On-Device Gemma 3 1B)
     implementation("com.google.mediapipe:tasks-genai:0.10.14")
+    implementation("com.google.mediapipe:tasks-vision:0.10.35")
 
     // LiteRT-LM 0.16.1: compatible with the project Kotlin 2.2.x compiler; runs external .litertlm models.
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.16.1")
@@ -204,5 +205,69 @@ val downloadQwenModel by tasks.registering {
     }
 }
 
+val objectDetectorModelFileName = "efficientdet_lite0.tflite"
+val objectDetectorExpectedSize = 13_836_895L
+val objectDetectorExpectedSha256 = "40338edf5ec70d43e318b0a716a84d4564cd1802759a7a07170c7e43796dbf58"
+val objectDetectorAssetDirectory = layout.buildDirectory.dir("generated/objectDetectorAssets")
+
+val downloadObjectDetectorModel by tasks.registering {
+    val outputFile = objectDetectorAssetDirectory.map { it.file(objectDetectorModelFileName) }
+    outputs.file(outputFile)
+    doLast {
+        val target = outputFile.get().asFile
+        target.parentFile.mkdirs()
+        if (target.isFile && target.length() == objectDetectorExpectedSize
+            && qwenSha256(target).equals(objectDetectorExpectedSha256, ignoreCase = true)) {
+            logger.lifecycle("EfficientDet-Lite0 cache verified: ${target.length()} bytes, SHA-256 OK")
+        } else {
+            val temporary = File(target.parentFile, target.name + ".download")
+            temporary.delete()
+            val modelUrl = "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite"
+            var lastError: Exception? = null
+            for (attempt in 1..3) {
+                try {
+                    logger.lifecycle("Downloading pinned EfficientDet-Lite0 model (attempt $attempt/3)")
+                    val parsedUrl = URL(modelUrl)
+                    require(parsedUrl.protocol.equals("https", ignoreCase = true)) { "Object detector URL must use HTTPS" }
+                    val connection: URLConnection = parsedUrl.openConnection().apply {
+                        connectTimeout = 30_000
+                        readTimeout = 120_000
+                        setRequestProperty("User-Agent", "KobraOS-Android-Build")
+                    }
+                    connection.getInputStream().use { input ->
+                        require(connection.url.protocol.equals("https", ignoreCase = true)) { "Object detector redirect must remain HTTPS" }
+                        temporary.outputStream().buffered(1024 * 1024).use { output ->
+                            val buffer = ByteArray(256 * 1024)
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                output.write(buffer, 0, count)
+                            }
+                        }
+                    }
+                    require(temporary.length() == objectDetectorExpectedSize) {
+                        "EfficientDet-Lite0 size mismatch: expected $objectDetectorExpectedSize, got ${temporary.length()}"
+                    }
+                    val actualSha256 = qwenSha256(temporary)
+                    require(actualSha256.equals(objectDetectorExpectedSha256, ignoreCase = true)) {
+                        "EfficientDet-Lite0 SHA-256 mismatch: $actualSha256"
+                    }
+                    if (target.exists()) check(target.delete()) { "Could not replace invalid object detector cache" }
+                    check(temporary.renameTo(target)) { "Could not move verified object detector into assets" }
+                    lastError = null
+                    logger.lifecycle("EfficientDet-Lite0 verified: ${target.length()} bytes, SHA-256 OK")
+                    break
+                } catch (error: Exception) {
+                    lastError = error
+                    temporary.delete()
+                    if (attempt < 3) Thread.sleep(attempt * 2_000L)
+                }
+            }
+            if (lastError != null) throw GradleException("Unable to download and verify EfficientDet-Lite0", lastError)
+        }
+    }
+}
+
 android.sourceSets.getByName("main").assets.srcDir(qwenAssetDirectory.get().asFile)
-tasks.named("preBuild").configure { dependsOn(downloadQwenModel) }
+android.sourceSets.getByName("main").assets.srcDir(objectDetectorAssetDirectory.get().asFile)
+tasks.named("preBuild").configure { dependsOn(downloadQwenModel, downloadObjectDetectorModel) }

@@ -1,5 +1,6 @@
 package com.asisten.bantu;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Rect;
@@ -49,9 +50,13 @@ public final class OfflineVision {
         }
     }
 
-    private static SafeObjectDetector getSafeObjectDetector() {
+    private static SafeObjectDetector getSafeObjectDetector(Context context) {
         synchronized (DETECTOR_LOCK) {
-            if (safeObjectDetector == null) safeObjectDetector = new SafeObjectDetector(false);
+            if (safeObjectDetector == null) {
+                safeObjectDetector = context == null
+                        ? new SafeObjectDetector(false)
+                        : new SafeObjectDetector(context.getApplicationContext(), false);
+            }
             return safeObjectDetector;
         }
     }
@@ -193,19 +198,30 @@ public final class OfflineVision {
 
     /** Mengenali kategori benda besar di gambar (offline), dengan fallback Image Labeling. */
     public static void describe(Bitmap bmp, Result cb) {
+        describe(VisionActivity.current, bmp, cb);
+    }
+
+    public static void describe(Context context, Bitmap bmp, Result cb) {
         if (bmp == null) { cb.onResult("Foto tidak bisa dibaca."); return; }
-        SafeObjectDetector detector = getSafeObjectDetector();
+        SafeObjectDetector detector = getSafeObjectDetector(context);
         detector.process(bmp, (items, usedFallback) -> {
             Set<String> names = new LinkedHashSet<>();
+            boolean hasBoxPosition = false;
             for (SafeObjectDetector.DetectedItem item : items) {
-                if (item.label != null && !item.label.trim().isEmpty()) names.add(item.label);
+                if (item.label == null || item.label.trim().isEmpty()) continue;
+                String position = item.positionLabel();
+                names.add(item.label + (position == null ? "" : " di sisi " + position));
+                if (position != null) hasBoxPosition = true;
             }
             if (names.isEmpty()) {
                 cb.onResult("Saya belum mengenali benda di depan kamera. Warna dominan terlihat "
                         + detailedColorName(bmp) + ". Coba arahkan kamera lebih dekat dan pastikan cahaya cukup.");
             } else {
-                String prefix = usedFallback ? "Pengenalan cadangan aktif. " : "";
-                cb.onResult(prefix + "Di depan kamera saya melihat: " + String.join(", ", names) + ".");
+                String prefix = usedFallback ? "Pengenalan cadangan aktif, tanpa kotak posisi. " : "";
+                String note = hasBoxPosition
+                        ? " Posisi hanya relatif pada gambar; jarak fisik tidak dapat dipastikan."
+                        : " Posisi dan jarak fisik tidak tersedia.";
+                cb.onResult(prefix + "Di depan kamera saya melihat: " + String.join(", ", names) + "." + note);
             }
         });
     }

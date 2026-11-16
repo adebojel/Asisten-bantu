@@ -364,7 +364,7 @@ public class VisionActivity extends AppCompatActivity {
                         barcodeScanner = BarcodeScanning.getClient();
                     }
                     if (("find_object".equals(mode) || "live_companion".equals(mode)) && streamObjectDetector == null) {
-                        streamObjectDetector = new SafeObjectDetector(true);
+                        streamObjectDetector = new SafeObjectDetector(this, true);
                     }
                     ImageAnalysis analysis = new ImageAnalysis.Builder()
                             .setTargetResolution(new Size(640, 480))
@@ -443,7 +443,7 @@ public class VisionActivity extends AppCompatActivity {
             int h = (rot == 90 || rot == 270) ? proxy.getWidth() : proxy.getHeight();
             InputImage img = InputImage.fromMediaImage(proxy.getImage(), rot);
             try {
-                streamObjectDetector.process(img, (items, usedFallback) -> {
+                streamObjectDetector.process(proxy.toBitmap(), proxy.getImageInfo().getRotationDegrees(), (items, usedFallback) -> {
                     try {
                         if (!destroyed && !isFinishing()) handleLiveLabels(items);
                     } catch (RuntimeException ignored) {
@@ -550,17 +550,17 @@ public class VisionActivity extends AppCompatActivity {
         return "Panduan posisi tulisan: " + direction + " agar lebih mendekati tengah.";
     }
 
-    private void analyzeLiveObjectsThenClose(InputImage image, ImageProxy proxy) {
-        if (destroyed || isFinishing()) {
+    private void analyzeLiveObjectsThenClose(ImageProxy proxy) {
+        if (destroyed || isFinishing() || proxy == null) {
             liveProcessing = false;
-            try { proxy.close(); } catch (Exception ignored) {}
+            if (proxy != null) try { proxy.close(); } catch (Exception ignored) {}
             return;
         }
         if (streamObjectDetector == null) {
-            streamObjectDetector = new SafeObjectDetector(true);
+            streamObjectDetector = new SafeObjectDetector(this, true);
         }
         try {
-            streamObjectDetector.process(image, (items, usedFallback) -> {
+            streamObjectDetector.process(proxy.toBitmap(), proxy.getImageInfo().getRotationDegrees(), (items, usedFallback) -> {
                 try {
                     if (!destroyed && !isFinishing()) handleLiveLabels(items);
                 } catch (RuntimeException ignored) {
@@ -587,14 +587,23 @@ public class VisionActivity extends AppCompatActivity {
             return;
         }
         StringBuilder text = new StringBuilder("Kemungkinan objek yang terkonfirmasi: ");
+        boolean hasBoxPosition = false;
         for (int i = 0; i < Math.min(3, confirmed.size()); i++) {
             if (i > 0) text.append(", ");
-            text.append(confirmed.get(i).label);
+            SafeObjectDetector.DetectedItem item = confirmed.get(i);
+            text.append(item.label);
+            String position = item.positionLabel();
+            if (position != null) {
+                text.append(" di sisi ").append(position);
+                hasBoxPosition = true;
+            }
         }
-        text.append(". Label dikonfirmasi dari beberapa frame; kamera ini tidak menentukan arah atau jarak.");
+        text.append(hasBoxPosition
+                ? ". Kotak objek terdeteksi; posisi hanya relatif pada gambar, bukan jarak fisik."
+                : ". Label cadangan tidak menyediakan kotak posisi atau jarak.");
         String spoken = text.toString();
         runOnUiThread(() -> {
-            tvStatus.setText("Label objek stabil terkonfirmasi; arah dan jarak tidak tersedia");
+            tvStatus.setText("Label stabil dan kotak objek terdeteksi; jarak fisik tidak tersedia");
             tvResult.setText(spoken);
         });
         long now = System.currentTimeMillis();
@@ -845,16 +854,19 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private void scanAllObjectsAloud(Bitmap bmp) {
-        if (singleShotObjectDetector == null) singleShotObjectDetector = new SafeObjectDetector(false);
+        if (singleShotObjectDetector == null) singleShotObjectDetector = new SafeObjectDetector(this, false);
         tvStatus.setText("Mengenali label objek (tanpa estimasi arah/jarak)...");
         singleShotObjectDetector.process(bmp, (items, usedFallback) -> {
             if (items != null && !items.isEmpty()) {
                 StringBuilder sb = new StringBuilder("Kemungkinan objek: ");
                 for (int i = 0; i < Math.min(5, items.size()); i++) {
                     if (i > 0) sb.append(", ");
-                    sb.append(items.get(i).label);
+                    SafeObjectDetector.DetectedItem item = items.get(i);
+                    sb.append(item.label);
+                    String position = item.positionLabel();
+                    if (position != null) sb.append(" di sisi ").append(position);
                 }
-                sb.append(". Fitur cadangan tidak menentukan posisi atau jarak objek.");
+                sb.append(". Posisi hanya relatif pada gambar; jarak fisik tidak dapat dipastikan.");
                 lastCapturedRawText = sb.toString();
                 done(sb.toString());
             } else if (canUseAi()) {
