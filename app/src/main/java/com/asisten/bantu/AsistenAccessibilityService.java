@@ -1399,7 +1399,17 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
         // Pengendali Media Universal & Pemutar Audio Lokal (#74)
         if (has(c, "putar musik lokal", "putar lagu lokal", "mainkan musik lokal", "putar audio lokal")) {
-            say(SystemUtilityHelper.playLocalAudio(this, speaker));
+            String audioPermission = Build.VERSION.SDK_INT >= 33
+                    ? Manifest.permission.READ_MEDIA_AUDIO
+                    : Manifest.permission.READ_EXTERNAL_STORAGE;
+            if (!Perms.has(this, audioPermission)) {
+                openFeaturePermissionSettings(
+                        Perms.GROUP_MEDIA,
+                        "Izin berkas audio diperlukan untuk mencari dan memutar musik lokal."
+                );
+            } else {
+                say(SystemUtilityHelper.playLocalAudio(this, speaker));
+            }
             return;
         }
         if (has(c, "jeda musik", "pause musik", "jeda lagu", "pause lagu")) {
