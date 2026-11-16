@@ -40,8 +40,16 @@ public class PermsTest {
     }
 
     @Test
+    public void answerCallGroupDoesNotRequestUnrelatedPhonePermissions() {
+        assertArrayEquals(
+                new String[] { Manifest.permission.ANSWER_PHONE_CALLS },
+                Perms.forGroup(Perms.GROUP_ANSWER_CALLS)
+        );
+    }
+
+    @Test
     public void permissionPickerHasOneLabelPerGroup() {
-        assertEquals(Perms.groupLabels().length, Perms.GROUP_SMS_READ + 1);
+        assertEquals(Perms.groupLabels().length, Perms.GROUP_ANSWER_CALLS + 1);
     }
 
     @Test
