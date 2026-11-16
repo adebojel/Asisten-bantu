@@ -231,3 +231,15 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Source inspection found no current call sites for `READ_CALL_LOG`, `READ_CALENDAR`, or `NEARBY_WIFI_DEVICES`; their feature groups are still present as future capability placeholders and must not be described as currently implemented. No automatic request is made for these permissions. Follow-up should either implement the corresponding user-facing feature with a clear opt-in, or remove the placeholder groups and manifest declarations after checking all branches.
 - Wi-Fi diagnostics currently read connectivity/Wi-Fi state; no code path was found that toggles Wi-Fi. Do not claim KOBRA can turn Wi-Fi on/off through the current app code.
 - CI previously passed for camera lifecycle commit `c084c08` (workflow [43806805775](https://github.com/adebojel/Asisten-bantu/actions/runs/43806805775)); the subsequent documentation commit `46c062c` also passed (workflow [43806822754](https://github.com/adebojel/Asisten-bantu/actions/runs/43806822754)). The permission-scope commits in this section need their own CI confirmation.
+
+
+## Voice service teardown hardening — 16 November 2026
+
+- The accessibility service previously stopped the microphone and destroyed the recognizer in `onDestroy()`, but `onUnbind()` only cleared the service singleton and detached the unified accessibility engine. If Android unbound the service before delivering destruction, the SpeechRecognizer, delayed Handler work, speech listener, voice overlays, and floating orb could outlive the active service lifecycle.
+- `onUnbind()` now marks the service inactive, disables microphone restart, stops and destroys SpeechRecognizer, clears pending Handler callbacks, detaches the speech listener, and destroys the Voice Access overlays and floating orb before releasing the unified accessibility engine.
+- Added a volatile active-lifecycle guard to microphone start/restart paths and terminal SpeechRecognizer result/error callbacks so late callbacks cannot restart recognition after unbind/destruction.
+- On a subsequent service connection, the microphone preference is reinitialized from the current privacy-mode setting; this avoids leaving voice input permanently disabled after a legitimate reconnect.
+- This remains a single SpeechRecognizer owner in the existing AccessibilityService. No second microphone pipeline was introduced.
+- Source commit: `eb926872365e1229c39ae7e7f7658fba6ca4e173`; reconnect preference follow-up: `6f70b02ff018c21b6a53ae28deacf19b9c2c72b1`.
+- CI for the lifecycle change is running at [workflow 43807516056](https://github.com/adebojel/Asisten-bantu/actions/runs/43807516056). Do not treat it as build-verified until the run completes successfully.
+- Remaining validation: exercise disable/unbind/re-enable cycles on Android 12–16, verify microphone privacy indicator stops promptly, confirm no duplicate recognizer sessions after reconnect, and verify overlays are removed/recreated correctly. No physical-device validation is claimed.
