@@ -151,3 +151,10 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - The step query stops before sensor registration and opens the feature-specific permission flow; the user repeats the command after granting.
 - Added `PermsTest` coverage for the activity-recognition mapping on Android 10+ and documented that this does not gate accelerometer-based fall/pocket sensing.
 - Await CI for the new source/test commits before calling this change build-verified; device testing remains deferred.
+
+## Voice local-audio permission recovery — 16 November 2026
+
+- The `putar musik lokal` voice command now checks the Android-version-specific media permission before calling the MediaStore audio query.
+- Missing access opens only `GROUP_MEDIA`; playback is not resumed after the grant, so the user repeats the command.
+- Android 13+ uses `READ_MEDIA_AUDIO`; older supported versions use `READ_EXTERNAL_STORAGE`. Android document-picker access continues to use the Storage Access Framework separately.
+- Await CI for the latest source and documentation commits; no device test has been performed.
