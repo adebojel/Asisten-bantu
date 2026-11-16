@@ -477,10 +477,18 @@ public class LocalLlmEngine {
         }
 
         if (isModelPresent() && !isSafeMode()) {
+            final long generation = initGeneration.get();
             initExec.execute(() -> {
-                if (initEngine()) {
-                    mainHandler.post(() -> runSummaryOnGemma(finalInstruction, title, finalClipped, speaker, cb));
-                } else {
+                if (generation != initGeneration.get()) return;
+                boolean initialized = initEngine();
+                if (generation != initGeneration.get()) return;
+                if (initialized) {
+                    mainHandler.post(() -> {
+                        if (generation == initGeneration.get()) {
+                            runSummaryOnGemma(finalInstruction, title, finalClipped, speaker, cb);
+                        }
+                    });
+                } else if (generation == initGeneration.get()) {
                     fallbackSummarize(finalInstruction, title, finalClipped, onlineFallback, cb);
                 }
             });
@@ -520,10 +528,18 @@ public class LocalLlmEngine {
         }
 
         if (isModelPresent() && !isSafeMode()) {
+            final long generation = initGeneration.get();
             initExec.execute(() -> {
-                if (initEngine()) {
-                    mainHandler.post(() -> runSummaryOnGemma(finalInstruction, title, finalClipped, streamSpeaker, cb));
-                } else {
+                if (generation != initGeneration.get()) return;
+                boolean initialized = initEngine();
+                if (generation != initGeneration.get()) return;
+                if (initialized) {
+                    mainHandler.post(() -> {
+                        if (generation == initGeneration.get()) {
+                            runSummaryOnGemma(finalInstruction, title, finalClipped, streamSpeaker, cb);
+                        }
+                    });
+                } else if (generation == initGeneration.get()) {
                     fallbackAsyncReply(title, finalClipped, streamSpeaker, cb);
                 }
             });
