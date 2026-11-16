@@ -255,3 +255,14 @@ Updated: 2026-11-16 (Asia/Jakarta)
 - Do not remove placeholder permission groups or manifest declarations until a complete branch-specific reference scan and user-facing feature review are done. The GitHub code-search endpoint used for this review searches the default branch, not this PR branch, so it is not sufficient evidence for deletion. The exact current branch source and call sites must be scanned before changing these declarations.
 - Lifecycle CI completed successfully: [43807516056](https://github.com/adebojel/Asisten-bantu/actions/runs/43807516056), [43807549922](https://github.com/adebojel/Asisten-bantu/actions/runs/43807549922), and [43807601488](https://github.com/adebojel/Asisten-bantu/actions/runs/43807601488). This confirms automated build/test success only; device behavior remains unverified.
 - Current PR #16 head at this review: `1b4e6d65b6b87137dba1540f9b3883a4a9399b0d`; PR remains open and mergeable. Do not merge until remaining audits and release-readiness checks are complete.
+
+
+## Legacy macro replay hardening — 16 November 2026
+
+- Found that legacy macros persisted in SharedPreferences were still executed through a separate explicit phrase-match path. That executor supported `type_text`, automatic IME Enter, and `click_xy`, so the bounded screen-agent restrictions alone did not protect stored macros.
+- Hardened the legacy replay path: macro sequences must be non-empty and no longer than five steps; only app launch, uniquely resolved safe label click, scroll, Back, and Home are allowed.
+- Rejected all coordinate-bearing steps, text entry, IME submission, and unknown action types. Label clicks now resolve against the current accessibility tree and reject risky labels/resource IDs, editable/checkable controls, and unresolved or ambiguous matches.
+- Added unit regression tests for blocked text entry, coordinate clicks, confirmation/send labels, and allowed navigation-only steps.
+- Source commit: `3ef596ccd898dffa9d64d3470e34021dee6ade54`; test commit: `58d2d48a2b4e3a36005e7f764c6f02580c22a992`.
+- CI for the latest test commit has not yet appeared in the GitHub workflow-run lookup. Do not treat this hardening as build-verified until the full unit-test and APK build workflow succeeds on this commit or a later head.
+- Existing macros containing typing or coordinate actions are intentionally rejected at runtime; users can still list or clear them. They must be recreated using only the supported navigation actions after a future safe recorder is implemented.
