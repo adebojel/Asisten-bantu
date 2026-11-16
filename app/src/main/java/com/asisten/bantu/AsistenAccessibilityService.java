@@ -377,11 +377,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
         EmergencyBeacon.stopAll(this, torchId);
         SystemUtilityHelper.stopLocalAudio(this);
-        removeScreenCurtain(false);
-        removePocketGuard();
-        if (tripMonitor != null && tripMonitor.isActive()) {
-            tripMonitor.stop(false);
-        }
+        // Clear scheduled work before requesting overlay removal: both removal helpers
+        // post their WindowManager cleanup to the main handler.
         if (main != null) {
             main.removeCallbacksAndMessages(null);
             for (ActiveTimer timer : activeTimers) {
@@ -389,6 +386,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
             }
         }
         activeTimers.clear();
+        removeScreenCurtain(false);
+        removePocketGuard();
+        if (tripMonitor != null && tripMonitor.isActive()) {
+            tripMonitor.stop(false);
+        }
         if (sensorManager != null) {
             sensorManager.unregisterListener(hardwareSensorListener);
         }
