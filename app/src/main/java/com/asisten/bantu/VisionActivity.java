@@ -266,9 +266,11 @@ public class VisionActivity extends AppCompatActivity {
         }
         if (streamObjectDetector != null) {
             try { streamObjectDetector.close(); } catch (Exception ignored) {}
+            streamObjectDetector = null;
         }
         if (singleShotObjectDetector != null) {
             try { singleShotObjectDetector.close(); } catch (Exception ignored) {}
+            singleShotObjectDetector = null;
         }
         if (liveImageAnalysis != null) {
             try { liveImageAnalysis.clearAnalyzer(); } catch (Exception ignored) {}
@@ -280,14 +282,6 @@ public class VisionActivity extends AppCompatActivity {
         }
         boundCamera = null;
         cameraExec.shutdownNow();
-        if (streamObjectDetector != null) {
-            streamObjectDetector.close();
-            streamObjectDetector = null;
-        }
-        if (singleShotObjectDetector != null) {
-            singleShotObjectDetector.close();
-            singleShotObjectDetector = null;
-        }
         OfflineVision.release();
         super.onDestroy();
     }

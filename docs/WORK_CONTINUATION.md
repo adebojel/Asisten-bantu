@@ -1,3 +1,25 @@
+# Verified continuation checkpoint — 16 November 2026, Build #303
+
+- Current source of truth: `main` at `f94c70cdb770a87d35b1c135c8cc61f0c3a9b267`.
+- GitHub Actions run [43841961496](https://github.com/adebojel/Asisten-bantu/actions/runs/43841961496), run #303, completed successfully. Frontend safety validation, lint/build, Gradle `testDebugUnitTest`, and `assembleDebug` all passed.
+- Published release: [Kobra OS Build #303](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-303), with `Kobra-OS-main.apk` and `SHA256SUMS.txt`. This is a debug APK, not a signed production release.
+- Mainline commits after Build #300 include bitmap release after vision inference, just-in-time location permission at voice entry points, pedestrian arrival announcements without turn hints, and approximate-location provider selection.
+- No physical-device test has been performed. Keep the HP test gate closed until source-level release-readiness work is complete and the user is explicitly asked to begin the device test phase.
+- There are no open pull requests. Nine non-main branches remain divergent; do not bulk-merge them. Review unique diffs individually. GitHub actions available in this session do not expose branch deletion, so do not claim old-branch cleanup is complete.
+- The latest source-level review found duplicate detector close calls in `VisionActivity.onDestroy()`; the current continuation removes the duplicate closes and nulls each detector immediately after its single guarded close.
+
+## Combined work queue after Build #303
+
+1. Complete P0 lifecycle/cancellation review across camera inference callbacks, accessibility service unbind/destroy, GPS listeners, worker executors, receivers, overlays and local model shutdown; add focused regression tests where logic can be isolated.
+2. Preserve one microphone owner. Offline Indonesian Sherpa ASR remains architecture-gated until a central 16 kHz mono PCM capture contract, model provenance/license, download integrity, memory/battery/latency benchmarks and fallback tests are complete. No second AudioRecord owner.
+3. Improve pedestrian off-route detection and rerouting only with fresh, accuracy-qualified GPS fixes, bounded route recalculation, hysteresis/cooldown, cancellation and tests. Never claim safe sidewalk or obstacle-depth guidance from map routing alone.
+4. Finish Android agent action verification and special-permission/privacy review. Keep sensitive actions behind explicit confirmation and keep the agent bounded to low-risk navigation.
+5. Review every divergent feature branch against current main; port only demonstrably missing, safe and tested functionality. The paid OpenAI provider and automatic camera-start proposals remain excluded from the free-first and explicit-camera-consent policies.
+6. Refresh README/release/install/checksum documentation only after the final implementation and release assets are verified. Clearly distinguish implemented, experimental and planned capabilities.
+7. Produce one final mainline debug APK and checksum after all code/documentation changes pass CI. Only then open the physical-device test gate. No APK or CI result substitutes for real-device validation.
+
+---
+
 # KOBRA OS Development Handoff
 
 Updated: 2026-11-16 (Asia/Jakarta)
