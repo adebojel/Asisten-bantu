@@ -60,7 +60,7 @@ public class KobraForegroundService extends Service {
 
         Notification n = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Kobra OS Siaga")
-                .setContentText("Gelembung 3D dan kendali suara aktif di seluruh aplikasi")
+                .setContentText("Layanan latar belakang aktif. Mikrofon mengikuti izin dan status Aksesibilitas.")
                 .setSmallIcon(R.drawable.ic_3d_kobra_logo)
                 .setContentIntent(open)
                 .addAction(0, "Tampilkan Gelembung", showOrbPending)
