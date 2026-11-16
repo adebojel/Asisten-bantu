@@ -1561,7 +1561,14 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "baca sms", "baca pesan singkat", "sms terbaru")) {
-            say(MessageReader.latestSms(this, 3));
+            if (!Perms.has(this, Manifest.permission.READ_SMS)) {
+                openFeaturePermissionSettings(
+                        Perms.GROUP_SMS_READ,
+                        "Izin membaca SMS diperlukan untuk membacakan pesan masuk."
+                );
+            } else {
+                say(MessageReader.latestSms(this, 3));
+            }
             return true;
         }
         if (has(c, "kirim sms", "kirim pesan singkat")) {
