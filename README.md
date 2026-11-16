@@ -69,7 +69,7 @@ Pengaturan suara dapat diubah dengan perintah "Kobra bicara lebih cepat", "Kobra
 
 ## AI hybrid: online dan offline
 
-Paket APK menyertakan **otak offline dasar Kobra** (mesin aturan, kalkulator, dan basis pengetahuan `kobra_kb.txt`); ini bukan LLM generatif penuh. Build `main` mengemas Qwen3 0.6B INT4 LiteRT-LM sebagai model lokal. Runtime memeriksa ketersediaan model dan RAM; jika model gagal dimuat, Kobra kembali ke perintah lokal dan basis pengetahuan. APK Build 160 berukuran sekitar 645 MB, sehingga ruang unduhan dan penyimpanan harus diperhitungkan. Jalur AI online gratis memerlukan API key OpenRouter dari pengguna dan ketersediaan model gratis; kuota/model tidak dijamin selalu tersedia. Pengenalan suara offline bergantung pada dukungan dan paket bahasa offline Android.
+Paket APK menyertakan **otak offline dasar Kobra** (mesin aturan, kalkulator, dan basis pengetahuan `kobra_kb.txt`); ini bukan LLM generatif penuh. Build `main` mengemas Qwen3 0.6B INT4 LiteRT-LM sebagai model lokal. Runtime memeriksa ketersediaan model dan RAM; jika model gagal dimuat, Kobra kembali ke perintah lokal dan basis pengetahuan. Ukuran APK berubah mengikuti model yang dibundel; periksa ukuran aset pada rilis Latest sebelum mengunduh dan pastikan ruang penyimpanan mencukupi. Jalur AI online gratis memerlukan API key OpenRouter dari pengguna dan ketersediaan model gratis; kuota/model tidak dijamin selalu tersedia. Pengenalan suara offline bergantung pada dukungan dan paket bahasa offline Android.
 
 | Jalur | Format | Runtime |
 |---|---|---|
@@ -120,6 +120,7 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - [x] Riwayat chat terpadu (suara/teks dan respons lokal/online) disimpan lokal dan dipulihkan saat chat dibuka kembali.
 - [x] Fallback perintah dan pengetahuan dasar tetap tersedia ketika model generatif tidak bisa dimuat.
 - [x] Fallback pengenalan objek offline ke Image Labeling pada `main` tanpa klaim arah/jarak.
+- [x] Layar navigasi web tidak lagi menampilkan jarak halangan simulasi; kompas dipisahkan dari sensor jarak dan status jalur aman.
 - [x] Workflow APK dan rilis menjalankan `testDebugUnitTest` sebelum `assembleDebug`.
 - [x] Workflow CI #491 dan rilis #262 pada commit `79302e4` lulus tes unit, kompilasi APK, dan publikasi aset GitHub Releases.
 - [x] Entry point Mata Kedua Terpadu + Tongkat Digital memakai sesi kamera `live_companion`.
