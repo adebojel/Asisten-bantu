@@ -109,3 +109,11 @@ This is a least-privilege improvement to the Settings permission workflow. It is
 - Split phone permissions into three independent user-selectable groups: place a call (`CALL_PHONE`), answer/end a call (`ANSWER_PHONE_CALLS`), and read phone state (`READ_PHONE_STATE`).
 - Voice answer/end actions request only `ANSWER_PHONE_CALLS`. Dialing through the app's call action can continue to fall back to the system dialer without CALL_PHONE.
 - Unit tests assert each group contains only its own permission.
+
+## Just-in-time SMS read permission — 16 November 2026
+
+- Voice commands `baca SMS`, `baca pesan singkat`, and `SMS terbaru` now check `READ_SMS` before calling `MessageReader.latestSms()`.
+- If permission is missing, KOBRA opens the scoped `GROUP_SMS_READ` explanation and Android permission prompt; the inbox is not queried before the grant.
+- After granting, the user repeats the voice command. No SMS is read automatically as a side effect of granting permission.
+- `READ_CONTACTS` remains optional for resolving a sender's name; without it, the SMS reader uses the sender's number.
+- This covers the audited voice entry point. Any future SMS-reading UI or background task must independently enforce the same permission check.
