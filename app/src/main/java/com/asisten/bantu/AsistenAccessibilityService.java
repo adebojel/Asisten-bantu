@@ -500,7 +500,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
                 if (!warnedNoPermission) {
                     warnedNoPermission = true;
-                    speaker.speak("Izin mikrofon belum aktif. Buka aplikasi Kobra, lalu tekan Izin.");
+                    openFeaturePermissionSettings(Perms.GROUP_MICROPHONE, "Izin mikrofon diperlukan untuk perintah suara.");
                 }
                 return;
             }
