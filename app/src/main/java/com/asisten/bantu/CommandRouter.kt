@@ -175,6 +175,14 @@ object CommandRouter {
         // Prioritas 2: Local Macro Cache (< 100ms, tanpa memanggil LLM)
         val cachedMacro = macroCache.findMatchingMacro(c)
         if (cachedMacro != null) {
+            if (cachedMacro.steps.isEmpty() || cachedMacro.steps.size > MAX_AGENT_STEPS ||
+                cachedMacro.steps.any { !isSafeStoredMacroStep(it.action, it.target, it.x, it.y) }) {
+                sayCallback.accept(
+                    "Makro lama ditolak karena berisi tindakan yang tidak lagi diizinkan. " +
+                        "Ketik teks dan ketuk koordinat otomatis dinonaktifkan demi keamanan."
+                )
+                return true
+            }
             executeMacroSequenceAsync(service, cachedMacro, macroCache, sayCallback)
             return true
         }
@@ -648,34 +656,38 @@ object CommandRouter {
         return null
     }
 
+    internal fun isSafeStoredMacroStep(action: String, target: String, x: Int, y: Int): Boolean {
+        // Legacy SharedPreferences macros are untrusted persisted input. Only allow
+        // bounded navigation; never replay text entry, IME submit, or screen coordinates.
+        if (x >= 0 || y >= 0) return false
+        return when (action) {
+            "open_app" -> target.isNotBlank() && !isRiskyAgentTarget(target)
+            "click_label" -> target.isNotBlank() && !isRiskyAgentTarget(target)
+            "scroll_down", "scroll_up", "back", "home" -> target.isBlank()
+            else -> false
+        }
+    }
+
     private suspend fun executeSingleStep(service: AccessibilityService, step: MacroStep): Boolean {
+        if (!isSafeStoredMacroStep(step.action, step.target, step.x, step.y)) return false
         return when (step.action) {
             "open_app" -> UnifiedAccessibilityEngine.openAppSmart(service, step.target)
             "click_label" -> {
-                var ok = UnifiedAccessibilityEngine.clickByNameGlobal(service, step.target)
-                if (!ok && step.x >= 0 && step.y >= 0) {
-                    ok = UnifiedAccessibilityEngine.clickAt(service, step.x.toFloat(), step.y.toFloat())
+                val nodes = NodeIndexer.indexScreen(service)
+                val target = NodeIndexer.findByLabel(nodes, step.target) ?: return false
+                if (isRiskyAgentTarget(target.label) || isRiskyAgentTarget(target.viewId) ||
+                    !target.isClickable || target.isEditable || target.isCheckable) {
+                    return false
                 }
-                ok
-            }
-            "click_xy" -> UnifiedAccessibilityEngine.clickAt(service, step.x.toFloat(), step.y.toFloat())
-            "type_text" -> {
-                val typed = UnifiedAccessibilityEngine.typeGlobalText(service, step.target)
-                if (typed) {
-                    delay(180L)
-                    UnifiedAccessibilityEngine.performImeEnter(service)
-                }
-                typed
+                NodeIndexer.performClickAt(service, target.centerX, target.centerY)
             }
             "scroll_down" -> UnifiedAccessibilityEngine.scrollGlobal(service, forward = true)
             "scroll_up" -> UnifiedAccessibilityEngine.scrollGlobal(service, forward = false)
             "back" -> UnifiedAccessibilityEngine.performGlobalNavAction(
-                service,
-                AccessibilityService.GLOBAL_ACTION_BACK
+                service, AccessibilityService.GLOBAL_ACTION_BACK
             )
             "home" -> UnifiedAccessibilityEngine.performGlobalNavAction(
-                service,
-                AccessibilityService.GLOBAL_ACTION_HOME
+                service, AccessibilityService.GLOBAL_ACTION_HOME
             )
             else -> false
         }
