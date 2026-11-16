@@ -3,7 +3,7 @@
 Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugging jika ingin melihat log.
 
 ## A. Build dan pasang
-1. Build lewat GitHub Actions atau Android Studio. Jika build gagal, salin 20 baris pertama pesan error (bagian `error:`) ke AI lanjutan beserta `PROMPT_LANJUTAN.md`.
+1. **Tidak perlu Android Studio.** Unduh APK siap uji dari [GitHub Releases Latest](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk) atau [Release Build 314](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-314). Jika build berikutnya gagal, buka [GitHub Actions](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) dan salin pesan error.
 2. Pasang APK, buka Kobra OS.
 
 ## B. Izin dan layanan

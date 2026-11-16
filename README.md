@@ -24,7 +24,7 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian:** APK yang tersedia pada [rilis Latest](https://github.com/adebojel/Asisten-bantu/releases/latest) adalah debug build yang lulus tes unit dan kompilasi pada workflow terkait. Rilis dan checksum harus diperiksa pada aset rilis yang sama sebelum distribusi. APK belum dinyatakan lulus pengujian perangkat Android fisik; pengujian HP ditunda sampai seluruh pekerjaan kode selesai. Tautan unduhan dan checksum di bagian bawah selalu mengikuti rilis Latest, bukan nomor build yang ditulis permanen di README.
+> **Status pengujian Build 314:** APK debug dari branch `main` pada commit `bd44ec8e99d35f5227cf4c08ead183bbdc2eb4dd` berhasil melewati seluruh langkah GitHub Actions: validasi frontend/navigasi, `testDebugUnitTest` (sebagai bagian build), `assembleDebug`, persiapan aset, upload artefak, dan publikasi Release. Aset `Kobra-OS-main.apk` (520.125.358 byte) dan `SHA256SUMS.txt` sudah tersedia pada [Kobra OS — Build 314](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-314). **Build CI bukan bukti pengujian perangkat fisik**; mikrofon latar belakang/layar terkunci, kamera, TalkBack, sensor, dan navigasi tetap harus diuji pada HP nyata. Tautan unduhan Latest di bawah mengikuti rilis terbaru yang berhasil dipublikasikan.
 
 ## Tampilan aplikasi
 
@@ -121,7 +121,7 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - **Status build/publikasi otomatis:** [Kobra OS — Auto Build and Release](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml)
 - **Model offline Qwen3 0.6B:** build `main` saat ini sudah mengemas Qwen3 di dalam APK; impor manual dari [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) hanya diperlukan untuk paket model terpisah/pemulihan. Pastikan ruang penyimpanan dan RAM memadai.
 
-**Status distribusi:** rilis APK utama dibuat otomatis dari branch `main`; tautan [Latest Releases](https://github.com/adebojel/Asisten-bantu/releases/latest) dan unduhan langsung di atas selalu mengarah ke aset APK terbaru yang berhasil dipublikasikan. Gunakan halaman [Latest Releases](https://github.com/adebojel/Asisten-bantu/releases/latest) untuk melihat build terbaru yang berhasil dipublikasikan. Semua APK adalah debug build, bukan versi final yang sudah lulus uji perangkat.
+**Status distribusi:** Build 314 sudah dipublikasikan sebagai Latest dari branch `main`. [Unduh APK Build 314](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-314/Kobra-OS-main.apk) · [Checksum SHA-256 Build 314](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-314/SHA256SUMS.txt) · [Release Build 314](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-314) · [Workflow CI Build 314](https://github.com/adebojel/Asisten-bantu/actions/runs/43859441145). Tautan Latest tetap mengikuti rilis terbaru yang berhasil dipublikasikan. APK ini adalah debug build, belum dinyatakan lulus uji perangkat fisik.
 
 ## Status pengembangan
 
@@ -146,8 +146,8 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - [ ] Balasan voice note native otomatis; belum tersedia dan tidak disimulasikan.
 - [ ] Pemilihan SIM 1/SIM 2 yang tervalidasi.
 - [ ] Screen sharing/capture visual lintas aplikasi dalam satu sesi dengan izin MediaProjection.
-- [ ] Audit dan pengujian fungsional di HP Android nyata (sengaja ditunda sampai pengembangan kode selesai; ikuti [UJI_DI_HP.md](UJI_DI_HP.md)).
-- [ ] Uji mikrofon pada layar terkunci, latar belakang, dan alur tunanetra end-to-end dengan TalkBack.
+- [ ] Audit dan pengujian fungsional di HP Android nyata (Build 314 siap dipasang; ikuti [UJI_DI_HP.md](UJI_DI_HP.md)).
+- [ ] Uji mikrofon pada layar terkunci, latar belakang, dan alur tunanetra end-to-end dengan TalkBack pada perangkat fisik.
 - [ ] Penyempurnaan visual seluruh layar dan dialog serta screenshot autentik dari build terbaru.
 
 Panduan pengujian: [UJI_DI_HP.md](UJI_DI_HP.md).
