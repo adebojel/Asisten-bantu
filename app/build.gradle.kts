@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.asisten.bantu"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.asisten.bantu"
