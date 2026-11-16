@@ -7,7 +7,7 @@
 
 **Akses ponsel dengan suara. Baca informasi di sekitar. Tetap gunakan fungsi inti saat offline.**
 
-**APK FINAL UNTUK PENGUJIAN BELUM DITERBITKAN — JANGAN GUNAKAN APK RILIS LAMA.** · [Status build APK](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) · [Source Android](https://github.com/adebojel/Asisten-bantu/tree/main) · [Laporkan masalah](https://github.com/adebojel/Asisten-bantu/issues)
+[**UNDUH APK KOBRA OS — BUILD TERBARU (LATEST)**](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/latest/download/SHA256SUMS.txt) · [Semua rilis](https://github.com/adebojel/Asisten-bantu/releases) · [Status build](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml)
 
 ![Android](https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white)
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
@@ -24,7 +24,7 @@ Kobra OS adalah aplikasi Android aksesibilitas yang dikembangkan untuk membantu 
 
 Arah pengembangannya adalah **satu asisten hybrid**: fungsi ringan berjalan lokal, sedangkan permintaan yang membutuhkan penalaran lebih luas dapat diteruskan ke AI online jika jaringan dan provider tersedia.
 
-> **Status pengujian (16 November 2026):** APK rilis lama, termasuk Build 261, bukan APK untuk pengujian pembaruan PR #16. Build final dari perubahan terbaru belum diterbitkan. Workflow CI pada commit terbaru sedang memeriksa tes dan kompilasi APK. Jangan mengunduh atau menguji APK lama; tautan unduhan akan dipasang kembali setelah perubahan digabung ke `main`, rilis baru benar-benar tersedia di GitHub Releases → Assets, dan file APK serta checksum diverifikasi. Belum ada verifikasi menyeluruh pada perangkat Android fisik.
+> **Status pengujian (16 November 2026):** perubahan PR #16 sudah tergabung ke `main` pada commit `79302e4`. CI #491 dan workflow rilis #262 berhasil; **Build 262** telah diterbitkan sebagai rilis Latest dengan aset `Kobra-OS-main.apk` dan `SHA256SUMS.txt`. APK ini adalah debug build yang sudah lulus tes unit dan kompilasi, tetapi belum diuji menyeluruh pada perangkat Android fisik. Pengujian HP sengaja ditunda sampai seluruh pekerjaan kode yang direncanakan selesai.
 
 ## Tampilan aplikasi
 
@@ -103,7 +103,7 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - **Status build/publikasi otomatis:** [Kobra OS — Auto Build and Release](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml)
 - **Model offline Qwen3 0.6B:** build `main` saat ini sudah mengemas Qwen3 di dalam APK; impor manual dari [Kobra Offline Models v1.0](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-offline-models-v1.0) hanya diperlukan untuk paket model terpisah/pemulihan. Pastikan ruang penyimpanan dan RAM memadai.
 
-**Status distribusi:** Build 171 adalah rilis APK terbaru yang sudah dipublikasikan untuk commit `57aa88f`. Tes unit dan kompilasi APK lulus pada workflow rilis #171. Semua APK adalah kandidat debug, bukan versi final yang sudah lulus uji perangkat.
+**Status distribusi:** rilis APK utama dibuat otomatis dari branch `main`; tautan [Latest Releases](https://github.com/adebojel/Asisten-bantu/releases/latest) dan unduhan langsung di atas selalu mengarah ke aset APK terbaru yang berhasil dipublikasikan. Build 262 adalah rilis terbaru saat pembaruan ini dibuat. Semua APK adalah debug build, bukan versi final yang sudah lulus uji perangkat.
 
 ## Status pengembangan
 
@@ -117,7 +117,7 @@ Jika tautan langsung tidak terbuka, buka halaman Latest Releases atau periksa [s
 - [x] Fallback perintah dan pengetahuan dasar tetap tersedia ketika model generatif tidak bisa dimuat.
 - [x] Fallback pengenalan objek offline ke Image Labeling pada `main` tanpa klaim arah/jarak.
 - [x] Workflow APK dan rilis menjalankan `testDebugUnitTest` sebelum `assembleDebug`.
-- [x] Build #160 berhasil; workflow rilis #171 untuk commit `57aa88f` lulus tes dan kompilasi.
+- [x] Workflow CI #491 dan rilis #262 pada commit `79302e4` lulus tes unit, kompilasi APK, dan publikasi aset GitHub Releases.
 - [x] Entry point Mata Kedua Terpadu + Tongkat Digital memakai sesi kamera `live_companion`.
 - [x] Voice Access suara: target bernomor dibacakan, grid visual disembunyikan, koordinat suara 10×10, ketik/gulir/klik, dan interupsi ucapan parsial.
 - [x] Fokus kata: navigasi kata berikutnya/sebelumnya dan batas transparan berukuran kata saat Android menyediakan koordinat karakter.
