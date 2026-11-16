@@ -1689,6 +1689,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return true;
         }
         if (has(c, "berapa langkah", "langkah saya", "hitung langkah", "cek langkah", "pedometer")) {
+            if (Build.VERSION.SDK_INT >= 29 && !Perms.has(this, Manifest.permission.ACTIVITY_RECOGNITION)) {
+                openFeaturePermissionSettings(
+                        Perms.GROUP_ACTIVITY,
+                        "Izin aktivitas fisik diperlukan untuk membaca penghitung langkah perangkat."
+                );
+                return true;
+            }
             ensureStepSensorRegistered();
             int steps = config.getTodaySteps();
             int meters = config.getTodayDistanceMeters();
