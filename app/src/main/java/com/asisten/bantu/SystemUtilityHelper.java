@@ -207,7 +207,7 @@ public final class SystemUtilityHelper {
         String routineCondition = "always";
         int conditionThreshold = -1;
         Matcher batteryCondition = Pattern.compile(
-                "(?i)\\b(?:jika|kalau)\\s+baterai\\s+(?:di bawah|kurang dari)\\s+(\\d{1,3})\\s*(?:persen|%)?\\b"
+                "(?i)\\b(?:jika|kalau)\\s+baterai\\s+(?:di bawah|kurang dari)\\s+(\\d{1,3})(?:\\s*persen\\b|\\s*%|(?=\\s|$))"
         ).matcher(raw);
         Matcher chargingCondition = Pattern.compile(
                 "(?i)\\b(?:jika|kalau)\\s+(?:sedang dicas|hp sedang diisi daya)\\b"
@@ -228,7 +228,7 @@ public final class SystemUtilityHelper {
             return "Kondisi otomatis saat ini hanya tersedia untuk rutinitas harian. Tambahkan frasa setiap hari.";
         }
         title = title.replaceAll("(?i)\\b(?:setiap|tiap) hari\\b", " ")
-                .replaceAll("(?i)\\b(?:jika|kalau)\\s+baterai\\s+(?:di bawah|kurang dari)\\s+\\d{1,3}\\s*(?:persen|%)?\\b", " ")
+                .replaceAll("(?i)\\b(?:jika|kalau)\\s+baterai\\s+(?:di bawah|kurang dari)\\s+\\d{1,3}(?:\\s*persen\\b|\\s*%|(?=\\s|$))", " ")
                 .replaceAll("(?i)\\b(?:jika|kalau)\\s+(?:sedang dicas|hp sedang diisi daya)\\b", " ")
                 .replaceFirst("^(untuk|buat)\\s+", "")
                 .replaceAll("\\s+", " ").trim();
