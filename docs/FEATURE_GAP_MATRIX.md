@@ -1,6 +1,6 @@
 # KOBRA OS capability and integration gap matrix
 
-Date: 2026-11-16
+Date: 2026-11-18
 
 This matrix is based on source inspection of the current `main` tree, not README feature claims. “Present” means a concrete implementation path was found; it does not mean device-level behavior has been validated.
 
@@ -15,7 +15,7 @@ This matrix is based on source inspection of the current `main` tree, not README
 | Screen access | One `AsistenAccessibilityService`, accessibility tree snapshots, semantic nodes, gestures and voice targeting. | Implemented; provider/app differences remain. |
 | Screen agent | New bounded navigation agent on the active CommandRouter route. | Experimental; only low-risk navigation, model/API and device compatibility not field-tested. |
 | Camera and vision | `VisionActivity`, CameraX, ML Kit OCR, image labels/object detection, barcode/QR and stability filtering. | Implemented; avoid another camera owner. |
-| Navigation | `PedestrianMapActivity` uses MapLibre offline regions and BRouter with local OSM RD5 segments, SHA-256 cache checks, and Indonesian turn instructions; GPS/compass helpers remain separate. | Partial: map and route calculation can work offline after area/segments are downloaded. Off-route detection, automatic rerouting, indoor navigation, and field reliability are not verified. |
+| Navigation | `PedestrianMapActivity` uses MapLibre offline regions and BRouter with local OSM RD5 segments, SHA-256 cache checks, and Indonesian turn instructions; GPS/compass helpers remain separate. | Partial: map and route calculation can work offline after area/segments are downloaded. Off-route detection and automatic rerouting are implemented with accuracy thresholds, consecutive-fix confirmation, cooldown, and unit tests. Indoor navigation, sidewalk/crossing quality, and field reliability are not verified. |
 | Haptics and sensors | `HapticFeedback`, `SensorManager`, proximity/accelerometer and fall/pocket logic. | Implemented. |
 | Contacts | `ContactsContract` phone lookup by name. | Partial: lookup found; full contact CRUD not established. |
 | SMS | `SmsManager` send flow with explicit multi-step confirmation. | Partial: sending found; SMS database read/search not found in audited paths. |
@@ -69,7 +69,7 @@ These API integrations were not found in the current Java/Kotlin service paths d
 - BRouter is embedded from the pinned `third_party/brouter` submodule. Its trekking profile is packaged from the submodule, while OSM RD5 routing segments are downloaded over HTTPS and locally SHA-256 verified.
 - Once the required map region and RD5 segments are cached, route calculation uses local files. The app announces BRouter turn hints in Indonesian and can announce arrival within the 20-metre threshold even when no turn hints are returned.
 - This is not yet a complete mobility-navigation system: automatic off-route detection/rerouting, indoor navigation, guaranteed sidewalk/crossing quality, and obstacle depth/distance are not implemented or field-validated. Do not claim route safety.
-- The map screen currently chooses a provider using fine-accuracy criteria; when only approximate location is granted, it must select a coarse-accuracy provider instead. This is being corrected in the current mainline work.
+- The map screen selects a coarse-accuracy provider when only approximate location is granted; this is implemented in `PedestrianMapActivity.bestProvider()`. Provider behavior still requires physical-device verification.
 
 ## Important non-goals
 
@@ -148,3 +148,11 @@ This is a least-privilege improvement to the Settings permission workflow. It is
 - Removed unused `CHANGE_WIFI_STATE`; current code reads network/Wi-Fi state but does not toggle Wi-Fi.
 - Added regression coverage proving the unimplemented call-log and nearby-Wi-Fi groups return no runtime permissions.
 - Do not advertise call-log reading, nearby Wi-Fi discovery, or Wi-Fi toggling as current KOBRA functionality.
+
+
+## Model asset integrity hardening — 18 November 2026
+
+- The Qwen3 model asset is now checked at installation time against the pinned byte length (347,251,840) and SHA-256 (`2df6821ec12702dafd33915e7a1a1adc7c4b053f3672fd9555dfaf3a114c4139`).
+- A corrupt or truncated private copy is no longer accepted based on file size alone; the installer verifies the complete digest before atomic activation.
+- Pure-Java unit tests cover stable SHA-256 calculation, matching digest, wrong length, and malformed digest handling.
+- CI must pass after this change before it is considered release-verified.
