@@ -60,31 +60,17 @@ object CommandRouter {
             .build()
     }
 
+    /** Cloud credentials are retired in the offline-only KOBRA build. */
     @JvmStatic
     fun setUserGeminiApiKey(context: Context, key: String?) {
-        val prefs = context.applicationContext.getSharedPreferences(
+        context.applicationContext.getSharedPreferences(
             KobraConfig.PREFS_CONFIG,
             Context.MODE_PRIVATE
-        )
-        prefs.edit().putString(PREF_GEMINI_KEY, key?.trim().orEmpty()).apply()
+        ).edit().remove(PREF_GEMINI_KEY).remove("api_key").apply()
     }
 
     @JvmStatic
-    fun resolveGeminiApiKey(context: Context): String {
-        val prefs = context.applicationContext.getSharedPreferences(
-            KobraConfig.PREFS_CONFIG,
-            Context.MODE_PRIVATE
-        )
-        val userSaved = prefs.getString(PREF_GEMINI_KEY, "")?.trim().orEmpty()
-        if (userSaved.isNotEmpty()) return userSaved
-
-        val buildKey = BuildConfig.GEMINI_API_KEY.trim()
-        if (buildKey.isNotEmpty()) return buildKey
-
-        val legacyKey = prefs.getString("api_key", "")?.trim().orEmpty()
-        if (legacyKey.startsWith("AIza")) return legacyKey
-        return ""
-    }
+    fun resolveGeminiApiKey(context: Context): String = ""
 
     /**
      * Dipanggil di awal rute suara:
