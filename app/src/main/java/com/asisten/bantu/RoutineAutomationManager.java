@@ -87,6 +87,13 @@ public final class RoutineAutomationManager {
         return count;
     }
 
+    static boolean isActive(Context context, int id) {
+        if (context == null || id <= 0) return false;
+        return context.getApplicationContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .contains(PREFIX + id);
+    }
+
     static boolean scheduleNext(Context context, int id, int hour, int minute, String title) {
         if (context == null || id <= 0 || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
             return false;
