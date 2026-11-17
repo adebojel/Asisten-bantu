@@ -59,7 +59,7 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 ## K. Mata KOBRA dan pembaca layar
 1. Putuskan internet, buka Mata KOBRA, lalu uji kamera, OCR, warna, barcode/QR, wajah, uang, dan struk.
 2. Uji pertanyaan kamera umum; KOBRA harus menjawab dari kemampuan lokal yang tersedia atau menyebutkan keterbatasan. Pastikan tidak ada permintaan ke AI server.
-3. Buka aplikasi pihak ketiga yang memiliki daftar tombol/teks. Aktifkan layanan aksesibilitas KOBRA, lalu perintahkan "baca layar", "item berikutnya", "item sebelumnya", dan "klik [nama elemen]".
+3. Buka Setelan Android > Aksesibilitas dan aktifkan layanan aksesibilitas KOBRA (TalkBack bawaan tidak perlu diaktifkan). Ucapkan "aktifkan pembaca layar Kobra", lalu uji daftar tombol/teks dengan "baca layar", "item berikutnya", "item sebelumnya", dan "klik [nama elemen]". Uji juga "matikan pembaca layar Kobra".
 4. Aktifkan "tampilkan garis fokus". Pastikan kotak fokus mengikuti kata atau kontrol yang benar-benar mendapat fokus, transparan, kecil, dan tidak menghalangi sentuhan.
 5. Uji tombol "berhenti" saat KOBRA sedang membacakan daftar panjang; TTS harus langsung berhenti.
 6. Uji YouTube dengan judul video yang terlihat; periksa apakah label yang dibaca sesuai dan target yang dipilih tepat. Jika aplikasi tidak mengekspos label aksesibilitas, KOBRA harus menyatakan tidak dapat memastikan target.
