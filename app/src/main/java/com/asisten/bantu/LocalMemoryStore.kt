@@ -89,7 +89,8 @@ object LocalMemoryStore {
         val arr = JSONArray(raw)
         val safe = JSONArray()
         for (i in 0 until minOf(arr.length(), MAX_MEMORIES)) {
-            arr.optJSONObject(i)?.let { MemoryItem.fromJson(it)?.let(safe::put) }
+            val item = arr.optJSONObject(i)?.let { MemoryItem.fromJson(it) } ?: continue
+            safe.put(item.toJson())
         }
         return safe.toString()
     }
