@@ -23,11 +23,6 @@ android {
             abiFilters += listOf("arm64-v8a")
         }
 
-        val geminiApiKey = (System.getenv("GEMINI_API_KEY") ?: "")
-            .trim()
-            .replace("\\", "\\\\")
-            .replace("\"", "\\\"")
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     buildFeatures {
