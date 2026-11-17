@@ -1,6 +1,7 @@
 package com.asisten.bantu
 
 import android.accessibilityservice.AccessibilityService
+import android.content.Context
 import com.asisten.bantu.voiceaccess.VoiceAccessEngine
 import com.asisten.bantu.voiceaccess.NodeIndexer
 import java.util.Locale
@@ -29,6 +30,19 @@ object CommandRouter {
     private val screenAgentRunning = AtomicBoolean(false)
     private val screenAgentCancelRequested = AtomicBoolean(false)
     private val screenAgentLock = Any()
+
+    /**
+     * Compatibility bridge for the legacy settings screen.
+     * Cloud Gemini calls are disabled in the offline-first build; never persist
+     * a supplied API key and clear any legacy cloud key values instead.
+     */
+    @JvmStatic
+    fun setUserGeminiApiKey(context: Context, key: String?) {
+        context.applicationContext.getSharedPreferences(
+            KobraConfig.PREFS_CONFIG,
+            Context.MODE_PRIVATE
+        ).edit().remove("gemini_api_key").remove("api_key").apply()
+    }
 
     /**
      * Dipanggil di awal rute suara:
