@@ -58,14 +58,19 @@ public class SosSetupActivity extends AppCompatActivity {
                 tvStatus.setText("Nomor telepon hanya boleh angka, spasi, atau tanda +.");
                 return;
             }
-            config.setSos("name1", etName1.getText().toString());
-            config.setSos("phone1", p1);
-            config.setSos("name2", etName2.getText().toString());
-            config.setSos("phone2", p2);
+            boolean saved = config.setSosContacts(
+                    etName1.getText().toString(), p1,
+                    etName2.getText().toString(), p2
+            );
+            if (!saved) {
+                tvStatus.setText("Gagal menyimpan kontak SOS terenkripsi. Coba lagi.");
+                Toast.makeText(this, "Gagal menyimpan kontak SOS terenkripsi", Toast.LENGTH_LONG).show();
+                return;
+            }
             updateStatusText(config, tvStatus);
             HapticFeedback.vibrateSuccess(this);
-            Toast.makeText(this, "Kontak SOS disimpan", Toast.LENGTH_SHORT).show();
-            Speaker.get(this).speak("Kontak darurat disimpan.");
+            Toast.makeText(this, "Kontak SOS terenkripsi disimpan", Toast.LENGTH_SHORT).show();
+            Speaker.get(this).speak("Kontak darurat terenkripsi disimpan.");
         });
 
         btnPractice.setOnClickListener(v -> {

@@ -39,11 +39,17 @@ internal object EncryptedSosStore {
 
     @JvmStatic
     @Synchronized
-    fun set(context: Context, key: String, value: String): Boolean {
-        if (key !in setOf("name1", "phone1", "name2", "phone2")) return false
+    fun set(context: Context, key: String, value: String): Boolean =
+        setAll(context, mapOf(key to value))
+
+    @JvmStatic
+    @Synchronized
+    fun setAll(context: Context, values: Map<String, String>): Boolean {
+        val allowed = setOf("name1", "phone1", "name2", "phone2")
+        if (values.isEmpty() || values.keys.any { it !in allowed }) return false
         val data = read(context) ?: return false
         return try {
-            data.put(key, value.take(256))
+            for ((key, value) in values) data.put(key, value.take(256))
             write(context, data.toString())
         } catch (_: Exception) {
             false

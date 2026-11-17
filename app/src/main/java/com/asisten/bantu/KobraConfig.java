@@ -7,6 +7,7 @@ import org.json.JSONObject;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -379,6 +380,15 @@ public final class KobraConfig {
     public String getSos(String key) { return EncryptedSosStore.get(appContext, key); }
     public boolean setSos(String key, String value) {
         return EncryptedSosStore.set(appContext, key, value == null ? "" : value.trim());
+    }
+
+    public boolean setSosContacts(String name1, String phone1, String name2, String phone2) {
+        Map<String, String> values = new HashMap<>();
+        values.put("name1", name1 == null ? "" : name1.trim());
+        values.put("phone1", phone1 == null ? "" : phone1.trim());
+        values.put("name2", name2 == null ? "" : name2.trim());
+        values.put("phone2", phone2 == null ? "" : phone2.trim());
+        return EncryptedSosStore.setAll(appContext, values);
     }
 
     public boolean hasSosContact() {

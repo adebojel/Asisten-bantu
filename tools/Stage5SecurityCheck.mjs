@@ -143,6 +143,24 @@ if (fs.existsSync(frontendSpeakerPath)) {
   }
 }
 
+const encryptedSosPath = path.join(root, "app/src/main/java/com/asisten/bantu/EncryptedSosStore.kt");
+const kobraConfigPath = path.join(root, "app/src/main/java/com/asisten/bantu/KobraConfig.java");
+if (fs.existsSync(encryptedSosPath) && fs.existsSync(kobraConfigPath)) {
+  const encryptedSos = fs.readFileSync(encryptedSosPath, "utf8");
+  const kobraConfig = fs.readFileSync(kobraConfigPath, "utf8");
+  if (!encryptedSos.includes("AES/GCM/NoPadding") || !encryptedSos.includes("AndroidKeyStore")) {
+    failures.push("SOS contact storage must use Android Keystore AES-GCM encryption.");
+  }
+  if (!kobraConfig.includes("EncryptedSosStore.get(appContext, key)")
+      || !kobraConfig.includes("EncryptedSosStore.setAll(appContext, values)")
+      || kobraConfig.includes("sos.getString(")
+      || kobraConfig.includes("sos.edit().putString(")) {
+    failures.push("KobraConfig must route SOS contacts through encrypted storage, not plaintext SharedPreferences.");
+  }
+} else {
+  failures.push("Encrypted SOS storage implementation is missing.");
+}
+
 const speakerPath = path.join(root, "app/src/main/java/com/asisten/bantu/Speaker.java");
 const unifiedTtsPath = path.join(root, "app/src/main/java/com/asisten/bantu/UnifiedAccessibilityEngine.kt");
 const voiceProfilesPath = path.join(root, "app/src/main/java/com/asisten/bantu/VoiceProfileManager.kt");
