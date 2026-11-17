@@ -105,7 +105,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private boolean listening = false;
     private volatile boolean serviceActive = false;
     private boolean recognizerUsesOnDevice = false;
-    private boolean preferSystemRecognizer = false;
     private boolean micOn = true;
     // Mode diam tetap mempertahankan pendeteksian kata panggil agar bisa aktif kembali lewat suara.
     private boolean assistantSilenced = false;
@@ -599,13 +598,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 return;
             }
             warnedNoPermission = false;
-            if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-                updateOrbState(FloatingVoiceOrbManager.OrbState.NO_PERMISSION);
-                speaker.speak("Layanan pengenalan suara tidak tersedia di HP ini. Pasang Google atau aplikasi pengenalan suara.");
+            if (recognizer == null) createRecognizer();
+            if (recognizer == null || recognizerIntent == null) {
+                updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
+                speaker.speak("Pengenalan suara offline tidak tersedia. Aktifkan layanan pengenalan suara di perangkat dan unduh paket bahasa Indonesia offline. KOBRA tidak mengirim audio ke layanan online.");
                 micOn = false;
                 return;
             }
-            if (recognizer == null) createRecognizer();
             try {
                 prepareRecognitionSession();
                 recognizer.startListening(recognizerIntent);
@@ -622,9 +621,9 @@ public class AsistenAccessibilityService extends AccessibilityService {
     private void startListeningForBargeIn() {
         if (!serviceActive || config == null || !config.isBargeInEnabled() || !micOn || listening
                 || pocketLocked || config.isPrivacyMode()
-                || !Perms.has(this, Manifest.permission.RECORD_AUDIO)
-                || !SpeechRecognizer.isRecognitionAvailable(this)) return;
+                || !Perms.has(this, Manifest.permission.RECORD_AUDIO)) return;
         if (recognizer == null) createRecognizer();
+        if (recognizer == null || recognizerIntent == null) return;
         try {
             prepareRecognitionSession();
             recognizer.startListening(recognizerIntent);
@@ -654,23 +653,21 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void createRecognizer() {
-        // Prioritaskan pengenalan di perangkat pada Android 12+ agar perintah tetap
-        // dapat diproses tanpa internet jika paket bahasa Indonesia tersedia.
-        recognizerUsesOnDevice = !preferSystemRecognizer
-                && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        // Strict offline policy: only Android's on-device recognizer is allowed.
+        // Never fall back to a system/network recognizer when the local language pack is missing.
+        recognizerUsesOnDevice = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
                 && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
-        if (recognizerUsesOnDevice) {
-            recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
-        } else {
-            recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        if (!recognizerUsesOnDevice) {
+            recognizer = null;
+            recognizerIntent = null;
+            return;
         }
+        recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this);
         recognizerIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID");
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-        // The system recognizer may need its network service when the Indonesian
-        // offline language pack is missing; do not force it into offline-only mode.
-        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, recognizerUsesOnDevice);
+        recognizerIntent.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         recognizerIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
     }
 
@@ -727,19 +724,15 @@ public class AsistenAccessibilityService extends AccessibilityService {
             @Override public void onError(int error) {
                 if (!isCurrentRecognitionSession(generation)) return;
                 listening = false;
-                // Fall back once when the Indonesian on-device language pack is unavailable.
-                boolean canFallbackToSystem = recognizerUsesOnDevice
-                        && (error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
-                        || error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED
-                        || error == SpeechRecognizer.ERROR_NETWORK
-                        || error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
-                        || error == SpeechRecognizer.ERROR_SERVER
-                        || error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED);
-                if (canFallbackToSystem) {
-                    preferSystemRecognizer = true;
-                    destroyRecognizer();
-                    updateOrbState(FloatingVoiceOrbManager.OrbState.IDLE);
-                    scheduleRetry(350);
+                // Never switch to a network-backed recognizer. Ask the user to install
+                // the Indonesian offline language pack instead of uploading microphone audio.
+                if (error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE
+                        || error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED) {
+                    micOn = false;
+                    updateOrbState(FloatingVoiceOrbManager.OrbState.PAUSED);
+                    if (speaker != null) {
+                        speaker.speak("Paket bahasa Indonesia offline belum tersedia. Unduh paket bahasa offline di pengaturan pengenalan suara Android. Audio tidak dikirim ke internet.");
+                    }
                     return;
                 }
                 switch (error) {
@@ -1276,8 +1269,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (has(c, "cek mikrofon", "status mikrofon")) { say(micOn ? "Mikrofon aktif." : "Mikrofon mati."); return; }
         if (has(c, "cek suara offline", "status suara offline", "cek bahasa offline")) {
             String recognitionStatus = recognizerUsesOnDevice
-                    ? "Pengenalan suara berjalan di perangkat."
-                    : "Pengenalan suara sistem aktif dan mungkin memerlukan internet.";
+                    ? "Pengenalan suara menggunakan mesin di perangkat saja."
+                    : "Mesin pengenalan suara offline belum tersedia atau belum aktif. Audio tidak dialihkan ke layanan online.";
             String synthesisStatus = speaker == null
                     ? "Mesin suara belum siap." : speaker.getOfflineIndonesianVoiceStatus();
             say(recognitionStatus + " " + synthesisStatus);
