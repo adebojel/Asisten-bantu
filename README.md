@@ -133,6 +133,7 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 - Jalur kamera tidak lagi memanggil Gemini Vision, OpenRouter Vision, atau endpoint AI lain. Jika analisis lokal tidak mampu menjawab, KOBRA menyebutkan keterbatasannya, bukan mengirim gambar ke server.
 - Focus Box KOBRA menggunakan geometri kata yang benar-benar disediakan node aksesibilitas; untuk tombol/kontrol, menggunakan batas node yang sedang mendapat accessibility focus. Overlay transparan tidak menerima sentuhan dan tidak menebak lokasi.
 - Pembaca layar KOBRA dapat mengindeks elemen yang diekspos oleh AccessibilityService, membacakan label, memindahkan fokus, dan menandai target fokus.
+- Pembaca layar mandiri dapat diaktifkan dengan perintah suara “aktifkan pembaca layar Kobra” dan dimatikan dengan “matikan pembaca layar Kobra”. Layanan aksesibilitas KOBRA harus diaktifkan di Setelan Android; TalkBack bawaan tidak harus dinyalakan.
 - Batasan: aplikasi pihak ketiga dapat menyembunyikan node atau memakai tampilan kanvas/secure window; KOBRA tidak dapat menjamin seluruh konten aplikasi terbaca. Label objek bukan pengukuran jarak, deteksi bahaya, atau jaminan rute aman. Tetap gunakan alat bantu mobilitas fisik.
 - Model EfficientDet-Lite0 eksternal tidak dianggap tersedia hanya karena path model disebut di kode; bila file model tidak ada, jalur deteksi memakai fallback label objek dan harus diverifikasi di perangkat.
 
