@@ -101,8 +101,8 @@ const visionUiPath = path.join(root, "src/screens/VisionScreen.tsx");
 const sensorUiPath = path.join(root, "src/services/deviceSensors.ts");
 if (fs.existsSync(safetyContextPath)) {
   const safetyContext = fs.readFileSync(safetyContextPath, "utf8");
-  if (/081234567890|089876543210/.test(safetyContext)) {
-    failures.push("Sample SOS phone numbers must never be used as default emergency contacts.");
+  if (!/const \\[sosContacts[\\s\\S]*?return \\[\\];/.test(safetyContext)) {
+    failures.push("SOS contacts must default to an empty list until the user configures real recipients.");
   }
   if (!/if \(!contact\)/.test(safetyContext)) {
     failures.push("SOS must stop and request a real configured contact when none exists.");
