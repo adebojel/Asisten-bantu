@@ -2255,6 +2255,21 @@ public class AsistenAccessibilityService extends AccessibilityService {
             case "aplikasi terbaru": global(GLOBAL_ACTION_RECENTS, "Aplikasi terbaru."); return;
             case "beranda": case "layar utama": global(GLOBAL_ACTION_HOME, "Ke layar utama."); return;
             case "pengaturan": openSettings(Settings.ACTION_SETTINGS, "Pengaturan dibuka."); return;
+            case "wifi": case "wi-fi":
+                openSettings(Settings.ACTION_WIFI_SETTINGS, "Pengaturan Wi-Fi Android dibuka. Ubah sakelar melalui sistem.");
+                return;
+            case "bluetooth":
+                openSettings(Settings.ACTION_BLUETOOTH_SETTINGS, "Pengaturan Bluetooth Android dibuka. Ubah sakelar melalui sistem.");
+                return;
+            case "data seluler": case "data mobile":
+                openSettings(Settings.ACTION_DATA_USAGE_SETTINGS, "Pengaturan penggunaan data Android dibuka.");
+                return;
+            case "lokasi": case "gps":
+                openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS, "Pengaturan lokasi Android dibuka.");
+                return;
+            case "kecerahan": case "rotasi layar":
+                openSettings(Settings.ACTION_DISPLAY_SETTINGS, "Pengaturan tampilan Android dibuka.");
+                return;
             case "chat": say("Buka chat siapa? Contoh: buka chat Ibu."); return;
             default: break;
         }
