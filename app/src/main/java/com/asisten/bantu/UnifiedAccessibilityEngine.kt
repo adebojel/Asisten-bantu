@@ -186,10 +186,8 @@ object UnifiedAccessibilityEngine {
                 val tts = externalTts ?: return@TextToSpeech
                 if (status != TextToSpeech.SUCCESS) return@TextToSpeech
                 ttsReady = true
-                val res = tts.setLanguage(Locale("id", "ID"))
-                if (res == TextToSpeech.LANG_MISSING_DATA || res == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    tts.setLanguage(Locale.getDefault())
-                }
+                // Do not fall back to the system default voice; it may require network access.
+                tts.setLanguage(Locale("id", "ID"))
                 applyExternalTtsSettings(ctx)
             }
         } catch (t: Throwable) {
@@ -306,6 +304,7 @@ object UnifiedAccessibilityEngine {
             if (!ttsReady) return@post
             if (internalSpeaker?.isSpeaking == true) return@post
             applyExternalTtsSettings(ctx)
+            if (!VoiceProfileManager.hasOfflineIndonesianVoice(tts)) return@post
             try {
                 tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "kobra_ext_${System.currentTimeMillis()}")
             } catch (_: Throwable) {
