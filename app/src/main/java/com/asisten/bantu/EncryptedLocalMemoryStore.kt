@@ -27,8 +27,9 @@ internal object EncryptedLocalMemoryStore {
         if (secure.contains(PAYLOAD)) {
             return try {
                 val plain = decrypt(secure.getString(PAYLOAD, null) ?: return null)
-                app.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+                val purged = app.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
                     .edit().remove(LEGACY_KEY).commit()
+                if (!purged) return null
                 plain
             } catch (_: Exception) { null } // Fail closed; never fall back to plaintext.
         }
@@ -52,9 +53,10 @@ internal object EncryptedLocalMemoryStore {
             val app = context.applicationContext
             val stored = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit().putString(PAYLOAD, packed).commit()
-            if (stored) app.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+            if (!stored) return false
+            val purged = app.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
                 .edit().remove(LEGACY_KEY).commit()
-            stored
+            stored && purged
         } catch (_: Exception) { false }
     }
 
