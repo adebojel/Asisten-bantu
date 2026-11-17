@@ -31,6 +31,8 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 3. Uji target label yang tidak ada atau ambigu. Agen harus berhenti dan menjelaskan bahwa target tidak dapat diverifikasi.
 4. Uji perintah berisiko seperti “buka WhatsApp lalu kirim pesan”. Agen harus menolak urutan tersebut dan tidak mengirim apa pun.
 5. Saat urutan berjalan, ucapkan “Kobra hentikan agen layar”. Agen harus berhenti sebelum langkah berikutnya.
+6. Ucapkan “Kobra riwayat agen layar”. Pastikan hanya jenis aksi, label target terbatas, dan hasil yang dibacakan; tidak boleh ada screenshot atau isi pesan.
+7. Ucapkan “Kobra hapus riwayat agen layar”, lalu ulangi perintah riwayat. Pastikan catatan lokal kosong.
 6. Pastikan agen tidak mengetik, mengirim, menelepon, mengubah izin, atau mengubah pengaturan sistem secara otomatis.
 7. Catat aplikasi, versi Android, langkah, dan hasil aktual. Pengujian ini tetap harus dilakukan di HP fisik.
 
