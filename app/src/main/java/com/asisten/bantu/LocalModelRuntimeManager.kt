@@ -4,27 +4,28 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import java.io.File
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Owns the packaged LiteRT-LM model instance for the process.
- * The APK asset is copied atomically to app-private storage on first use.
- * Requests are serialized; the model is unloaded after an idle period to return RAM.
+ * Requests are serialized; the runtime unloads after idle or Android memory pressure.
  */
 object LocalModelRuntimeManager {
     @Volatile private var engine: LiteRtLmEngine? = null
     private val busy = AtomicBoolean(false)
     private val idleHandler = Handler(Looper.getMainLooper())
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val closeExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "Kobra-Model-Releaser").apply { isDaemon = true }
+    }
     private const val QWEN_FILE = "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
     private const val IDLE_UNLOAD_MS = 120_000L
-
     private val idleUnload = Runnable { release() }
 
     @JvmStatic fun modelFile(context: Context): File =
         File(LocalModelRegistry.directory(context), QWEN_FILE)
 
-    /** True when the private copy exists or the APK contains the model asset. */
     @JvmStatic fun isModelAvailable(context: Context): Boolean {
         val file = modelFile(context)
         return (file.isFile && file.length() > 250L * 1024L * 1024L) ||
@@ -37,13 +38,13 @@ object LocalModelRuntimeManager {
             postResult(callback, null, "Pertanyaan kosong.")
             return
         }
-        if (!busy.compareAndSet(false, true)) {
+        val accepted = synchronized(this) { busy.compareAndSet(false, true) }
+        if (!accepted) {
             postResult(callback, null, "Model lokal sedang memproses permintaan lain. Coba lagi sebentar.")
             return
         }
 
         idleHandler.removeCallbacks(idleUnload)
-        // Model asset is copied off the main thread and atomically renamed before LiteRT-LM opens it.
         LocalModelAssetInstaller.installIfNeeded(appContext) { installed, installError ->
             if (!installed) {
                 finishRequest()
@@ -79,9 +80,7 @@ object LocalModelRuntimeManager {
                 active.sendMessageAsync(prompt, object : LiteRtLmEngine.Callback {
                     private val response = StringBuilder()
                     override fun onReady(success: Boolean, message: String) {}
-                    override fun onPartial(text: String) {
-                        response.append(text)
-                    }
+                    override fun onPartial(text: String) { response.append(text) }
                     override fun onComplete() {
                         val answer = response.toString().trim().takeIf { it.isNotEmpty() }
                         finishRequest()
@@ -107,17 +106,19 @@ object LocalModelRuntimeManager {
     }
 
     private fun finishRequest() {
-        busy.set(false)
+        synchronized(this) { busy.set(false) }
         idleHandler.removeCallbacks(idleUnload)
         idleHandler.postDelayed(idleUnload, IDLE_UNLOAD_MS)
     }
 
+    /** Detaches the runtime under lock and closes it on a worker thread. */
     @JvmStatic fun release() {
         idleHandler.removeCallbacks(idleUnload)
-        if (busy.get()) return
-        synchronized(this) {
-            engine?.close()
-            engine = null
+        val retired = synchronized(this) {
+            if (busy.get()) null else engine.also { engine = null }
+        } ?: return
+        closeExecutor.execute {
+            try { retired.close() } catch (_: Throwable) {}
         }
     }
 }
