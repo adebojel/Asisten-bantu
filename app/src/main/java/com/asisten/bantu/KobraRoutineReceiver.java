@@ -13,7 +13,8 @@ public final class KobraRoutineReceiver extends BroadcastReceiver {
         int minute = intent.getIntExtra(PlannerAlarmReceiver.EXTRA_MINUTE, -1);
         String title = intent.getStringExtra(PlannerAlarmReceiver.EXTRA_TITLE);
         if (id <= 0 || hour < 0 || hour > 23 || minute < 0 || minute > 59
-                || title == null || title.trim().isEmpty()) return;
+                || title == null || title.trim().isEmpty()
+                || !RoutineAutomationManager.isActive(context, id)) return;
 
         Intent reminder = new Intent(context, PlannerAlarmReceiver.class)
                 .putExtra(PlannerAlarmReceiver.EXTRA_ID, id)
