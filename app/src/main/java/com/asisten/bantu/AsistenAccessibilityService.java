@@ -85,7 +85,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             + "Ketiga, Navigasi dan Jaringan: kompas, saya di mana, simpan lokasi, arahkan pulang, jadwal sholat, arah kiblat, atau cek sinyal. "
             + "Keempat, Komunikasi dan Keuangan: panggil atau telepon nama, kirim pesan atau SMS, baca dan balas notifikasi, angkat atau tolak telepon, atau cek transaksi terakhir. "
             + "Kelima, Kendali Layar, YouTube, dan Musik: klik atau tekan nama tombol, ketik atau tulis teks, geser ke atas atau bawah, kembali, ke layar utama, putar judul di YouTube, putar musik lokal, jeda musik, lanjut putar, dan lagu berikutnya atau sebelumnya. "
-            + "Keenam, Utilitas Harian: catat memo, ingat barang, catat pengeluaran, tambah jadwal obat, ingatkan jam sekian untuk agenda, agenda hari ini, berapa langkah saya hari ini, nyalakan pengingat jam, timer, alarm, kalkulator, baterai, dan senter.";
+            + "Keenam, Utilitas Harian: catat memo, ingat barang, catat pengeluaran, tambah jadwal obat, ingatkan setiap hari jam sekian, daftar rutinitas, hapus semua agenda, atur volume ke persentase tertentu, mode senyap, mode getar, Wi-Fi, data seluler, rotasi layar, timer, alarm, kalkulator, baterai, dan senter.";
 
     private static final Set<String> YES = new HashSet<>(Arrays.asList(
             "iya", "ya", "yakin", "oke", "ok", "lanjut", "kirim", "setuju", "benar"));
@@ -1837,6 +1837,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             String body = afterAny(c, "ingatkan ", "jadwal baru ", "agenda baru ");
             HapticFeedback.vibrateSuccess(this);
             say(SystemUtilityHelper.schedulePlannerFromVoice(this, config, body));
+            return true;
+        }
+        if (has(c, "daftar rutinitas", "cek rutinitas", "rutinitas aktif", "riwayat rutinitas")) {
+            say(RoutineAutomationManager.describe(this));
             return true;
         }
         if (has(c, "hapus semua agenda", "hapus agenda", "kosongkan agenda")) {
