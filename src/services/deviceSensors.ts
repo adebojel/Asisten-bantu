@@ -14,6 +14,16 @@ class DeviceSensors {
     return DeviceSensors.instance;
   }
 
+  private isHapticEnabled(): boolean {
+    try {
+      if (typeof localStorage === 'undefined') return true;
+      const settings = JSON.parse(localStorage.getItem('kobra_settings') || '{}');
+      return settings.hapticFeedback !== false;
+    } catch {
+      return true;
+    }
+  }
+
   private initAudio() {
     if (!this.audioCtx && typeof window !== 'undefined') {
       const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -49,7 +59,7 @@ class DeviceSensors {
       osc.start();
       osc.stop(this.audioCtx.currentTime + 0.12);
 
-      if (distanceCm < 60 && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      if (distanceCm < 60 && this.isHapticEnabled() && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate(80);
       }
     } catch (e) {
@@ -82,7 +92,7 @@ class DeviceSensors {
       this.sirenOsc = osc;
       this.sirenGain = gain;
 
-      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      if (this.isHapticEnabled() && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
         navigator.vibrate([300, 150, 300, 150, 500]);
       }
     } catch (e) {
@@ -107,19 +117,21 @@ class DeviceSensors {
   }
 
   public vibrate(pattern: number | number[] = 100) {
-    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    if (this.isHapticEnabled() && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate(pattern);
     }
   }
 
-  public async getBatteryLevel(): Promise<number> {
+  public async getBatteryLevel(): Promise<number | null> {
     try {
       if (typeof navigator !== 'undefined' && 'getBattery' in navigator) {
         const battery: any = await (navigator as any).getBattery();
-        return Math.round(battery.level * 100);
+        if (typeof battery?.level === 'number' && Number.isFinite(battery.level)) {
+          return Math.round(battery.level * 100);
+        }
       }
     } catch (ignored) {}
-    return 85;
+    return null;
   }
 
   public async toggleTorch(turnOn: boolean): Promise<boolean> {

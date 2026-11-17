@@ -462,7 +462,9 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (has('baterai')) {
       const lvl = await deviceSensors.getBatteryLevel();
-      say(`Baterai tersisa ${lvl} persen.`);
+      say(lvl === null
+        ? 'Status persentase baterai tidak tersedia melalui API pada perangkat ini.'
+        : 'Baterai tersisa ' + lvl + ' persen.');
       return;
     }
     if (has('jam berapa', 'pukul berapa') || word('jam')) {

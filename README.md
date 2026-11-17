@@ -38,15 +38,15 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 <div align="center">
 
-### KOBRA OS — BUILD 419
+### KOBRA OS — RILIS TERBARU
 
-**APK debug • Branch `main` • Commit `eb372e886ef431bdabb924d13fbe7aa7a3e37890`**
+**APK debug dari branch main**
 
-[![Download Build 419](https://img.shields.io/badge/UNDUH_KOBRA--OS--main.apk-00A6C7?style=for-the-badge&logo=android&logoColor=white)](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-419/Kobra-OS-main.apk)
+[![Unduh APK terbaru](https://img.shields.io/badge/UNDUH_APK-RILIS_TERBARU-00A6C7?style=for-the-badge&logo=android&logoColor=white)](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk)
 
-[Release Build 419](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-419) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-419/SHA256SUMS.txt) · [Unduhan Latest](https://github.com/adebojel/Asisten-bantu/releases/latest)
+[Halaman GitHub Releases](https://github.com/adebojel/Asisten-bantu/releases/latest) · [Checksum SHA-256 terbaru](https://github.com/adebojel/Asisten-bantu/releases/latest/download/SHA256SUMS.txt) · [Semua workflow CI](https://github.com/adebojel/Asisten-bantu/actions)
 
-</div>
+Nomor build, commit sumber, ukuran APK, dan checksum yang benar selalu tercantum pada release terbaru. Tautan menggunakan alias latest agar README tidak tertinggal ketika pipeline menerbitkan build berikutnya.
 
 ### Instalasi di HP Android
 
@@ -61,11 +61,11 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 ### Status build dan pengujian
 
-- Commit sumber Build 419: `eb372e886ef431bdabb924d13fbe7aa7a3e37890`.
-- GitHub Actions: [Auto Build and Release #44135388804](https://github.com/adebojel/Asisten-bantu/actions/runs/44135388804) — seluruh 12 langkah build, pemeriksaan keamanan, frontend lint/build, unit test Android, checksum, artifact, dan publikasi release tercatat berhasil.
-- APK: `Kobra-OS-main.apk`, ukuran 520.092.718 byte (sekitar 496 MiB).
-- SHA-256 APK (GitHub Release asset digest): `926c202a272e737c54cf0d37c534e442376eaa645050851c8c732bad0415d3d3`. Unduh `SHA256SUMS.txt` dari release untuk verifikasi lokal.
-- **Penting:** APK saat ini adalah debug APK, bukan paket produksi yang ditandatangani dengan keystore rilis. Build CI tidak membuktikan pengujian pada perangkat Android fisik. Mikrofon foreground/background, kamera, TalkBack, sensor, GPS, SIM/operator, dan layanan latar belakang masih harus diuji pada HP nyata.
+- Pipeline rilis memeriksa regresi privasi/offline, navigasi web, frontend lint/build, Android lint, unit test Android, dan APK debug.
+- APK otomatis adalah **debug APK**, bukan paket produksi yang ditandatangani dengan keystore rilis.
+- File SHA256SUMS.txt pada release terbaru berisi checksum APK untuk diverifikasi sebelum instalasi.
+- Ukuran paket dan commit sumber dapat dilihat pada halaman release.
+- Build CI bukan pengganti pengujian perangkat Android fisik. Mikrofon, TTS offline, kamera, TalkBack, sensor, GPS, SIM/operator, SOS, dan layanan latar belakang tetap harus diuji di HP nyata.
 
 ---
 ## 🧭 Jelajahi fitur
@@ -82,6 +82,7 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 | 🧭 **Navigasi pedestrian** | Peta dan routing berbasis data yang dapat disimpan untuk penggunaan offline |
 | ♿ **Aksesibilitas** | Accessibility Service, navigasi fokus/kata, serta interoperabilitas TalkBack |
 | 📞 **Komunikasi** | Alur panggilan, SMS, notifikasi, dan aplikasi pesan dengan izin serta konfirmasi |
+| 🚨 **SOS** | Membuka draf WhatsApp hanya ke kontak darurat yang dikonfigurasi; pengguna memeriksa penerima dan menekan Kirim sendiri |
 
 ## 🖼️ Identitas visual & arsitektur
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useKobra } from './context/KobraContext';
 import { FloatingButton } from './components/FloatingButton';
 import { ConfirmationModal } from './components/ConfirmationModal';
@@ -33,7 +33,15 @@ export const AppContent: React.FC = () => {
     transcript,
     say,
     notifications,
+    settings,
   } = useKobra();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const previousFontSize = root.style.fontSize;
+    root.style.fontSize = settings.largeFont ? '18px' : '16px';
+    return () => { root.style.fontSize = previousFontSize; };
+  }, [settings.largeFont]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -60,7 +68,7 @@ export const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col max-w-xl mx-auto border-x border-neutral-900 shadow-2xl relative">
+    <div className={"min-h-screen bg-black text-white flex flex-col max-w-xl mx-auto border-x border-neutral-900 shadow-2xl relative " + (settings.highContrast ? "contrast-125" : "")}>
       {/* Top Accessibility Bar */}
       <header className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-4 py-3 border-b-2 border-neutral-800 flex items-center justify-between">
         <div className="flex items-center gap-2.5">

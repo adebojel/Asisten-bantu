@@ -95,6 +95,32 @@ if (!modelRuntime.includes("IDLE_UNLOAD_MS = 120_000L") || !modelRuntime.include
   failures.push("LiteRT runtime must unload after idle and close away from the UI thread.");
 }
 
+
+const safetyContextPath = path.join(root, "src/context/KobraContext.tsx");
+const visionUiPath = path.join(root, "src/screens/VisionScreen.tsx");
+const sensorUiPath = path.join(root, "src/services/deviceSensors.ts");
+if (fs.existsSync(safetyContextPath)) {
+  const safetyContext = fs.readFileSync(safetyContextPath, "utf8");
+  if (/081234567890|089876543210/.test(safetyContext)) {
+    failures.push("Sample SOS phone numbers must never be used as default emergency contacts.");
+  }
+  if (!/if \(!contact\)/.test(safetyContext)) {
+    failures.push("SOS must stop and request a real configured contact when none exists.");
+  }
+}
+if (fs.existsSync(visionUiPath)) {
+  const visionUi = fs.readFileSync(visionUiPath, "utf8");
+  if (/Math\.random\s*\(/.test(visionUi) || /Di depan Anda terlihat ruangan/.test(visionUi)) {
+    failures.push("Vision UI must not fabricate person counts or scene descriptions.");
+  }
+}
+if (fs.existsSync(sensorUiPath)) {
+  const sensorUi = fs.readFileSync(sensorUiPath, "utf8");
+  if (/return 85\s*;/.test(sensorUi)) {
+    failures.push("Battery status must not use a fabricated fallback percentage.");
+  }
+}
+
 const frontendContextPath = path.join(root, "src/context/KobraContext.tsx");
 const frontendSpeakerPath = path.join(root, "src/services/speaker.ts");
 const retiredAiClientPath = path.join(root, "src/services/aiClient.ts");

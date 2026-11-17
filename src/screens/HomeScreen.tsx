@@ -1,5 +1,6 @@
 import React from 'react';
 import { useKobra } from '../context/KobraContext';
+import { deviceSensors } from '../services/deviceSensors';
 import {
   ShieldCheck,
   Eye,
@@ -95,8 +96,8 @@ export const HomeScreen: React.FC = () => {
     },
     {
       num: 6,
-      title: 'Status Hemat Baterai',
-      desc: 'Optimalisasi daya latar belakang untuk respon suara cepat.',
+      title: 'Status Baterai',
+      desc: 'Baca persentase baterai jika API perangkat mendukungnya.',
       icon: <BatteryCharging className="w-8 h-8 text-green-400" />,
       action: () => {
         say('KOBRA tidak dapat mengubah optimasi baterai Android dari tampilan ini. Atur izin penggunaan baterai melalui Pengaturan Android jika layanan latar diperlukan.');
