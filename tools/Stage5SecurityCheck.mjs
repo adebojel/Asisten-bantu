@@ -101,8 +101,8 @@ const visionUiPath = path.join(root, "src/screens/VisionScreen.tsx");
 const sensorUiPath = path.join(root, "src/services/deviceSensors.ts");
 if (fs.existsSync(safetyContextPath)) {
   const safetyContext = fs.readFileSync(safetyContextPath, "utf8");
-  if (!/const \[sosContacts[\s\S]*?return \[\];/.test(safetyContext)) {
-    failures.push("SOS contacts must default to an empty list until the user configures real recipients.");
+  if (!safetyContext.includes("const [sosContacts, setSosContacts] = useState<SosContact[]>([]);")) {
+    failures.push("SOS contacts must default to an empty in-memory list until the user configures real recipients.");
   }
   if (!/if \(!contact\)/.test(safetyContext)) {
     failures.push("SOS must stop and request a real configured contact when none exists.");
