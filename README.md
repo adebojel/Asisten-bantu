@@ -38,33 +38,34 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 <div align="center">
 
-### KOBRA OS — BUILD 406
+### KOBRA OS — BUILD 419
 
-**APK debug • Branch `main` • SHA-256 diverifikasi melalui GitHub Release asset**
+**APK debug • Branch `main` • Commit `eb372e886ef431bdabb924d13fbe7aa7a3e37890`**
 
-[![Download Build 406](https://img.shields.io/badge/UNDUH_KOBRA--OS--main.apk-00A6C7?style=for-the-badge&logo=android&logoColor=white)](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-406/Kobra-OS-main.apk)
+[![Download Build 419](https://img.shields.io/badge/UNDUH_KOBRA--OS--main.apk-00A6C7?style=for-the-badge&logo=android&logoColor=white)](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-419/Kobra-OS-main.apk)
 
-[Release Build 406](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-406) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-406/SHA256SUMS.txt) · [Unduhan Latest](https://github.com/adebojel/Asisten-bantu/releases/latest)
+[Release Build 419](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-419) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-419/SHA256SUMS.txt) · [Unduhan Latest](https://github.com/adebojel/Asisten-bantu/releases/latest)
 
 </div>
 
 ### Instalasi di HP Android
 
-1. Unduh APK melalui tombol di atas atau halaman [Releases Latest](https://github.com/adebojel/Asisten-bantu/releases/latest).
+1. Unduh APK dari [Releases Latest](https://github.com/adebojel/Asisten-bantu/releases/latest).
 2. Buka file APK dari folder Unduhan.
 3. Jika Android meminta izin, izinkan instalasi aplikasi dari sumber yang digunakan.
 4. Selesaikan instalasi, lalu buka Kobra OS.
 5. Berikan izin hanya untuk fitur yang ingin digunakan. Aktifkan layanan Kobra melalui **Pengaturan Android → Aksesibilitas**.
 6. Ikuti [panduan uji di HP](UJI_DI_HP.md) secara bertahap.
 
-**Tidak perlu Android Studio.** APK siap pasang disediakan melalui GitHub Releases.
+**Tidak perlu Android Studio.** APK tersedia melalui GitHub Releases.
 
 ### Status build dan pengujian
 
-- Commit build baseline Build 406: `8b4a97a1c87b635636ccecb117d271e054b0b5a4` (bukan commit terbaru setelah pekerjaan Tahap 5).
-- GitHub Actions run baseline: [44132013350](https://github.com/adebojel/Asisten-bantu/actions/runs/44132013350). Hasil tersebut hanya berlaku untuk commit build tersebut; status commit Tahap 5 harus diperiksa pada tab Actions.
-- APK: `Kobra-OS-main.apk`; checksum SHA-256: `f72ea7a746efab0ac2e7d0143dc876457fe3a678b63d58f3399bd07377a5f41e`.
-- **Penting:** Build 406 adalah baseline rilis yang tercatat. Commit Tahap 5 setelahnya memicu pipeline rilis baru; gunakan [Releases Latest](https://github.com/adebojel/Asisten-bantu/releases/latest) untuk APK dari commit terbaru. CI sukses membuktikan proses otomatis, bukan pengujian pada perangkat Android fisik. Mikrofon ketika layar terkunci/latar belakang, kamera, TalkBack, sensor, GPS, SIM/operator, dan navigasi harus diuji pada HP nyata. APK yang diterbitkan workflow saat ini adalah debug APK, bukan sertifikasi rilis produksi.
+- Commit sumber Build 419: `eb372e886ef431bdabb924d13fbe7aa7a3e37890`.
+- GitHub Actions: [Auto Build and Release #44135388804](https://github.com/adebojel/Asisten-bantu/actions/runs/44135388804) — seluruh 12 langkah build, pemeriksaan keamanan, frontend lint/build, unit test Android, checksum, artifact, dan publikasi release tercatat berhasil.
+- APK: `Kobra-OS-main.apk`, ukuran 520.092.718 byte (sekitar 496 MiB).
+- SHA-256 APK (GitHub Release asset digest): `926c202a272e737c54cf0d37c534e442376eaa645050851c8c732bad0415d3d3`. Unduh `SHA256SUMS.txt` dari release untuk verifikasi lokal.
+- **Penting:** APK saat ini adalah debug APK, bukan paket produksi yang ditandatangani dengan keystore rilis. Build CI tidak membuktikan pengujian pada perangkat Android fisik. Mikrofon foreground/background, kamera, TalkBack, sensor, GPS, SIM/operator, dan layanan latar belakang masih harus diuji pada HP nyata.
 
 ---
 ## 🧭 Jelajahi fitur
