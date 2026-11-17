@@ -38,13 +38,13 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 <div align="center">
 
-### KOBRA OS — BUILD 314
+### KOBRA OS — BUILD 406
 
-**APK debug • Branch `main` • 520.125.358 byte**
+**APK debug • Branch `main` • SHA-256 diverifikasi melalui GitHub Release asset**
 
-[![Download Build 314](https://img.shields.io/badge/UNDUH_KOBRA--OS--main.apk-00A6C7?style=for-the-badge&logo=android&logoColor=white)](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-314/Kobra-OS-main.apk)
+[![Download Build 406](https://img.shields.io/badge/UNDUH_KOBRA--OS--main.apk-00A6C7?style=for-the-badge&logo=android&logoColor=white)](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-406/Kobra-OS-main.apk)
 
-[Release Build 314](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-314) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-314/SHA256SUMS.txt) · [Unduhan Latest](https://github.com/adebojel/Asisten-bantu/releases/latest)
+[Release Build 406](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-406) · [Checksum SHA-256](https://github.com/adebojel/Asisten-bantu/releases/download/kobra-os-build-406/SHA256SUMS.txt) · [Unduhan Latest](https://github.com/adebojel/Asisten-bantu/releases/latest)
 
 </div>
 
@@ -61,20 +61,12 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 ### Status build dan pengujian
 
-<details>
-<summary><strong>Detail verifikasi Build 314</strong></summary>
-
-- Commit sumber: `bd44ec8e99d35f5227cf4c08ead183bbdc2eb4dd`
-- GitHub Actions: seluruh langkah workflow berhasil, termasuk validasi frontend/navigasi, tes unit, build APK, upload artefak, dan publikasi Release.
-- Aset rilis: `Kobra-OS-main.apk` dan `SHA256SUMS.txt`.
-- [Lihat workflow Build 314](https://github.com/adebojel/Asisten-bantu/actions/runs/43859441145).
-
-**Penting:** keberhasilan CI membuktikan proses build dan publikasi, bukan pengujian pada perangkat Android fisik. Mikrofon ketika layar terkunci/latar belakang, kamera, TalkBack, sensor, dan navigasi tetap harus diuji di HP nyata. Build 314 adalah **debug APK**, bukan rilis final tersertifikasi.
-
-</details>
+- Commit build: `8b4a97a1c87b635636ccecb117d271e054b0b5a4`
+- GitHub Actions run: [44132013350](https://github.com/adebojel/Asisten-bantu/actions/runs/44132013350) — seluruh job yang dilaporkan selesai dengan sukses, termasuk tes, build, upload artefak, dan publikasi Release.
+- APK: `Kobra-OS-main.apk`; checksum SHA-256: `f72ea7a746efab0ac2e7d0143dc876457fe3a678b63d58f3399bd07377a5f41e`.
+- **Penting:** CI sukses membuktikan proses otomatis, bukan pengujian pada perangkat Android fisik. Mikrofon ketika layar terkunci/latar belakang, kamera, TalkBack, sensor, GPS, SIM/operator, dan navigasi harus diuji pada HP nyata. Build ini adalah debug APK, bukan sertifikasi rilis produksi.
 
 ---
-
 ## 🧭 Jelajahi fitur
 
 | Modul | Yang tersedia |
@@ -281,6 +273,8 @@ Navigasi menggunakan MapLibre Native, OpenFreeMap, data OpenStreetMap, dan routi
 | Pengujian end-to-end pada HP Android fisik | Menunggu hasil uji perangkat |
 
 ### Roadmap dan audit
+
+- [Tahap 5 — Finalisasi, optimasi, keamanan, QA, dan gerbang rilis](TAHAP_5_FINALIZATION.md)
 
 - [Audit integrasi open-source](OPEN_SOURCE_INTEGRATION_AUDIT.md)
 - [Roadmap ekspansi open-source](OPEN_SOURCE_EXPANSION_ROADMAP.md)
