@@ -583,29 +583,11 @@ public class LocalLlmEngine {
         }, false);
     }
 
-    private void fallbackSummarize(String instruction, String title, String rawText, AiClient onlineFallback, SummaryCallback cb) {
-        if (NetworkState.isOnline(context)) {
-            OnlineAiRouter.askAsync(context, instruction, AiClient.SYSTEM_TUNANETRA, new OnlineAiRouter.Callback() {
-                @Override public void onResult(String text, String providerLabel) {
-                    postSummary(cb, cleanTextForTts(text));
-                }
-                @Override public void onError(String message) {
-                    postSummary(cb, buildOfflineExtractiveSummary(title, rawText));
-                }
-            });
-            return;
-        }
-        if (onlineFallback != null && NetworkState.isOnline(context) && new KobraConfig(context).hasAi()) {
-            onlineFallback.chat(AiClient.SYSTEM_TUNANETRA, instruction, new AiClient.Callback() {
-                @Override public void onResult(String text) {
-                    postSummary(cb, cleanTextForTts(text));
-                }
-                @Override public void onError(String message) {
-                    postSummary(cb, buildOfflineExtractiveSummary(title, rawText));
-                }
-            });
-            return;
-        }
+    /**
+     * Offline-only fallback. The legacy AiClient parameter is retained for source compatibility
+     * but is deliberately ignored so prompts and private text never leave the device.
+     */
+    private void fallbackSummarize(String instruction, String title, String rawText, AiClient ignored, SummaryCallback cb) {
         postSummary(cb, buildOfflineExtractiveSummary(title, rawText));
     }
 
