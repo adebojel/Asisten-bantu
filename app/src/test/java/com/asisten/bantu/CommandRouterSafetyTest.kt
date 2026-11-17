@@ -111,6 +111,7 @@ class CommandRouterSafetyTest {
         assertEquals(0, SystemControlCommandParser.parseVolumePercent("volume 0%"))
         assertEquals(100, SystemControlCommandParser.parseVolumePercent("suara menjadi 100 persen"))
         assertNull(SystemControlCommandParser.parseVolumePercent("volume naik"))
+        assertNull(SystemControlCommandParser.parseVolumePercent("buka volume 50 persen"))
         assertNull(SystemControlCommandParser.parseVolumePercent("volume 101 persen"))
         assertNull(SystemControlCommandParser.parseVolumePercent("volume"))
         assertNull(SystemControlCommandParser.parseVolumePercent(null))
