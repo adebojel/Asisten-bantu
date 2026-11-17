@@ -129,6 +129,15 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 - Batasan: aplikasi pihak ketiga dapat menyembunyikan node atau memakai tampilan kanvas/secure window; KOBRA tidak dapat menjamin seluruh konten aplikasi terbaca. Label objek bukan pengukuran jarak, deteksi bahaya, atau jaminan rute aman. Tetap gunakan alat bantu mobilitas fisik.
 - Build Gradle mengunduh EfficientDet-Lite0 dari URL HTTPS yang dipatok, memeriksa ukuran dan SHA-256, lalu memasukkannya ke assets aplikasi. Jika inisialisasi model gagal saat runtime, jalur label objek cadangan digunakan.
 
+## 🔐 Tahap 5 — Resource Manager, Memori Aman, dan QA
+
+- Memori AI aktif disimpan terenkripsi AES-256-GCM menggunakan kunci Android Keystore; kunci privat tidak pernah dimasukkan ke file backup.
+- Data memori versi lama dimigrasikan ke penyimpanan terenkripsi saat pertama dibaca. Jika ciphertext tidak dapat dibuka, Kobra gagal-tertutup dan tidak menimpanya dengan data kosong.
+- Backup JSON hanya dibuat atas tindakan eksplisit pengguna. File backup berisi data memori dalam bentuk yang dapat dibaca agar portabel; simpan di lokasi tepercaya. Saat restore, data divalidasi dan dienkripsi kembali di perangkat.
+- Batas memori: 60 entri, 1.200 karakter per entri, kategori 48 karakter, payload 64 KiB.
+- Runtime Qwen3 dilepas setelah 2 menit idle dan saat Android melaporkan tekanan memori. Penutupan runtime dilakukan di worker thread agar tidak memblokir UI.
+- Versi aplikasi Tahap 5: `7.3-KOBRA-SECURE` (versionCode 10).
+
 ## 🧠 AI lokal sepenuhnya (offline-only)
 
 Kobra menggunakan model lokal dan basis pengetahuan perangkat. Jalur AI server eksternal dinonaktifkan; kegagalan model lokal tidak boleh mengirim prompt, screenshot, atau data pengguna ke provider cloud.
@@ -245,6 +254,8 @@ Navigasi menggunakan MapLibre Native, OpenFreeMap, data OpenStreetMap, dan routi
 ---
 
 ## 🛡️ Privasi, izin, dan keselamatan
+
+Penyimpanan memori AI aktif memakai enkripsi at-rest Android Keystore. Backup yang diekspor secara sengaja berisi data memori yang dapat dibaca; Kobra tidak mengenkripsi file backup. File tersebut harus dijaga oleh pengguna. Menghapus memori menghapus ciphertext lokal dan entri migrasi plaintext.
 
 - AI Kobra diproses secara lokal; kredensial provider cloud tidak digunakan.
 - Izin jaringan yang masih ada hanya untuk fungsi non-AI yang terpisah seperti pembaruan aplikasi, pengambilan model/peta, atau sumber data yang memang memerlukan unduhan.
