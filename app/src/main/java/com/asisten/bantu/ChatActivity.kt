@@ -412,21 +412,15 @@ open class ChatActivity : AppCompatActivity() {
 
     private fun refreshModeBanner() {
         val llm = LocalLlmEngine.getInstance(this)
-        val isSafe = config.isLlmSafeMode
-        btnResetSafeMode.visibility = if (isSafe) View.VISIBLE else View.GONE
-
-        val online = NetworkState.isOnline(this)
-        val onlineLabel = OnlineAiRouter.getActiveProviderSummary(this)
-        val label = when {
-            isSafe && online -> "Mode Aman Lokal • $onlineLabel Siap"
-            isSafe -> "Mode Aman Lokal • Fallback Sistem Offline"
-            llm.isInitialized -> "Gemma 3 1B Offline Aktif • Memori ${LocalMemoryStore.listMemories(this).size}"
-            llm.isModelPresent && online -> "Model Lokal Siap • $onlineLabel"
-            llm.isModelPresent -> "Model Lokal Siap (Offline)"
-            online -> "$onlineLabel Siap (${NetworkState.connectionType(this)})"
+        val safe = config.isLlmSafeMode
+        btnResetSafeMode.visibility = if (safe) View.VISIBLE else View.GONE
+        tvModelInfo.text = when {
+            safe -> "Mode Aman Lokal • Perintah sistem offline tersedia"
+            llm.isInitialized -> "Gemma lokal aktif • Memori ${LocalMemoryStore.listMemories(this).size}"
+            llm.isModelPresent -> "Model Gemma lokal siap"
+            LocalModelRuntimeManager.isModelAvailable(this) -> "Qwen3 lokal tersedia"
             else -> "Mode Utilitas Lokal & Voice Access (Offline)"
         }
-        tvModelInfo.text = label
     }
 
     private fun triggerVoiceBargeIn() {
@@ -677,74 +671,39 @@ open class ChatActivity : AppCompatActivity() {
             return
         }
 
-        // 3) Model Lokal Gemma 3 1B bila terpasang & tidak dalam Safe Mode
+        // 3) Model lokal Gemma/Qwen. No cloud fallback is permitted.
         val llm = LocalLlmEngine.getInstance(this)
         val systemPrompt = KobraPersona.buildFullSystemPrompt(this)
         if (llm.isModelPresent && !config.isLlmSafeMode && !llm.isSafeMode) {
-            tvModelInfo.text = "Memproses dengan Gemma 3 1B Offline..."
+            tvModelInfo.text = "Memproses dengan model Gemma lokal..."
             llm.summarizeTextAsync(systemPrompt, "Chat", displayPrompt, speaker) { reply: String? ->
                 if (isFinishing || isDestroyed) return@summarizeTextAsync
-                val cleanReply = reply?.trim().orEmpty()
-                if (cleanReply.isNotEmpty() && !cleanReply.contains("Gagal memproses") && !cleanReply.contains("Mode Aman")) {
-                    replyAndSpeak(cleanReply, "Gemma 3 1B Offline", displayPrompt)
-                    refreshModeBanner()
-                } else if (LocalModelRuntimeManager.isModelAvailable(this)
-                    && LocalModelRegistry.canAttemptLiteRtModel(this)) {
+                val clean = reply?.trim().orEmpty()
+                if (clean.isNotEmpty() && !clean.contains("Gagal memproses") && !clean.contains("Mode Aman")) {
+                    replyAndSpeak(clean, "Gemma Lokal", displayPrompt)
+                } else if (LocalModelRuntimeManager.isModelAvailable(this) &&
+                    LocalModelRegistry.canAttemptLiteRtModel(this)) {
                     routeToOfflineQwen(displayPrompt, systemPrompt)
                 } else {
                     routeToOnlineOrFallback(displayPrompt, systemPrompt)
                 }
+                refreshModeBanner()
             }
             return
         }
 
-        // 4) Model Qwen3 LiteRT-LM di perangkat: jalur percakapan generatif offline.
-        // Jalankan hanya bila model sudah diimpor dan preflight RAM menyatakan aman.
-        if (LocalModelRuntimeManager.isModelAvailable(this)
-            && LocalModelRegistry.canAttemptLiteRtModel(this)) {
+        if (LocalModelRuntimeManager.isModelAvailable(this) &&
+            LocalModelRegistry.canAttemptLiteRtModel(this)) {
             routeToOfflineQwen(displayPrompt, systemPrompt)
             return
         }
 
-        // 5) Online Gemini / OpenRouter / fallback perintah lokal.
         routeToOnlineOrFallback(displayPrompt, systemPrompt)
     }
 
     private fun handleImageQuestion(prompt: String, imgB64: String, bmp: Bitmap?) {
-        tvModelInfo.text = "Menganalisis gambar..."
-        if (NetworkState.isOnline(this)) {
-            ioExec.execute {
-                val geminiReply = CommandRouter.callGeminiBlocking(this, prompt, imgB64)
-                if (!geminiReply.isNullOrBlank()) {
-                    runOnUiThread {
-                        bmp?.recycle()
-                        attachedBitmap = null
-                        replyAndSpeak(geminiReply, "Gemini Vision", prompt)
-                        refreshModeBanner()
-                    }
-                    return@execute
-                }
-                runOnUiThread {
-                    if (config.hasAi() && bmp != null) {
-                        aiClient.describeImage(prompt, bmp, object : AiClient.Callback {
-                            override fun onResult(text: String) {
-                                bmp.recycle()
-                                attachedBitmap = null
-                                replyAndSpeak(text, "OpenRouter Vision", prompt)
-                                refreshModeBanner()
-                            }
-                            override fun onError(message: String) {
-                                fallbackOfflineImageOcr(bmp, prompt)
-                            }
-                        })
-                    } else {
-                        fallbackOfflineImageOcr(bmp, prompt)
-                    }
-                }
-            }
-        } else {
-            fallbackOfflineImageOcr(bmp, prompt)
-        }
+        tvModelInfo.text = "Membaca gambar secara lokal..."
+        fallbackOfflineImageOcr(bmp, prompt)
     }
 
     private fun fallbackOfflineImageOcr(bmp: Bitmap?, prompt: String) {
@@ -782,48 +741,15 @@ open class ChatActivity : AppCompatActivity() {
             val clean = answer?.trim().orEmpty()
             if (clean.isNotEmpty()) {
                 replyAndSpeak(clean, "Qwen3 0.6B Offline", question)
-                refreshModeBanner()
             } else {
-                // If the local model cannot initialize or runs out of memory,
-                // continue with the online router when available; otherwise keep
-                // the deterministic offline command/knowledge fallback responsive.
-                if (NetworkState.isOnline(this)) {
-                    routeToOnlineOrFallback(question, systemPrompt)
-                } else {
-                    replyAndSpeak(
-                        buildOfflineFallback(question),
-                        "Mode Lokal (fallback)",
-                        question
-                    )
-                    refreshModeBanner()
-                }
+                replyAndSpeak(buildOfflineFallback(question), "Mode Lokal (fallback)", question)
             }
+            refreshModeBanner()
         }
     }
 
     private fun routeToOnlineOrFallback(question: String, systemPrompt: String) {
-        if (NetworkState.isOnline(this)) {
-            tvModelInfo.text = "Menghubungi ${OnlineAiRouter.getActiveProviderSummary(this)}..."
-            val previousContext = adapter.recentConversationContext()
-            val contextualQuestion = if (previousContext.isBlank()) question else
-                "Konteks percakapan sebelumnya (gunakan untuk menjaga kesinambungan, jangan mengulang tanpa perlu):\n" +
-                    previousContext + "\n\nPesan terbaru pengguna:\n" + question
-            OnlineAiRouter.askAsync(this, contextualQuestion, systemPrompt, object : OnlineAiRouter.Callback {
-                override fun onResult(text: String, providerLabel: String) {
-                    if (isFinishing || isDestroyed) return
-                    replyAndSpeak(text, providerLabel, question)
-                    refreshModeBanner()
-                }
-
-                override fun onError(message: String) {
-                    if (isFinishing || isDestroyed) return
-                    replyAndSpeak(buildOfflineFallback(question), "Mode Lokal", question)
-                    refreshModeBanner()
-                }
-            })
-            return
-        }
-
+        // Kept as a source-compatible method name; it never opens a network connection.
         replyAndSpeak(buildOfflineFallback(question), "Mode Lokal", question)
         refreshModeBanner()
     }
@@ -852,8 +778,8 @@ open class ChatActivity : AppCompatActivity() {
     private fun buildOfflineFallback(question: String): String {
         val offlineAns = OfflineAi.get(this).answer(question)
         if (!offlineAns.isNullOrBlank()) return offlineAns
-        return "Saat ini koneksi internet sedang terputus atau server sedang sibuk, dan model lokal belum dimuat. " +
-            "Anda tetap dapat menanyakan jam, sinyal, langkah, agenda, kalkulator, atau menyambungkan internet untuk AI Online gratis tanpa API key."
+        return "Model percakapan lokal belum tersedia atau belum berhasil dimuat. " +
+            "AI Kobra tidak menghubungi server. Perintah jam, sinyal, langkah, agenda, kalkulator, memori, dan kontrol dasar tetap tersedia offline."
     }
 
     private fun addUserMessage(text: String) {
