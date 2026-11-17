@@ -987,18 +987,13 @@ public class VisionActivity extends AppCompatActivity {
                     MoneyAndReceiptParser.BillResult bill = MoneyAndReceiptParser.parseRupiahBill(raw, bmp);
                     if (bill.amount > 0 && bill.confidentOcr) {
                         done("Uang " + MoneyAndReceiptParser.formatRupiah(bill.amount) + ".");
-                    } else if (canUseAi()) {
-                        askAi(bmp, promptFor("money"));
                     } else if (bill.amount > 0) {
                         done(bill.explanation + ".");
                     } else {
                         done("Nominal uang belum terbaca jelas. Dekatkan kamera ke angka uang.");
                     }
                 })
-                .addOnFailureListener(e -> {
-                    if (canUseAi()) askAi(bmp, promptFor("money"));
-                    else done("Gagal membaca uang.");
-                });
+                .addOnFailureListener(e -> done("Gagal membaca uang secara lokal."));
     }
 
     private void analyzeMoneySequential(Bitmap bmp) {
@@ -1007,29 +1002,13 @@ public class VisionActivity extends AppCompatActivity {
                     MoneyAndReceiptParser.BillResult bill = MoneyAndReceiptParser.parseRupiahBill(res.getText(), bmp);
                     if (bill.amount > 0 && bill.confidentOcr) {
                         addBillToTotal(bill.amount, "");
-                    } else if (canUseAi()) {
-                        tvStatus.setText("Membaca nominal uang dengan AI...");
-                        ai.describeImage(promptFor("money"), bmp, new AiClient.Callback() {
-                            @Override public void onResult(String text) {
-                                long parsed = MoneyAndReceiptParser.parseAiNominal(text);
-                                if (parsed > 0) {
-                                    addBillToTotal(parsed, text);
-                                } else {
-                                    done("Nominal belum pasti, tidak ditambahkan ke total. " + text);
-                                }
-                            }
-                            @Override public void onError(String message) {
-                                if (bill.amount > 0) addBillToTotal(bill.amount, bill.explanation);
-                                else done(message);
-                            }
-                        });
                     } else if (bill.amount > 0) {
                         addBillToTotal(bill.amount, bill.explanation);
                     } else {
-                        done("Nominal lembaran uang belum terbaca. Posisikan angka uang di tengah lalu scan lagi.");
+                        done("Nominal lembaran uang belum terbaca pasti. Posisikan angka uang di tengah lalu scan lagi.");
                     }
                 })
-                .addOnFailureListener(e -> done("Gagal memindai uang."));
+                .addOnFailureListener(e -> done("Gagal memindai uang secara lokal."));
     }
 
     private void addBillToTotal(long amount, String note) {
@@ -1046,12 +1025,6 @@ public class VisionActivity extends AppCompatActivity {
                 .addOnSuccessListener(res -> {
                     String raw = res.getText() != null ? res.getText().trim() : "";
                     lastCapturedRawText = raw;
-                    if (raw.isEmpty() && canUseAi()) {
-                        askAi(bmp, isReceipt
-                                ? "Baca bukti transfer bank ini: sebutkan bank/aplikasi, status transaksi, nominal rupiah, pengirim, dan penerima."
-                                : "Baca seluruh angka dan teks yang tampil di layar perangkat digital ini secara jelas.");
-                        return;
-                    }
                     String parsed = isReceipt
                             ? MoneyAndReceiptParser.parseBankTransferReceipt(raw)
                             : MoneyAndReceiptParser.parseDigitalScreen(raw);
