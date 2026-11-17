@@ -129,7 +129,8 @@ public final class RoutineAutomationManager {
                 } else if ("charging".equals(condition)) {
                     out.append(", hanya ketika sedang diisi daya");
                 }
-                out.append(". Terakhir: ").append(routine.optString("last_result", "belum dijalankan")).append(".");
+                out.append(". Sudah dipicu ").append(routine.optInt("run_count", 0)).append(" kali")
+                        .append(". Terakhir: ").append(routine.optString("last_result", "belum dijalankan")).append(".");
                 count++;
             } catch (Exception ignored) {}
         }
