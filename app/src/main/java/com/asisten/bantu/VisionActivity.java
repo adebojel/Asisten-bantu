@@ -215,7 +215,7 @@ public class VisionActivity extends AppCompatActivity {
                     String q = input.getText().toString().trim();
                     pendingAiCameraQuestion = q.isEmpty() ? "Jelaskan apa yang terlihat di depan kamera secara rinci dan aman untuk tunanetra." : q;
                     mode = "ask_ai_camera";
-                    tvStatus.setText("Mode: Tanya AI Kamera");
+                    tvStatus.setText("Mode: Tanya Mata KOBRA Offline");
                     captureNow();
                 })
                 .setNegativeButton("Batal", null)
@@ -1055,14 +1055,6 @@ public class VisionActivity extends AppCompatActivity {
         return sb.toString().trim();
     }
 
-    private boolean canUseAi() {
-        return NetworkState.isOnline(this) && (config.hasAi() || !CommandRouter.resolveGeminiApiKey(this).isEmpty());
-    }
-
-    private void askAi(Bitmap bmp, String prompt) {
-        askAiWithBitmap(bmp, prompt);
-    }
-
     private void readKtp(Bitmap bmp) {
         ocr.process(InputImage.fromBitmap(bmp, 0))
                 .addOnSuccessListener(result -> {
@@ -1127,7 +1119,7 @@ public class VisionActivity extends AppCompatActivity {
             case "scan_all": return "SCAN Semua Objek";
             case "ocr_instant": return "Baca Teks / OCR";
             case "money_color": return "Deteksi Uang & Warna";
-            case "ask_ai_camera": return "Tanya AI tentang Kamera";
+            case "ask_ai_camera": return "Tanya Mata KOBRA Offline";
             default: return "Mata Kedua HUD 3D";
         }
     }
@@ -1146,7 +1138,7 @@ public class VisionActivity extends AppCompatActivity {
             case "find_object": return "Mode deteksi objek aktif dengan bunyi bip.";
             case "live_companion": return "Mode Mata Kedua terpadu aktif. Kamera membaca teks dan mengenali label objek secara offline. Tanyakan tentang uang atau benda dengan suara. Deteksi ini tidak mengukur jarak atau memastikan jalur aman; tetap gunakan tongkat fisik.";
             case "translate_ocr": return "Mode penerjemah kamera offline.";
-            default: return "Mata Kedua Kobra siap. Tersedia tombol Scan Semua Objek, Baca Teks OCR, Uang dan Warna, serta Tanya AI Kamera.";
+            default: return "Mata Kedua Kobra siap. Tersedia tombol Scan Semua Objek, Baca Teks OCR, Uang dan Warna, serta Tanya Mata KOBRA Offline.";
         }
     }
 
