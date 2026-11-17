@@ -8,149 +8,135 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-/**
- * Pengelola Memori AI Lokal (Persistent Memory Manager) tanpa server eksternal.
- * Menyimpan preferensi, fakta pribadi, kebiasaan, dan catatan penting pengguna agar
- * seluruh model AI (Gemma 3 1B, Gemini, maupun OpenRouter) selalu relevan.
- */
+/** Local AI memory; all live records are encrypted at rest using Android Keystore. */
 object LocalMemoryStore {
-
-    private const val PREFS_NAME = KobraConfig.PREFS_CONFIG
-    private const val KEY_MEMORY_JSON = "local_ai_memory_v1"
     private const val MAX_MEMORIES = 60
+    private const val MAX_TEXT_LENGTH = 1200
+    private const val MAX_CATEGORY_LENGTH = 48
 
-    data class MemoryItem(
-        val id: String,
-        val text: String,
-        val category: String,
-        val createdAt: Long
-    ) {
-        fun toJson(): JSONObject = JSONObject().apply {
-            put("id", id)
-            put("text", text)
-            put("category", category)
-            put("created_at", createdAt)
+    data class MemoryItem(val id: String, val text: String, val category: String, val createdAt: Long) {
+        fun toJson() = JSONObject().apply {
+            put("id", id); put("text", text); put("category", category); put("created_at", createdAt)
         }
-
         companion object {
             fun fromJson(obj: JSONObject): MemoryItem? {
-                val txt = obj.optString("text", "").trim()
-                if (txt.isEmpty()) return null
+                val text = obj.optString("text", "").trim().take(MAX_TEXT_LENGTH)
+                if (text.isEmpty()) return null
                 return MemoryItem(
-                    id = obj.optString("id", UUID.randomUUID().toString()),
-                    text = txt,
-                    category = obj.optString("category", "Umum"),
-                    createdAt = obj.optLong("created_at", System.currentTimeMillis())
+                    obj.optString("id", UUID.randomUUID().toString()).take(80),
+                    text,
+                    obj.optString("category", "Umum").trim().take(MAX_CATEGORY_LENGTH).ifBlank { "Umum" },
+                    obj.optLong("created_at", System.currentTimeMillis()).coerceAtLeast(0L)
                 )
             }
         }
     }
 
-    @JvmStatic
-    @Synchronized
-    fun listMemories(context: Context): List<MemoryItem> {
-        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val raw = prefs.getString(KEY_MEMORY_JSON, "[]") ?: "[]"
-        val out = ArrayList<MemoryItem>()
-        try {
-            val arr = JSONArray(raw)
-            for (i in 0 until arr.length()) {
-                val obj = arr.optJSONObject(i) ?: continue
-                MemoryItem.fromJson(obj)?.let { out.add(it) }
-            }
-        } catch (_: Throwable) {
-        }
-        return out
-    }
+    @JvmStatic @Synchronized
+    fun listMemories(context: Context): List<MemoryItem> =
+        decode(EncryptedLocalMemoryStore.read(context) ?: return emptyList())
 
-    @JvmStatic
-    @Synchronized
+    @JvmStatic @Synchronized
     fun addMemory(context: Context, text: String, category: String = "Preferensi"): MemoryItem? {
-        val clean = text.trim()
+        val raw = EncryptedLocalMemoryStore.read(context) ?: return null
+        val clean = text.trim().take(MAX_TEXT_LENGTH)
         if (clean.isEmpty()) return null
-        val list = listMemories(context).toMutableList()
-        val lower = clean.lowercase(Locale.ROOT)
-        list.removeAll { it.text.lowercase(Locale.ROOT) == lower }
+        val list = decode(raw).toMutableList()
+        list.removeAll { it.text.equals(clean, ignoreCase = true) }
         val item = MemoryItem(
-            id = "mem_${System.currentTimeMillis()}_${(100..999).random()}",
-            text = clean,
-            category = category.ifBlank { "Preferensi" },
-            createdAt = System.currentTimeMillis()
+            "mem_\${System.currentTimeMillis()}_\${UUID.randomUUID().toString().take(8)}",
+            clean, category.trim().take(MAX_CATEGORY_LENGTH).ifBlank { "Preferensi" },
+            System.currentTimeMillis()
         )
         list.add(0, item)
-        while (list.size > MAX_MEMORIES) {
-            list.removeAt(list.lastIndex)
-        }
-        persist(context, list)
-        return item
+        while (list.size > MAX_MEMORIES) list.removeAt(list.lastIndex)
+        return if (persist(context, list)) item else null
     }
 
-    @JvmStatic
-    @Synchronized
+    @JvmStatic @Synchronized
     fun updateMemory(context: Context, id: String, newText: String, category: String = "Preferensi"): Boolean {
-        val clean = newText.trim()
+        val raw = EncryptedLocalMemoryStore.read(context) ?: return false
+        val clean = newText.trim().take(MAX_TEXT_LENGTH)
         if (clean.isEmpty()) return false
-        val list = listMemories(context).toMutableList()
+        val list = decode(raw).toMutableList()
         val idx = list.indexOfFirst { it.id == id }
         if (idx < 0) return false
-        list[idx] = list[idx].copy(text = clean, category = category.ifBlank { list[idx].category })
-        persist(context, list)
-        return true
+        list[idx] = list[idx].copy(
+            text = clean,
+            category = category.trim().take(MAX_CATEGORY_LENGTH).ifBlank { list[idx].category }
+        )
+        return persist(context, list)
     }
 
-    @JvmStatic
-    @Synchronized
+    @JvmStatic @Synchronized
     fun deleteMemory(context: Context, id: String): Boolean {
-        val list = listMemories(context).toMutableList()
-        val removed = list.removeAll { it.id == id }
-        if (removed) persist(context, list)
-        return removed
+        val raw = EncryptedLocalMemoryStore.read(context) ?: return false
+        val list = decode(raw).toMutableList()
+        if (!list.removeAll { it.id == id }) return false
+        return persist(context, list)
     }
 
-    @JvmStatic
-    @Synchronized
-    fun clearAll(context: Context) {
-        persist(context, emptyList())
+    @JvmStatic @Synchronized
+    fun clearAll(context: Context) { EncryptedLocalMemoryStore.clear(context) }
+
+    /** Plain JSON is emitted only for an explicit, user-initiated backup export. */
+    @JvmStatic @Synchronized
+    fun exportBackupJson(context: Context): String {
+        val arr = JSONArray()
+        listMemories(context).forEach { arr.put(it.toJson()) }
+        return arr.toString()
     }
 
-    @JvmStatic
-    fun buildPromptContext(context: Context, maxItems: Int = 8): String {
+    @JvmStatic @Synchronized
+    fun importBackupJson(context: Context, json: String): Int {
+        require(json.toByteArray(Charsets.UTF_8).size <= 64 * 1024) { "Data memori cadangan terlalu besar." }
+        val input = JSONArray(json)
+        val imported = ArrayList<MemoryItem>()
+        for (i in 0 until minOf(input.length(), MAX_MEMORIES)) {
+            input.optJSONObject(i)?.let { MemoryItem.fromJson(it)?.let(imported::add) }
+        }
+        if (!persist(context, imported)) throw IllegalStateException("Memori tidak dapat dienkripsi atau disimpan.")
+        return imported.size
+    }
+
+    @JvmStatic fun buildPromptContext(context: Context, maxItems: Int = 8): String {
         val items = listMemories(context)
         if (items.isEmpty()) return ""
-        val sb = StringBuilder("Memori pengguna yang harus diingat:\n")
-        for (item in items.take(maxItems)) {
-            sb.append("- [").append(item.category).append("] ").append(item.text).append('\n')
-        }
-        return sb.toString().trim()
+        return buildString {
+            append("Memori pengguna yang harus diingat:\\n")
+            items.take(maxItems.coerceIn(0, MAX_MEMORIES)).forEach {
+                append("- [").append(it.category).append("] ").append(it.text).append('\\n')
+            }
+        }.trim()
     }
 
-    @JvmStatic
-    fun formatSpeechSummary(context: Context): String {
+    @JvmStatic fun formatSpeechSummary(context: Context): String {
         val items = listMemories(context)
-        if (items.isEmpty()) {
-            return "Memori lokal AI masih kosong. Katakan ingat bahwa, diikuti informasi yang ingin disimpan."
-        }
-        val sb = StringBuilder("Ada ${items.size} memori tersimpan. ")
-        for ((idx, item) in items.take(5).withIndex()) {
-            sb.append("Memori ${idx + 1}: ${item.text}. ")
-        }
-        return sb.toString().trim()
+        if (items.isEmpty()) return "Memori lokal AI masih kosong. Katakan ingat bahwa, diikuti informasi yang ingin disimpan."
+        return buildString {
+            append("Ada ").append(items.size).append(" memori tersimpan. ")
+            items.take(5).forEachIndexed { index, item ->
+                append("Memori ").append(index + 1).append(": ").append(item.text).append(". ")
+            }
+        }.trim()
     }
 
-    @JvmStatic
-    fun formatDate(ts: Long): String {
-        return try {
-            SimpleDateFormat("dd MMM HH:mm", Locale("id", "ID")).format(Date(ts))
-        } catch (_: Throwable) {
-            ""
-        }
-    }
+    @JvmStatic fun formatDate(ts: Long): String = try {
+        SimpleDateFormat("dd MMM HH:mm", Locale("id", "ID")).format(Date(ts))
+    } catch (_: Exception) { "" }
 
-    @Synchronized
-    private fun persist(context: Context, list: List<MemoryItem>) {
+    private fun decode(raw: String): List<MemoryItem> = try {
+        val arr = JSONArray(raw)
+        val out = ArrayList<MemoryItem>()
+        for (i in 0 until minOf(arr.length(), MAX_MEMORIES)) {
+            arr.optJSONObject(i)?.let { MemoryItem.fromJson(it)?.let(out::add) }
+        }
+        out
+    } catch (_: Exception) { emptyList() }
+
+    private fun persist(context: Context, list: List<MemoryItem>): Boolean {
         val arr = JSONArray()
-        for (m in list) arr.put(m.toJson())
-        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        prefs.edit().putString(KEY_MEMORY_JSON, arr.toString()).apply()
+        list.take(MAX_MEMORIES).forEach { arr.put(it.toJson()) }
+        return EncryptedLocalMemoryStore.write(context, arr.toString())
     }
 }
