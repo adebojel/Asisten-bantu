@@ -188,6 +188,11 @@
             android:exported="false" />
 
         <receiver
+            android:name=".KobraRoutineReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
             android:name=".GuardianCheckReceiver"
             android:enabled="true"
             android:exported="false">
