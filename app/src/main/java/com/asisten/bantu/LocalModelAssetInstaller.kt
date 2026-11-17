@@ -15,6 +15,8 @@ object LocalModelAssetInstaller {
     private const val MODEL_FILE = "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
     private const val MIN_MODEL_BYTES = 250L * 1024L * 1024L
     private const val MAX_MODEL_BYTES = 450L * 1024L * 1024L
+    private const val EXPECTED_MODEL_BYTES = 347_251_840L
+    private const val EXPECTED_MODEL_SHA256 = "2df6821ec12702dafd33915e7a1a1adc7c4b053f3672fd9555dfaf3a114c4139"
     private val executor = Executors.newSingleThreadExecutor()
 
     @JvmStatic
@@ -31,7 +33,8 @@ object LocalModelAssetInstaller {
             try {
                 val directory = LocalModelRegistry.directory(app)
                 val destination = File(directory, MODEL_FILE)
-                if (isValid(destination)) {
+                if (isValid(destination) && ModelFileIntegrity.matches(
+                        destination, EXPECTED_MODEL_BYTES, EXPECTED_MODEL_SHA256)) {
                     callback(true, null)
                     return@execute
                 }
@@ -51,8 +54,9 @@ object LocalModelAssetInstaller {
                     }
                 }
 
-                check(isValid(temporary)) {
-                    "Salinan model Qwen3 tidak lengkap (${temporary.length()} byte)."
+                check(isValid(temporary) && ModelFileIntegrity.matches(
+                        temporary, EXPECTED_MODEL_BYTES, EXPECTED_MODEL_SHA256)) {
+                    "Salinan model Qwen3 tidak valid: ukuran atau SHA-256 tidak cocok."
                 }
                 if (destination.exists()) destination.delete()
                 check(temporary.renameTo(destination)) {
