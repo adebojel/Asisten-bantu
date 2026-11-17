@@ -346,3 +346,10 @@ Memori AI aktif dan kontak SOS native disimpan dengan AES-256-GCM serta kunci ya
 Backup JSON hanya dibuat atas tindakan eksplisit pengguna. Agar dapat dipindahkan, isi memori dan kontak SOS pada file backup berupa JSON yang dapat dibaca; file tersebut tidak dienkripsi oleh Kobra dan harus disimpan di lokasi tepercaya. Saat restore, data divalidasi lalu dienkripsi kembali dengan kunci Android Keystore perangkat tujuan. Kunci enkripsi tidak pernah masuk ke backup. Kontak SOS pada tampilan web hanya berada di memori sesi dan tidak disimpan ke localStorage.
 
 Runtime Qwen3 dijadwalkan dilepas setelah 2 menit idle dan ketika Android melaporkan tekanan memori. Penutupan runtime berjalan di worker thread agar tidak memblokir UI. Versi Tahap 5: `7.3-KOBRA-SECURE`, versionCode 10. Uji Keystore, backup/restore, dan pemulihan model tetap harus dilakukan pada HP fisik.
+
+
+## 🔐 Verifikasi integritas model AI lokal
+
+Sebelum Qwen3 dibuka oleh runtime LiteRT-LM, Kobra memverifikasi ukuran berkas dan SHA-256 terhadap revisi model yang dipatok. Pemeriksaan penuh dilakukan ketika salinan model pertama kali dipercaya dalam satu proses aplikasi; hasilnya di-cache selama metadata berkas tidak berubah agar tidak membaca ulang ratusan megabita pada setiap pertanyaan. Salinan yang tidak cocok akan ditolak dan dipasang ulang dari aset APK.
+
+Detail teknis dan status pengujian: [Audit 15 kelompok](AUDIT_KOBRA_OS_15_GROUPS.md) dan [Feature Gap Matrix](docs/FEATURE_GAP_MATRIX.md).
