@@ -90,3 +90,14 @@ Wajib diuji pada minimal satu perangkat Android nyata; catat merek/model, versi 
 ## Catatan keterbatasan
 
 Konektor repository dapat mengubah source dan memicu GitHub Actions, tetapi tidak dapat menggantikan pengujian hardware langsung di HP pengguna. Fitur yang bergantung pada microphone, camera, GPS, SIM/operator, Android power management, dan TalkBack memerlukan uji perangkat nyata.
+
+
+## Implementasi gerbang Tahap 5 pada repository
+
+Perubahan kode/pipeline yang sudah dimasukkan:
+- `tools/Stage5SecurityCheck.mjs` memindai sumber Android/config untuk host AI cloud yang dilarang dan pola kredensial tertanam, serta memeriksa backup aplikasi, cleartext traffic, dan perlindungan bind Accessibility Service.
+- `.github/workflows/release.yml` menjalankan pemeriksaan tersebut sebelum lint, build frontend, unit test Android, dan pembuatan APK/checksum.
+- `KobraConfig.saveLastCrashLog` menyamarkan pola token/kredensial yang umum dan membatasi panjang diagnostik lokal menjadi 12.000 karakter.
+- Workflow build APK lama tidak lagi berjalan otomatis pada branch `kobra-os-v7`; pipeline utama tetap mengikuti `main`.
+
+Pemeriksaan statis ini tidak membuktikan semua jalur runtime bebas jaringan. Audit runtime, pemeriksaan permission berdasarkan fitur, dan pengujian fisik tetap menjadi gerbang terpisah.
