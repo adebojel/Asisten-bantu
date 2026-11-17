@@ -61,7 +61,7 @@ function walk(entry) {
   for (const pattern of secretPatterns) {
     if (pattern.test(code)) failures.push(`${entry}: possible hard-coded credential pattern ${pattern}`);
   }
-  if (/SpeechRecognizer\\.createSpeechRecognizer\\s*\\(/.test(code)) {
+  if (/SpeechRecognizer\.createSpeechRecognizer\s*\(/.test(code)) {
     failures.push(`${entry}: network-capable system SpeechRecognizer is forbidden; use on-device recognition only.`);
   }
 }
