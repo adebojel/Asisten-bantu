@@ -1943,8 +1943,29 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (has(c, "batalkan semua timer", "hapus semua timer", "hentikan timer", "matikan timer")) { cancelAllTimers(); return true; }
         if (has(c, "timer", "hitung mundur")) { setTimer(c); return true; }
         if (has(c, "pasang alarm", "set alarm", "setel alarm", "atur alarm", "alarm jam", "alarm pukul", "bangunkan")) { setAlarm(c); return true; }
+        Integer requestedVolume = SystemControlCommandParser.parseVolumePercent(c);
+        if (requestedVolume != null) { setVolumePercent(requestedVolume); return true; }
+        if (has(c, "mode senyap", "mode hening")) {
+            setRinger(AudioManager.RINGER_MODE_SILENT, "Mode senyap diminta. Periksa indikator suara Android.");
+            return true;
+        }
         if (has(c, "mode getar")) { setRinger(AudioManager.RINGER_MODE_VIBRATE, "Mode getar aktif."); return true; }
         if (has(c, "mode normal", "mode berdering")) { setRinger(AudioManager.RINGER_MODE_NORMAL, "Mode berdering aktif."); return true; }
+        if (has(c, "wifi", "wi-fi")) {
+            openSettings(Settings.ACTION_WIFI_SETTINGS,
+                    "Panel Wi-Fi Android dibuka. Pilih jaringan atau ubah sakelar sendiri jika sistem mengizinkan.");
+            return true;
+        }
+        if (has(c, "data seluler", "data mobile", "paket data")) {
+            openSettings(Settings.ACTION_DATA_USAGE_SETTINGS,
+                    "Pengaturan penggunaan data Android dibuka. Perubahan data seluler harus dilakukan melalui sistem.");
+            return true;
+        }
+        if (has(c, "rotasi layar", "putar layar", "orientasi layar")) {
+            openSettings(Settings.ACTION_DISPLAY_SETTINGS,
+                    "Pengaturan tampilan dibuka. Atur rotasi otomatis melalui kontrol Android.");
+            return true;
+        }
         if (c.equals("buka pengaturan") || c.equals("pengaturan")) { openSettings(Settings.ACTION_SETTINGS, "Pengaturan dibuka."); return true; }
         return false;
     }
@@ -2135,13 +2156,36 @@ public class AsistenAccessibilityService extends AccessibilityService {
     }
 
     private void sendSmsMessage(String name, String number, String body) {
+        String cleanNumber = number == null ? "" : number.replaceAll("[^0-9+]", "");
+        String cleanBody = body == null ? "" : body.trim();
+        if (!Perms.has(this, Manifest.permission.SEND_SMS)) {
+            say("Izin SMS sudah tidak aktif. Pesan tidak dikirim.");
+            openFeaturePermissionSettings(Perms.GROUP_SMS, "Izin mengirim SMS diperlukan.");
+            return;
+        }
+        if (!cleanNumber.matches("\\+?[0-9]{6,20}") || cleanBody.isEmpty() || cleanBody.length() > 1600) {
+            say("Nomor atau isi SMS tidak valid. Batas isi pesan adalah 1.600 karakter. Pesan tidak dikirim.");
+            return;
+        }
         try {
-            SmsManager sm = Build.VERSION.SDK_INT >= 31 ? getSystemService(SmsManager.class) : SmsManager.getDefault();
-            sm.sendMultipartTextMessage(number, null, sm.divideMessage(body), null, null);
-            say("SMS dikirim ke " + name + ".");
+            SmsManager sm = Build.VERSION.SDK_INT >= 31
+                    ? getSystemService(SmsManager.class) : SmsManager.getDefault();
+            if (sm == null) {
+                say("Layanan SMS perangkat tidak tersedia. Pesan tidak dikirim.");
+                return;
+            }
+            java.util.ArrayList<String> parts = sm.divideMessage(cleanBody);
+            if (parts == null || parts.isEmpty()) {
+                say("Isi SMS tidak dapat diproses. Pesan tidak dikirim.");
+                return;
+            }
+            sm.sendMultipartTextMessage(cleanNumber, null, parts, null, null);
+            say("Perintah pengiriman SMS ke " + name + " telah diserahkan ke layanan Android.");
+        } catch (SecurityException denied) {
+            say("Android menolak izin pengiriman SMS. Pesan tidak dikirim.");
         } catch (Exception e) {
             Log.w(TAG, "SMS gagal", e);
-            say("SMS gagal dikirim ke " + name + ".");
+            say("SMS gagal dikirim ke " + name + ". Periksa SIM dan layanan operator.");
         }
     }
 
@@ -3254,6 +3298,22 @@ public class AsistenAccessibilityService extends AccessibilityService {
         am.adjustStreamVolume(AudioManager.STREAM_MUSIC,
                 up ? AudioManager.ADJUST_RAISE : AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI);
         say(up ? "Volume naik." : "Volume turun.");
+    }
+
+    private void setVolumePercent(int percent) {
+        AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+        if (am == null) { say("Pengendali volume tidak tersedia."); return; }
+        int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        if (max <= 0) { say("Rentang volume media tidak tersedia."); return; }
+        int target = Math.max(0, Math.min(max, Math.round(max * (percent / 100f))));
+        try {
+            am.setStreamVolume(AudioManager.STREAM_MUSIC, target, AudioManager.FLAG_SHOW_UI);
+            say("Volume media diatur sekitar " + percent + " persen.");
+        } catch (SecurityException denied) {
+            say("Android menolak perubahan volume langsung. Gunakan tombol volume perangkat.");
+        } catch (Exception error) {
+            say("Volume media tidak dapat diubah saat ini.");
+        }
     }
 
     private int batteryPercent() {
