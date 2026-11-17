@@ -137,10 +137,10 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (Array.isArray(parsed)) {
           // Remove legacy sample numbers that were shipped as placeholders.
           return parsed.filter(contact => {
-            const digits = (contact?.phone || '').replace(/\\D/g, '');
+            const digits = (contact?.phone || '').replace(/\D/g, '');
             return !!contact?.name?.trim() && digits.length >= 7
-              && digits !== '081234567890'.replace(/\\D/g, '')
-              && digits !== '089876543210'.replace(/\\D/g, '');
+              && digits !== '081234567890'.replace(/\D/g, '')
+              && digits !== '089876543210'.replace(/\D/g, '');
           }).slice(0, 2);
         }
       }
@@ -197,7 +197,7 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const triggerSos = useCallback(() => {
-    const contact = sosContacts.find(item => item.name.trim() && item.phone.replace(/\\D/g, '').length >= 7);
+    const contact = sosContacts.find(item => item.name.trim() && item.phone.replace(/\D/g, '').length >= 7);
     if (!contact) {
       setCurrentScreen('sos');
       say('SOS belum dijalankan. Tambahkan dan simpan kontak darurat utama yang benar terlebih dahulu.');
@@ -594,7 +594,7 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateSosContact = useCallback((index: number, contact: SosContact) => {
     setSosContacts(prev => {
       const next = [...prev];
-      if (contact.name.trim() && contact.phone.replace(/\\D/g, '').length >= 7) {
+      if (contact.name.trim() && contact.phone.replace(/\D/g, '').length >= 7) {
         next[index] = contact;
       } else {
         next.splice(index, 1);

@@ -9,12 +9,12 @@ export const SosScreen: React.FC = () => {
   const [contact2, setContact2] = useState(sosContacts[1] || { name: '', phone: '', relation: 'Kerabat' });
 
   const handleSave = () => {
-    const primaryDigits = contact1.phone.replace(/\\D/g, '');
+    const primaryDigits = contact1.phone.replace(/\D/g, '');
     if (!contact1.name.trim() || primaryDigits.length < 7 || primaryDigits.length > 15) {
       say('Nama dan nomor kontak darurat utama yang valid wajib diisi.');
       return;
     }
-    const secondaryDigits = contact2.phone.replace(/\\D/g, '');
+    const secondaryDigits = contact2.phone.replace(/\D/g, '');
     if ((contact2.name.trim() || contact2.phone.trim()) &&
         (!contact2.name.trim() || secondaryDigits.length < 7 || secondaryDigits.length > 15)) {
       say('Kontak cadangan belum lengkap atau nomornya tidak valid.');
