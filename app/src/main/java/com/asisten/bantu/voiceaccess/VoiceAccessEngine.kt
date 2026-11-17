@@ -48,12 +48,14 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             focusOutline.hide()
             return
         }
-        val wordBounds = NodeIndexer.focusedWordBounds(service)
-        if (wordBounds != null) {
-            focusOutline.show(wordBounds)
+        // Prefer precise word geometry while editing text. For ordinary controls,
+        // use the exact accessibility-focused node bounds (never a guessed screen region).
+        val targetBounds = NodeIndexer.focusedWordBounds(service)
+            ?: NodeIndexer.focusedBounds(service)
+        if (targetBounds != null && !targetBounds.isEmpty) {
+            focusOutline.show(targetBounds)
             return
         }
-        // Word geometry is mandatory: never substitute a line, paragraph, or control rectangle.
         focusOutline.hide()
     }
 
