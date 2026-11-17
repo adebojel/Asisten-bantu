@@ -7,6 +7,9 @@ import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -261,6 +264,39 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
                 });
     }
 
+    private boolean hasValidatedInternet() {
+        try {
+            ConnectivityManager manager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            Network active = manager != null ? manager.getActiveNetwork() : null;
+            NetworkCapabilities capabilities = manager != null && active != null
+                    ? manager.getNetworkCapabilities(active) : null;
+            return capabilities != null
+                    && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                    && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private void ensureRouteSegmentsAvailable(Location start, LatLng end) throws Exception {
+        List<String> missing = router.getMissingSegmentsForBounds(
+                Math.min(start.getLatitude(), end.getLatitude()),
+                Math.min(start.getLongitude(), end.getLongitude()),
+                Math.max(start.getLatitude(), end.getLatitude()),
+                Math.max(start.getLongitude(), end.getLongitude()));
+        if (missing.isEmpty()) return;
+        if (!hasValidatedInternet()) {
+            throw new java.io.IOException("Segmen rute offline belum tersimpan: "
+                    + String.join(", ", missing)
+                    + ". Hubungkan internet sekali untuk mengunduh wilayah ini, lalu rute dapat dihitung offline.");
+        }
+        router.downloadSegmentsForBounds(
+                Math.min(start.getLatitude(), end.getLatitude()),
+                Math.min(start.getLongitude(), end.getLongitude()),
+                Math.max(start.getLatitude(), end.getLatitude()),
+                Math.max(start.getLongitude(), end.getLongitude()));
+    }
+
     private void createRoute() {
         if (currentLocation == null) {
             tvStatus.setText("Lokasi awal belum tersedia. Tekan Lokasi Saya.");
@@ -278,11 +314,7 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
         tvStatus.setText("Menyiapkan segmen OSM offline dan menghitung rute...");
         worker.execute(() -> {
             try {
-                router.downloadSegmentsForBounds(
-                        Math.min(start.getLatitude(), end.getLatitude()),
-                        Math.min(start.getLongitude(), end.getLongitude()),
-                        Math.max(start.getLatitude(), end.getLatitude()),
-                        Math.max(start.getLongitude(), end.getLongitude()));
+                ensureRouteSegmentsAvailable(start, end);
                 String geoJson = router.route(start.getLatitude(), start.getLongitude(),
                         end.getLatitude(), end.getLongitude());
                 RouteData data = parseRoute(geoJson);
@@ -336,11 +368,7 @@ public final class PedestrianMapActivity extends AppCompatActivity implements Lo
         speaker.speak("Anda tampaknya menyimpang dari rute. Saya sedang menghitung ulang rute offline.");
         worker.execute(() -> {
             try {
-                router.downloadSegmentsForBounds(
-                        Math.min(start.getLatitude(), end.getLatitude()),
-                        Math.min(start.getLongitude(), end.getLongitude()),
-                        Math.max(start.getLatitude(), end.getLatitude()),
-                        Math.max(start.getLongitude(), end.getLongitude()));
+                ensureRouteSegmentsAvailable(start, end);
                 RouteData data = parseRoute(router.route(start.getLatitude(), start.getLongitude(),
                         end.getLatitude(), end.getLongitude()));
                 runOnUiThread(() -> {
