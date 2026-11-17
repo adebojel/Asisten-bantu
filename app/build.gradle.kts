@@ -22,6 +22,8 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
+        // Kept only for source compatibility; always blank in offline-only builds.
+        buildConfigField("String", "GEMINI_API_KEY", "\"\"\"")
 
     }
 
