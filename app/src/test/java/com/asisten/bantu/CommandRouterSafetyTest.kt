@@ -1,5 +1,6 @@
 package com.asisten.bantu
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -83,4 +84,24 @@ class CommandRouterSafetyTest {
             assertFalse("Tidak boleh diblokir: $target", CommandRouter.isRiskyAgentTarget(target))
         }
     }
+    @Test
+    fun explicitOfflineAgentParsesOnlySupportedNavigationSteps() {
+        val plan = CommandRouter.parseExplicitAgentPlan(
+            "buka Chrome lalu klik Search kemudian scroll ke bawah"
+        )
+        assertTrue(plan != null)
+        assertEquals(listOf("open-app", "click-label", "scroll-down"), plan!!.map { it.action })
+        assertEquals("chrome", plan[0].target)
+        assertEquals("search", plan[1].target)
+    }
+
+    @Test
+    fun explicitOfflineAgentRejectsRiskyOrUnrecognizedSteps() {
+        assertFalse(CommandRouter.parseExplicitAgentPlan("buka WhatsApp lalu kirim pesan ke Ibu") != null)
+        assertFalse(CommandRouter.parseExplicitAgentPlan("buka Settings lalu klik Allow") != null)
+        assertFalse(CommandRouter.parseExplicitAgentPlan("buka Chrome lalu ketik alamat situs") != null)
+        assertFalse(CommandRouter.parseExplicitAgentPlan("buka Chrome lalu scroll bawah lalu kembali lalu beranda lalu buka Maps lalu klik Search") != null)
+        assertFalse(CommandRouter.parseExplicitAgentPlan("buka Chrome lalu") != null)
+    }
+
 }
