@@ -24,6 +24,16 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 13. "Kobra kirim SMS ke <kontak uji>", isi, "iya".
 14. "Kobra buka" lalu nama yang mirip beberapa aplikasi (misalnya "Google"): Kobra harus menyebut nomor; jawab "dua".
 
+## D2. Agen Android lokal (navigasi aman)
+
+1. Aktifkan layanan Accessibility Kobra dan buka aplikasi uji yang tidak berisi data sensitif.
+2. Ucapkan: “Kobra buka Chrome lalu klik Search kemudian scroll ke bawah”. Agen hanya boleh menjalankan langkah yang dipahami secara eksplisit.
+3. Uji target label yang tidak ada atau ambigu. Agen harus berhenti dan menjelaskan bahwa target tidak dapat diverifikasi.
+4. Uji perintah berisiko seperti “buka WhatsApp lalu kirim pesan”. Agen harus menolak urutan tersebut dan tidak mengirim apa pun.
+5. Saat urutan berjalan, ucapkan “Kobra hentikan agen layar”. Agen harus berhenti sebelum langkah berikutnya.
+6. Pastikan agen tidak mengetik, mengirim, menelepon, mengubah izin, atau mengubah pengaturan sistem secara otomatis.
+7. Catat aplikasi, versi Android, langkah, dan hasil aktual. Pengujian ini tetap harus dilakukan di HP fisik.
+
 ## E. Layar, kata, dan tampilan minimal
 15. Buka aplikasi apa saja, ucapkan "Kobra baca layar". Pastikan Kobra membacakan teks, label, dan kontrol yang benar-benar diekspos aplikasi.
 16. Ucapkan "Kobra klik [nama tombol]" pada satu target unik. Jika ada beberapa target mirip, Kobra harus meminta pemilihan yang lebih tepat dan tidak menebak.
