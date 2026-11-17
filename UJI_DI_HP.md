@@ -47,7 +47,6 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 7. Ucapkan “daftar rutinitas”. Pastikan waktu, kondisi, dan status eksekusi terakhir dibacakan.
 8. Uji “hapus semua agenda”. Rutinitas dan alarm satu kali harus dibatalkan.
 9. Restart HP dan pastikan rutinitas harian dipulihkan. Jika izin exact alarm tidak tersedia, catat bahwa waktu pengingat dapat tidak presisi.
-10. Cabut izin SMS setelah Kobra meminta konfirmasi pengiriman. Pastikan Kobra menolak mengirim dan menjelaskan izin sudah tidak aktif.
 
 ## D4. Komunikasi
 
@@ -55,8 +54,10 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 2. Uji nama ambigu. Kobra harus meminta pemilihan kontak dan tidak menebak penerima.
 3. Susun SMS uji ke nomor milik sendiri. Pastikan Kobra membacakan penerima dan isi lalu meminta konfirmasi.
 4. Jawab “tidak”; pastikan SMS tidak dikirim.
-5. Ulangi dengan “iya” hanya untuk nomor uji yang benar. Periksa status kirim pada aplikasi pesan/operator; ucapan Kobra bahwa permintaan diserahkan ke Android bukan bukti SMS diterima.
-6. Uji panggilan dengan membatalkan konfirmasi. Panggilan tidak boleh dimulai.
+5. Jika dua SIM aktif dan izin status telepon diberikan, pastikan Kobra meminta konfirmasi tambahan bahwa SIM default SMS Android yang akan digunakan. Atur SIM default di Pengaturan SIM sebelum menyetujui jika perlu.
+6. Ulangi dengan “iya” hanya untuk nomor uji yang benar. Periksa status kirim pada aplikasi pesan/operator; ucapan Kobra bahwa permintaan diserahkan ke Android bukan bukti SMS diterima.
+7. Cabut izin SMS setelah Kobra meminta konfirmasi pengiriman. Pastikan Kobra menolak mengirim dan menjelaskan izin sudah tidak aktif.
+8. Uji panggilan dengan membatalkan konfirmasi. Panggilan tidak boleh dimulai.
 
 ## D5. Navigasi offline
 
