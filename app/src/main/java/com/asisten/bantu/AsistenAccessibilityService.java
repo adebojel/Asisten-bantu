@@ -3190,11 +3190,16 @@ public class AsistenAccessibilityService extends AccessibilityService {
             locationStatus = "Lokasi terakhir diperbarui kurang dari dua menit lalu.";
         } else {
             long ageMinutes = SosLocationFreshness.ageMinutes(now, loc.getTime());
-            where = "koordinat terakhir tercatat " + ageMinutes
-                    + " menit lalu (mungkin bukan posisi saat ini): https://maps.google.com/?q="
-                    + loc.getLatitude() + "," + loc.getLongitude();
-            locationStatus = "Lokasi yang tersedia sudah lama, sekitar " + ageMinutes
-                    + " menit; jangan anggap sebagai posisi saat ini.";
+            if (ageMinutes < 0L) {
+                where = "lokasi tidak disertakan karena waktu pembaruan tidak valid";
+                locationStatus = "Waktu lokasi tidak valid; koordinat tidak disertakan demi mencegah informasi menyesatkan.";
+            } else {
+                where = "koordinat terakhir tercatat " + ageMinutes
+                        + " menit lalu (mungkin bukan posisi saat ini): https://maps.google.com/?q="
+                        + loc.getLatitude() + "," + loc.getLongitude();
+                locationStatus = "Lokasi yang tersedia sudah lama, sekitar " + ageMinutes
+                        + " menit; jangan anggap sebagai posisi saat ini.";
+            }
         }
         String msg = "DARURAT dari Kobra OS. Saya butuh bantuan segera. Lokasi: " + where;
 
