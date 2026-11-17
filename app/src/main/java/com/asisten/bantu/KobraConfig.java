@@ -35,6 +35,13 @@ public final class KobraConfig {
     public KobraConfig(Context c) {
         this.appContext = c.getApplicationContext();
         this.prefs = appContext.getSharedPreferences(PREFS_CONFIG, Context.MODE_PRIVATE);
+        // Purge credentials and webhook URLs left by older hybrid builds.
+        this.prefs.edit()
+                .remove("api_key")
+                .remove("gemini_api_key")
+                .remove("n8n_url")
+                .remove("model")
+                .apply();
         this.sos = appContext.getSharedPreferences(PREFS_SOS, Context.MODE_PRIVATE);
         this.crashGuard = appContext.getSharedPreferences(PREFS_LLM_CRASH_GUARD, Context.MODE_PRIVATE);
     }
