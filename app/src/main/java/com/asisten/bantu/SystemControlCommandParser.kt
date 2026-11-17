@@ -6,7 +6,7 @@ import java.util.Locale
  * Pure parser for explicit system-control values. It deliberately accepts only
  * a bounded percentage command, not arbitrary text that happens to mention volume.
  */
-internal object SystemControlCommandParser {
+object SystemControlCommandParser {
     private val volumePercentPattern = Regex(
         """^\s*(?:kobra\s+)?(?:tolong\s+)?(?:atur\s+)?(?:volume|suara)\s+(?:(?:ke|menjadi)\s+)?(100|[1-9]?\d)\s*(?:persen|%)\s*$""",
         RegexOption.IGNORE_CASE
