@@ -222,11 +222,12 @@ public final class SystemUtilityHelper {
 
         int id = config.nextPlannerId();
         long triggerMs = target.getTimeInMillis();
-        config.addPlannerItem(id, hour, minute, title, triggerMs);
-
         boolean exactOrFallbackScheduled = repeatDaily
                 ? RoutineAutomationManager.scheduleDailyReminder(context, id, hour, minute, title)
                 : scheduleAlarm(context, id, hour, minute, title, triggerMs);
+        if (exactOrFallbackScheduled) {
+            config.addPlannerItem(id, hour, minute, title, triggerMs);
+        }
         String timeStr = String.format(Locale.US, "%02d:%02d", hour, minute);
         if (!exactOrFallbackScheduled) {
             return (repeatDaily ? "Rutinitas harian" : "Agenda")
