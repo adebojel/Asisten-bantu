@@ -622,6 +622,11 @@ public final class KobraConfig {
             throw new IllegalArgumentException("Format berkas bukan cadangan resmi Kobra OS.");
         }
         JSONObject stores = root.getJSONObject("prefs");
+        JSONArray memoryBackup = null;
+        if (root.has("local_memory")) {
+            memoryBackup = root.optJSONArray("local_memory");
+            if (memoryBackup == null) throw new IllegalArgumentException("Format memori pada backup tidak valid.");
+        }
         int restoredCount = 0;
         if (stores.has(PREFS_CONFIG)) {
             restoredCount += restorePrefs(prefs, stores.getJSONObject(PREFS_CONFIG));
@@ -629,10 +634,8 @@ public final class KobraConfig {
         if (stores.has(PREFS_SOS)) {
             restoredCount += restorePrefs(sos, stores.getJSONObject(PREFS_SOS));
         }
-        if (root.has("local_memory")) {
-            JSONArray memory = root.optJSONArray("local_memory");
-            if (memory == null) throw new IllegalArgumentException("Format memori pada backup tidak valid.");
-            restoredCount += LocalMemoryStore.importBackupJson(appContext, memory.toString());
+        if (memoryBackup != null) {
+            restoredCount += LocalMemoryStore.importBackupJson(appContext, memoryBackup.toString());
         } else {
             // Backward compatibility: migrate legacy plaintext memory included in version-1 backups.
             LocalMemoryStore.exportBackupJson(appContext);
