@@ -95,6 +95,28 @@ if (!modelRuntime.includes("IDLE_UNLOAD_MS = 120_000L") || !modelRuntime.include
   failures.push("LiteRT runtime must unload after idle and close away from the UI thread.");
 }
 
+const frontendContextPath = path.join(root, "src/context/KobraContext.tsx");
+const frontendSpeakerPath = path.join(root, "src/services/speaker.ts");
+const retiredAiClientPath = path.join(root, "src/services/aiClient.ts");
+if (fs.existsSync(retiredAiClientPath)) {
+  failures.push("Retired frontend AI client must be removed; browser UI must not retain cloud AI/webhook transports.");
+}
+if (fs.existsSync(frontendContextPath)) {
+  const frontendContext = fs.readFileSync(frontendContextPath, "utf8");
+  if (/webkitSpeechRecognition|\\bSpeechRecognition\\b/.test(frontendContext)) {
+    failures.push("Browser Web Speech API is not guaranteed to be local; frontend speech input must use a verified on-device bridge.");
+  }
+}
+if (fs.existsSync(frontendSpeakerPath)) {
+  const frontendSpeaker = fs.readFileSync(frontendSpeakerPath, "utf8");
+  if (!frontendSpeaker.includes("v.localService")) {
+    failures.push("Browser TTS must select localService voices only.");
+  }
+  if (!frontendSpeaker.includes("isOfflineIndonesianVoiceReady()")) {
+    failures.push("Browser TTS must refuse speech when no offline Indonesian voice is available.");
+  }
+}
+
 const speakerPath = path.join(root, "app/src/main/java/com/asisten/bantu/Speaker.java");
 const unifiedTtsPath = path.join(root, "app/src/main/java/com/asisten/bantu/UnifiedAccessibilityEngine.kt");
 const voiceProfilesPath = path.join(root, "app/src/main/java/com/asisten/bantu/VoiceProfileManager.kt");
