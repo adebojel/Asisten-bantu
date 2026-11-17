@@ -19,6 +19,10 @@ public final class KobraConfig {
     public static final String PREFS_SOS = "kobra_sos";
     public static final String PREFS_LLM_CRASH_GUARD = "llm_crash_guard";
 
+    /** Empty compatibility arrays: remote model catalogs are no longer used. */
+    public static final String[] TEXT_MODELS = new String[0];
+    public static final String[] VISION_MODELS = new String[0];
+
     public static final String STYLE_RINGKAS = "ringkas";
     public static final String STYLE_RAMAH = "ramah";
     public static final String STYLE_DAERAH = "daerah";
