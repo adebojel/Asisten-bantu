@@ -1579,6 +1579,13 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
 
+        // Peta jalan kaki lokal dengan BRouter dan data segmen yang telah disimpan.
+        if (has(c, "navigasi offline", "peta offline", "rute jalan kaki offline")) {
+            launch(PedestrianMapActivity.class, null);
+            say("Navigasi jalan kaki offline dibuka. Pilih tujuan pada peta. Rute offline memerlukan segmen wilayah yang sudah tersimpan.");
+            return;
+        }
+
         // YouTube Voice Search & Auto-Play (#67) dan navigasi peta
         if ((has(c, "youtube") && !c.startsWith("buka ")) || c.startsWith("putar ")) {
             String yq = c.replaceFirst("^(putar|cari)\\s+", "")
@@ -2235,6 +2242,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
         String q = raw.trim();
         if (q.isEmpty()) { say("Buka apa?"); return; }
         switch (q) {
+            case "navigasi offline": case "peta offline": case "rute jalan kaki offline":
+                launch(PedestrianMapActivity.class, null);
+                say("Navigasi jalan kaki offline dibuka. Pilih tujuan pada peta. Rute offline memerlukan segmen wilayah yang sudah tersimpan.");
+                return;
             case "notifikasi": global(GLOBAL_ACTION_NOTIFICATIONS, "Notifikasi dibuka."); return;
             case "pengaturan cepat": global(GLOBAL_ACTION_QUICK_SETTINGS, "Pengaturan cepat dibuka."); return;
             case "aplikasi terbaru": global(GLOBAL_ACTION_RECENTS, "Aplikasi terbaru."); return;
