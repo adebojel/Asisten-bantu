@@ -162,6 +162,19 @@ Pengenalan suara Chat menggunakan Android on-device recognition bila tersedia. J
 
 ---
 
+## 🤖 Agen Android lokal — Tahap 4
+
+Agen layar menjalankan urutan navigasi eksplisit secara lokal tanpa meminta rencana ke model cloud. Pada implementasi awal ini, langkah yang didukung dibatasi pada membuka aplikasi, klik label kontrol yang unik dan aman, scroll, kembali, serta beranda.
+
+- Perintah multi-langkah dapat dirangkai dengan kata **lalu** atau **kemudian**.
+- Setiap target klik dicari ulang dari pohon aksesibilitas aktif; target ambigu, tidak terlihat, tidak clickable, editable, checkable, atau berisiko ditolak.
+- Perubahan layar diverifikasi setelah setiap langkah. Jika layar tidak dapat diverifikasi, agen berhenti dan tidak melanjutkan.
+- Perintah **“hentikan agen layar”** atau **“batalkan agen layar”** meminta pembatalan di antara langkah.
+- Agen tahap awal tidak mengetik teks, mengirim pesan, melakukan panggilan, transaksi, mengubah izin, atau mengubah pengaturan sistem.
+- Klik yang tidak didukung harus dilakukan secara manual melalui kontrol suara biasa.
+
+Contoh: **“Kobra buka Chrome lalu klik Search kemudian scroll ke bawah.”**
+
 ## ♿ Aksesibilitas dan kontrol suara
 
 Kobra dapat membaca dan berinteraksi dengan elemen yang diekspos oleh pohon aksesibilitas Android. Fitur ini tidak menjamin akses ke semua aplikasi atau seluruh elemen layar.
