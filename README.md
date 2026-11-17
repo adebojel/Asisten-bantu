@@ -135,7 +135,7 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 - Pembaca layar KOBRA dapat mengindeks elemen yang diekspos oleh AccessibilityService, membacakan label, memindahkan fokus, dan menandai target fokus.
 - Pembaca layar mandiri dapat diaktifkan dengan perintah suara “aktifkan pembaca layar Kobra” dan dimatikan dengan “matikan pembaca layar Kobra”. Layanan aksesibilitas KOBRA harus diaktifkan di Setelan Android; TalkBack bawaan tidak harus dinyalakan.
 - Batasan: aplikasi pihak ketiga dapat menyembunyikan node atau memakai tampilan kanvas/secure window; KOBRA tidak dapat menjamin seluruh konten aplikasi terbaca. Label objek bukan pengukuran jarak, deteksi bahaya, atau jaminan rute aman. Tetap gunakan alat bantu mobilitas fisik.
-- Model EfficientDet-Lite0 eksternal tidak dianggap tersedia hanya karena path model disebut di kode; bila file model tidak ada, jalur deteksi memakai fallback label objek dan harus diverifikasi di perangkat.
+- Build Gradle mengunduh EfficientDet-Lite0 dari URL HTTPS yang dipatok, memeriksa ukuran dan SHA-256, lalu memasukkannya ke assets aplikasi. Jika inisialisasi model gagal saat runtime, jalur label objek cadangan digunakan.
 
 ## 🧠 AI lokal sepenuhnya (offline-only)
 
