@@ -95,6 +95,40 @@ if (!modelRuntime.includes("IDLE_UNLOAD_MS = 120_000L") || !modelRuntime.include
   failures.push("LiteRT runtime must unload after idle and close away from the UI thread.");
 }
 
+const speakerPath = path.join(root, "app/src/main/java/com/asisten/bantu/Speaker.java");
+const unifiedTtsPath = path.join(root, "app/src/main/java/com/asisten/bantu/UnifiedAccessibilityEngine.kt");
+const voiceProfilesPath = path.join(root, "app/src/main/java/com/asisten/bantu/VoiceProfileManager.kt");
+if (fs.existsSync(speakerPath)) {
+  const speaker = fs.readFileSync(speakerPath, "utf8");
+  if (!speaker.includes("if (!offlineIndonesianVoiceReady)")) {
+    failures.push("Primary TTS must refuse speech when offline Indonesian voice is unavailable.");
+  }
+  if (speaker.includes("tts.setLanguage(Locale.getDefault())")) {
+    failures.push("Primary TTS must not fall back to the system default voice.");
+  }
+} else {
+  failures.push("Primary Speaker source is missing; offline TTS policy could not be verified.");
+}
+if (fs.existsSync(unifiedTtsPath)) {
+  const unifiedTts = fs.readFileSync(unifiedTtsPath, "utf8");
+  if (!unifiedTts.includes("VoiceProfileManager.hasOfflineIndonesianVoice(tts)")) {
+    failures.push("Accessibility TTS must verify an offline Indonesian voice before speaking.");
+  }
+  if (unifiedTts.includes("tts.setLanguage(Locale.getDefault())")) {
+    failures.push("Accessibility TTS must not fall back to the system default voice.");
+  }
+} else {
+  failures.push("Unified accessibility TTS source is missing; offline TTS policy could not be verified.");
+}
+if (fs.existsSync(voiceProfilesPath)) {
+  const profiles = fs.readFileSync(voiceProfilesPath, "utf8");
+  if (!profiles.includes("!voice.isNetworkConnectionRequired")) {
+    failures.push("TTS voice selection must exclude voices requiring network access.");
+  }
+} else {
+  failures.push("Voice profile source is missing; offline voice selection could not be verified.");
+}
+
 const voiceServicePath = path.join(root, "app/src/main/java/com/asisten/bantu/AsistenAccessibilityService.java");
 if (fs.existsSync(voiceServicePath)) {
   const voiceService = fs.readFileSync(voiceServicePath, "utf8");
