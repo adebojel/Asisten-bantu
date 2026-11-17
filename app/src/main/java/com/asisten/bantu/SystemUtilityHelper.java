@@ -202,7 +202,11 @@ public final class SystemUtilityHelper {
         if (title.isEmpty()) {
             title = "Pengingat agenda";
         }
-        title = title.replaceFirst("^(untuk|buat)\\s+", "").trim();
+        boolean repeatDaily = raw.toLowerCase(Locale.ROOT).contains("setiap hari")
+                || raw.toLowerCase(Locale.ROOT).contains("tiap hari");
+        title = title.replaceAll("(?i)\\b(?:setiap|tiap) hari\\b", " ")
+                .replaceFirst("^(untuk|buat)\\s+", "")
+                .replaceAll("\\s+", " ").trim();
         if (title.isEmpty()) title = "Pengingat agenda";
 
         Calendar target = Calendar.getInstance();
@@ -220,13 +224,20 @@ public final class SystemUtilityHelper {
         long triggerMs = target.getTimeInMillis();
         config.addPlannerItem(id, hour, minute, title, triggerMs);
 
-        boolean exactOrFallbackScheduled = scheduleAlarm(context, id, hour, minute, title, triggerMs);
+        boolean exactOrFallbackScheduled = repeatDaily
+                ? RoutineAutomationManager.scheduleDailyReminder(context, id, hour, minute, title)
+                : scheduleAlarm(context, id, hour, minute, title, triggerMs);
         String timeStr = String.format(Locale.US, "%02d:%02d", hour, minute);
         if (!exactOrFallbackScheduled) {
-            return "Agenda dicatat untuk pukul " + timeStr + ", namun izin alarm tepat belum aktif di HP ini.";
+            return (repeatDaily ? "Rutinitas harian" : "Agenda")
+                    + " dicatat untuk pukul " + timeStr
+                    + ", tetapi alarm tidak dapat dipasang. Periksa izin alarm dan notifikasi.";
         }
-        return "Agenda dicatat dan pengingat dipasang untuk "
-                + (tomorrow ? "besok " : "") + "pukul " + timeStr + ": " + title + ".";
+        return repeatDaily
+                ? "Rutinitas harian lokal dipasang pukul " + timeStr + ": " + title
+                    + ". Rutinitas hanya membacakan pengingat, dan akan dipulihkan setelah HP dinyalakan ulang."
+                : "Agenda dicatat dan pengingat dipasang untuk "
+                    + (tomorrow ? "besok " : "") + "pukul " + timeStr + ": " + title + ".";
     }
 
     private static int adjustPeriod(int hour, String period, String full) {
@@ -302,8 +313,9 @@ public final class SystemUtilityHelper {
                 } catch (Exception ignored) {}
             }
         }
+        int routineCount = RoutineAutomationManager.cancelAll(context);
         config.clearPlannerItems();
-        return "Semua agenda pengingat harian telah dihapus.";
+        return "Semua agenda satu kali dan " + routineCount + " rutinitas harian lokal telah dihapus.";
     }
 
     // =========================================================================
