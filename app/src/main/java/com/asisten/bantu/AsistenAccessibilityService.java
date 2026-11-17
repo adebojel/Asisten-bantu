@@ -3178,8 +3178,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
         Location loc = lastKnownLocation();
-        long now = System.currentTimeMillis();
-        boolean locationFresh = loc != null && SosLocationFreshness.isFresh(now, loc.getTime());
+        // Compare monotonic elapsed-realtime timestamps so manual/network clock changes cannot relabel a stale fix.
+        long now = SystemClock.elapsedRealtime();
+        long fixElapsedMs = loc == null ? 0L : loc.getElapsedRealtimeNanos() / 1_000_000L;
+        boolean locationFresh = loc != null && SosLocationFreshness.isFresh(now, fixElapsedMs);
         String where;
         String locationStatus;
         if (loc == null) {
@@ -3189,7 +3191,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             where = "https://maps.google.com/?q=" + loc.getLatitude() + "," + loc.getLongitude();
             locationStatus = "Lokasi terakhir diperbarui kurang dari dua menit lalu.";
         } else {
-            long ageMinutes = SosLocationFreshness.ageMinutes(now, loc.getTime());
+            long ageMinutes = SosLocationFreshness.ageMinutes(now, fixElapsedMs);
             if (ageMinutes < 0L) {
                 where = "lokasi tidak disertakan karena waktu pembaruan tidak valid";
                 locationStatus = "Waktu lokasi tidak valid; koordinat tidak disertakan demi mencegah informasi menyesatkan.";
