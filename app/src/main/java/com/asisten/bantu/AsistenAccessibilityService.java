@@ -84,7 +84,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
             + "Kedua, Mata Kedua dan Dokumen: baca KTP, baca uang, hitung lembar uang, cocokkan baju, baca layar digital, pindai struk transfer, scan barcode, cari kursi atau benda, terjemahkan kamera, baca dokumen PDF, atau mode tongkat. "
             + "Ketiga, Navigasi dan Jaringan: kompas, saya di mana, simpan lokasi, arahkan pulang, jadwal sholat, arah kiblat, atau cek sinyal. "
             + "Keempat, Komunikasi dan Keuangan: panggil atau telepon nama, kirim pesan atau SMS, baca dan balas notifikasi, angkat atau tolak telepon, atau cek transaksi terakhir. "
-            + "Kelima, Kendali Layar, YouTube, dan Musik: klik atau tekan nama tombol, ketik atau tulis teks, geser ke atas atau bawah, kembali, ke layar utama, putar judul di YouTube, putar musik lokal, jeda musik, lanjut putar, dan lagu berikutnya atau sebelumnya. "
+            + "Kelima, Kendali Layar, YouTube, dan Musik: klik atau tekan nama tombol, ketik atau tulis teks, geser ke atas atau bawah, kembali, ke layar utama, riwayat agen layar, hapus riwayat agen layar, hentikan agen layar, putar judul di YouTube, putar musik lokal, jeda musik, lanjut putar, dan lagu berikutnya atau sebelumnya. "
             + "Keenam, Utilitas Harian: catat memo, ingat barang, catat pengeluaran, tambah jadwal obat, ingatkan setiap hari jam sekian, daftar rutinitas, hapus semua agenda, atur volume ke persentase tertentu, mode senyap, mode getar, Wi-Fi, data seluler, rotasi layar, timer, alarm, kalkulator, baterai, dan senter.";
 
     private static final Set<String> YES = new HashSet<>(Arrays.asList(
