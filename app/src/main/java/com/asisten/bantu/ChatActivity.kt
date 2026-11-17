@@ -445,23 +445,30 @@ open class ChatActivity : AppCompatActivity() {
         startSpeechRecognition()
     }
 
-    private fun startSpeechRecognition(forceSystemRecognizer: Boolean = false) {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            speaker.speak("Pengenalan suara tidak tersedia di perangkat ini.")
+    /**
+     * Offline-only speech capture. Never instantiate the generic system recognizer:
+     * on devices without Android's on-device recognizer, fail closed and explain
+     * that an offline Indonesian ASR pack is required.
+     */
+    private fun startSpeechRecognition() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            !SpeechRecognizer.isOnDeviceRecognitionAvailable(this)) {
+            isListening = false
+            speechRecognizer = null
+            voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
+            tvModelInfo.text = "Mesin pengenal suara offline belum tersedia."
+            speaker.speak("Pengenalan suara offline belum tersedia. Pasang mesin pengenal suara offline Bahasa Indonesia untuk menggunakan fitur suara. Kobra tidak mengirim suara ke server.")
+            if (handsFreeConversation) {
+                handsFreeConversation = false
+                btnHandsFreeConversation.text = "Percakapan hands-free"
+            }
             return
         }
         try {
             stopSpeechRecognition()
             val generation = ++recognitionGeneration
-            val useOnDevice = !forceSystemRecognizer &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
-            val sr = if (useOnDevice) {
-                SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-            } else {
-                SpeechRecognizer.createSpeechRecognizer(this)
-            }
-            lastRecognizerWasOnDevice = useOnDevice
+            val sr = SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+            lastRecognizerWasOnDevice = true
             speechRecognizer = sr
             isListening = true
             voiceOrb.setOrbState(VoiceOrbView.OrbState.LISTENING)
@@ -469,11 +476,12 @@ open class ChatActivity : AppCompatActivity() {
 
             sr.setRecognitionListener(object : RecognitionListener {
                 private fun isCurrentSession(): Boolean =
-                    speechRecognizer === sr && recognitionGeneration == generation && !isFinishing && !isDestroyed
+                    speechRecognizer === sr && recognitionGeneration == generation &&
+                        !isFinishing && !isDestroyed
 
                 override fun onReadyForSpeech(params: Bundle?) {
                     if (!isCurrentSession()) return
-                    tvModelInfo.text = "Mendengarkan suara Anda..."
+                    tvModelInfo.text = "Mendengarkan secara offline..."
                 }
                 override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(rmsdB: Float) {
@@ -482,7 +490,6 @@ open class ChatActivity : AppCompatActivity() {
                 override fun onBufferReceived(buffer: ByteArray?) {}
                 override fun onEndOfSpeech() {
                     if (!isCurrentSession()) return
-                    // Keep the session marked active until final results or an error arrive.
                     voiceOrb.setOrbState(VoiceOrbView.OrbState.LISTENING)
                 }
                 override fun onError(error: Int) {
@@ -491,29 +498,15 @@ open class ChatActivity : AppCompatActivity() {
                     speechRecognizer = null
                     try { sr.destroy() } catch (_: Throwable) {}
                     voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
-                    // Some Android devices report on-device recognition as available even
-                    // when the Indonesian language pack is missing. Retry once with the
-                    // system recognizer so network-backed speech services can handle it.
-                    val canFallbackToSystem = lastRecognizerWasOnDevice && !forceSystemRecognizer &&
-                        (error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ||
-                         error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
-                         error == SpeechRecognizer.ERROR_NETWORK ||
-                         error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT ||
-                         error == SpeechRecognizer.ERROR_SERVER ||
-                         error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED)
-                    if (canFallbackToSystem) {
-                        lastRecognizerWasOnDevice = false
-                        tvModelInfo.text = "Pengenalan offline tidak tersedia. Mencoba layanan suara perangkat..."
-                        startSpeechRecognition(forceSystemRecognizer = true)
-                        return
-                    }
                     refreshModeBanner()
-                    if (handsFreeConversation && error != SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
-                        scheduleHandsFreeRetry("pengenalan suara")
-                    } else if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
+                    if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                         handsFreeConversation = false
                         btnHandsFreeConversation.text = "Percakapan hands-free"
-                        speaker.speak("Izin mikrofon diperlukan untuk melanjutkan percakapan suara.")
+                        speaker.speak("Izin mikrofon diperlukan untuk melanjutkan percakapan.")
+                    } else if (handsFreeConversation) {
+                        scheduleHandsFreeRetry("pengenalan suara offline")
+                    } else {
+                        speaker.speak("Pengenalan suara offline gagal. Periksa paket bahasa Indonesia offline dan izin mikrofon.")
                     }
                 }
                 override fun onResults(results: Bundle?) {
@@ -523,14 +516,14 @@ open class ChatActivity : AppCompatActivity() {
                     try { sr.destroy() } catch (_: Throwable) {}
                     voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
                     refreshModeBanner()
-                    val list = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    val spoken = list?.firstOrNull()?.trim().orEmpty()
+                    val spoken = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        ?.firstOrNull()?.trim().orEmpty()
                     if (spoken.isNotEmpty()) {
                         recognitionRetryCount = 0
                         etInput.setText(spoken)
                         sendCurrentInput()
                     } else if (handsFreeConversation) {
-                        scheduleHandsFreeRetry("hasil suara kosong")
+                        scheduleHandsFreeRetry("hasil suara offline kosong")
                     }
                 }
                 override fun onPartialResults(partialResults: Bundle?) {}
@@ -541,9 +534,7 @@ open class ChatActivity : AppCompatActivity() {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID")
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-                // Jangan memaksa mode offline pada layanan sistem: paket bahasa Indonesia
-                // bisa tidak terpasang walaupun SpeechRecognizer tersedia.
-                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, !forceSystemRecognizer && lastRecognizerWasOnDevice)
+                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             }
             sr.startListening(intent)
         } catch (t: Throwable) {
@@ -552,9 +543,9 @@ open class ChatActivity : AppCompatActivity() {
             voiceOrb.setOrbState(VoiceOrbView.OrbState.IDLE)
             refreshModeBanner()
             if (handsFreeConversation) {
-                scheduleHandsFreeRetry("inisialisasi pengenalan suara")
+                scheduleHandsFreeRetry("inisialisasi pengenalan suara offline")
             } else {
-                speaker.speak("Mikrofon gagal dimulai. Periksa izin mikrofon dan layanan pengenalan suara di pengaturan Android.")
+                speaker.speak("Mesin pengenal suara offline gagal dimulai. Periksa izin mikrofon dan paket bahasa offline.")
             }
         }
     }
