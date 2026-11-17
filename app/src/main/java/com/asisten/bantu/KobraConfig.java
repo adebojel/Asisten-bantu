@@ -594,6 +594,8 @@ public final class KobraConfig {
      * Tidak menyertakan berkas model .task.
      */
     public String exportBackupJson() throws Exception {
+        // Migrate legacy plaintext memory before serializing preferences into the backup.
+        String localMemoryBackup = LocalMemoryStore.exportBackupJson(appContext);
         JSONObject root = new JSONObject();
         root.put("app", "KobraOS");
         root.put("backup_version", 2);
@@ -604,7 +606,7 @@ public final class KobraConfig {
         stores.put(PREFS_SOS, serializePrefs(sos));
         root.put("prefs", stores);
         // Plaintext is present only inside the user-selected backup file; live memory stays encrypted.
-        root.put("local_memory", new JSONArray(LocalMemoryStore.exportBackupJson(appContext)));
+        root.put("local_memory", new JSONArray(localMemoryBackup));
         return root.toString(2);
     }
 
