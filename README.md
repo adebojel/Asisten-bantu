@@ -186,7 +186,7 @@ Contoh perintah:
 
 Routine lokal tahap ini mendukung **pengingat suara harian** yang disimpan di perangkat, dijadwalkan dengan AlarmManager, dipulihkan setelah reboot, dan dapat dibatalkan melalui **“hapus semua agenda”**. Contoh: **“Kobra ingatkan setiap hari jam 07:00 minum obat.”** Rutinitas ini hanya membacakan pengingat; belum menjalankan tindakan UI arbitrer atau kondisi otomatis lintas aplikasi.
 
-Komunikasi tetap memakai alur terpisah: Kobra meminta isi pesan, membacakan penerima dan isi, lalu menunggu konfirmasi sebelum pengiriman SMS. Panggilan juga meminta konfirmasi. Izin yang dicabut, nomor tidak valid, layanan SMS yang tidak tersedia, atau SIM/operator bermasalah akan menghentikan tindakan.
+Komunikasi tetap memakai alur terpisah: Kobra meminta isi pesan, membacakan penerima dan isi, lalu menunggu konfirmasi sebelum pengiriman SMS. Panggilan juga meminta konfirmasi. Jika lebih dari satu SIM aktif dan izin status telepon tersedia, Kobra meminta konfirmasi tambahan bahwa pengiriman memakai SIM default SMS Android; pemilihan SIM per pesan belum dilakukan di dalam Kobra. Izin yang dicabut, nomor tidak valid, layanan SMS yang tidak tersedia, atau SIM/operator bermasalah akan menghentikan tindakan.
 
 ### Offline pedestrian routing
 
