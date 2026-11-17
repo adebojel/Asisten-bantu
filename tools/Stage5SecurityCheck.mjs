@@ -153,6 +153,22 @@ if (fs.existsSync(accessibilityServicePath)) {
   if (!sosMethod.includes("config.isSosStorageReady()")) {
     failures.push("SOS must fail closed if encrypted emergency contacts cannot be read.");
   }
+  if (!sosMethod.includes("SystemClock.elapsedRealtime()")
+      || !sosMethod.includes("getElapsedRealtimeNanos()")
+      || !sosMethod.includes("SosLocationFreshness.isFresh")
+      || !sosMethod.includes("SosLocationFreshness.ageMinutes")) {
+    failures.push("SOS coordinates must use monotonic timestamps and explicitly classify stale/invalid fixes.");
+  }
+  if (sosMethod.includes("SOS dikirim ke")
+      || !sosMethod.includes("status terkirim atau diterima belum terverifikasi")
+      || !sosMethod.includes("Izin SMS tidak aktif, SMS tidak dikirim.")) {
+    failures.push("SOS must not claim SMS delivery from API submission and must report missing SMS permission.");
+  }
+}
+const sosFreshnessPath = path.join(root, "app/src/main/java/com/asisten/bantu/SosLocationFreshness.java");
+const sosFreshnessTestPath = path.join(root, "app/src/test/java/com/asisten/bantu/SosLocationFreshnessTest.java");
+if (!fs.existsSync(sosFreshnessPath) || !fs.existsSync(sosFreshnessTestPath)) {
+  failures.push("SOS location freshness policy and its unit tests must remain present.");
 }
 const browserSosContextPath = path.join(root, "src/context/KobraContext.tsx");
 if (fs.existsSync(browserSosContextPath)) {
