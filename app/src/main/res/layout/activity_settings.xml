@@ -162,7 +162,7 @@
                     android:textColorHint="#64748B"
                     android:textSize="13sp"  android:visibility="gone" />
 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Nama Model Online (Kosong = Otomatis)" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Model AI lokal" android:textColor="#E2E8F0" android:textSize="12sp" android:textStyle="bold" />
                 <EditText
                     android:id="@+id/etModel"
                     android:layout_width="match_parent"
@@ -196,7 +196,7 @@
                     android:layout_height="44dp"
                     android:layout_marginTop="10dp"
                     android:background="@drawable/bg_glass_button_secondary"
-                    android:text="Uji Koneksi AI Online"
+                    android:text="Uji Model Lokal"
                     android:textAllCaps="false"
                     android:textColor="#00E5FF"
                     android:textSize="13sp"
