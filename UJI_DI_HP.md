@@ -186,3 +186,14 @@ Log (opsional, lewat komputer): `adb logcat -s KobraOS AndroidRuntime`.
 8. Jalankan model lokal, selesaikan satu permintaan, tunggu lebih dari 2 menit idle, lalu jalankan permintaan lagi. Model harus dapat dimuat ulang.
 9. Uji low-memory Android. Runtime model boleh dilepas, tetapi perintah dasar offline harus tetap dapat digunakan.
 10. Verifikasi penyimpanan aktif bernama kobra_secure_local_memory hanya berisi ciphertext; kunci AES tetap di Android Keystore dan tidak masuk ke backup.
+
+
+## Pemeriksaan tambahan: offline voice dan penyimpanan SOS
+
+1. **Pengenalan suara offline:** gunakan Android 12 atau lebih baru. Aktifkan layanan pengenalan suara on-device dan unduh paket bahasa Indonesia offline melalui pengaturan layanan suara Android.
+2. **Uji tanpa jaringan:** aktifkan mode pesawat, buka KOBRA, lalu uji perintah suara. Jika paket lokal tidak tersedia, KOBRA harus menolak input suara dan tidak berpindah ke recognizer jaringan.
+3. **TTS offline:** pasang voice Bahasa Indonesia yang ditandai tidak memerlukan jaringan. Pastikan KOBRA tidak berbicara melalui voice jaringan jika voice lokal tidak tersedia.
+4. **Kontak SOS terenkripsi:** buka pengaturan SOS native Android, simpan kontak uji, tutup paksa aplikasi, buka kembali, dan pastikan kontak tetap terbaca.
+5. **Backup:** ekspor backup hanya dengan data uji. File JSON backup berisi nomor kontak dan memori dalam plaintext; simpan secara aman dan jangan unggah ke issue publik.
+6. **SOS nyata:** jangan menekan tombol SOS atau menguji panggilan darurat ke 112 untuk sekadar tes. Gunakan mode latihan yang menyatakan tidak mengirim SMS atau panggilan.
+7. Catat merek/model HP, versi Android, ketersediaan paket bahasa, hasil TTS, hasil migrasi SOS, dan pesan error. Samarkan nomor kontak sebelum mengirim log.

@@ -152,7 +152,7 @@ Paket model terpisah untuk impor manual/pemulihan: [Kobra Offline Models v1.0](h
 
 ### Catatan suara offline
 
-Pengenalan suara Chat menggunakan Android on-device recognition bila tersedia. Jika paket bahasa Indonesia tidak tersedia, KOBRA memberi tahu pengguna dan tidak beralih ke recognizer jaringan. TTS menggunakan voice Bahasa Indonesia offline jika sudah terpasang. Model ASR/TTS mandiri belum dibundel, sehingga pengalaman offline bergantung pada paket bahasa dan voice di perangkat.
+Pengenalan suara Chat menggunakan Android on-device recognition pada Android 12+ bila layanan tersedia. Jika paket bahasa Indonesia offline tidak tersedia, KOBRA memberi tahu pengguna dan tidak beralih ke recognizer jaringan. TTS hanya menggunakan voice Bahasa Indonesia yang ditandai tidak memerlukan jaringan. Model ASR/TTS mandiri belum dibundel, sehingga pengalaman offline bergantung pada paket bahasa dan voice lokal di perangkat. Android 9–11 tidak mendapat fallback pengenalan suara jaringan.
 
 ---
 
@@ -265,6 +265,7 @@ Navigasi menggunakan MapLibre Native, OpenFreeMap, data OpenStreetMap, dan routi
 |---|---|
 | Fondasi perintah offline dan router AI lokal | Tersedia |
 | Model Qwen3 LiteRT-LM pada build `main` | Tersedia |
+| Pengunduh model di aplikasi, resume, verifikasi, penghapusan versi | Belum tersedia; model saat ini dibundel di APK |
 | Fallback pengenalan objek offline | Tersedia |
 | OCR dan sesi kamera Mata Kedua Terpadu | Tersedia |
 | Navigasi fokus dan kata berbasis Accessibility | Tersedia dengan batasan provider |
@@ -278,6 +279,7 @@ Navigasi menggunakan MapLibre Native, OpenFreeMap, data OpenStreetMap, dan routi
 
 - [Tahap 5 — Finalisasi, optimasi, keamanan, QA, dan gerbang rilis](TAHAP_5_FINALIZATION.md)
 
+- [Audit 15 kelompok pekerjaan KOBRA OS](AUDIT_KOBRA_OS_15_GROUPS.md)
 - [Audit integrasi open-source](OPEN_SOURCE_INTEGRATION_AUDIT.md)
 - [Roadmap ekspansi open-source](OPEN_SOURCE_EXPANSION_ROADMAP.md)
 - [Panduan pengujian di HP](UJI_DI_HP.md)
@@ -303,7 +305,7 @@ Branch pengembangan utama: `main`.
 ```bash
 git clone --branch main https://github.com/adebojel/Asisten-bantu.git
 cd Asisten-bantu
-./gradlew testDebugUnitTest assembleDebug
+./gradlew lintDebug testDebugUnitTest assembleDebug
 ```
 
 APK debug hasil build lokal berada di `app/build/outputs/apk/debug/app-debug.apk`. Untuk pengguna yang hanya ingin mencoba aplikasi, gunakan APK dari [GitHub Releases](https://github.com/adebojel/Asisten-bantu/releases/latest)—tidak perlu membangun source sendiri.
@@ -332,15 +334,15 @@ Laporkan masalah melalui [GitHub Issues](https://github.com/adebojel/Asisten-ban
 
 ## 🛡️ Tahap 5 — Finalisasi dan gerbang kualitas
 
-Tahap 5 menambahkan pemeriksaan regresi privasi/offline pada pipeline rilis. Workflow menjalankan `tools/Stage5SecurityCheck.mjs` sebelum build: memindai sumber Android dan konfigurasi untuk endpoint AI cloud yang dilarang serta pola kredensial tertanam, dan memastikan backup aplikasi serta cleartext traffic tetap dinonaktifkan. Pemeriksaan statis ini adalah tripwire, bukan bukti mutlak bahwa seluruh aliran data runtime selalu lokal.
+Tahap 5 menambahkan pemeriksaan regresi privasi/offline pada pipeline rilis. Workflow menjalankan `tools/Stage5SecurityCheck.mjs` sebelum build: memindai sumber Android dan frontend untuk endpoint AI cloud yang dilarang serta pola kredensial tertanam, menolak recognizer/TTS jaringan, memeriksa penyimpanan SOS terenkripsi, dan memastikan backup Android serta cleartext traffic tetap dinonaktifkan. Pemeriksaan statis ini adalah tripwire, bukan bukti mutlak bahwa seluruh aliran data runtime selalu lokal.
 
 Gerbang penerimaan lengkap, batasan, dan status pengujian ada di [TAHAP_5_FINALIZATION.md](TAHAP_5_FINALIZATION.md). Daftar uji fisik ada di [UJI_DI_HP.md](UJI_DI_HP.md). Fitur yang bergantung pada mikrofon, kamera, GPS, SIM, TalkBack, dan layanan latar belakang tetap memerlukan verifikasi HP nyata.
 
 
 ### Memori lokal terenkripsi dan Resource Manager
 
-Memori AI aktif disimpan dengan AES-256-GCM dan kunci yang dikelola Android Keystore. Data lama dimigrasikan ke format terenkripsi ketika pertama kali dibaca. Batas penyimpanan adalah 60 entri, maksimal 1.200 karakter per entri, kategori 48 karakter, dan payload 64 KiB. Jika ciphertext gagal dibuka, operasi tulis/backup dibatalkan agar data tidak ditimpa diam-diam.
+Memori AI aktif dan kontak SOS native disimpan dengan AES-256-GCM serta kunci yang dikelola Android Keystore. Data lama dimigrasikan ke format terenkripsi ketika pertama kali dibaca. Batas memori adalah 60 entri, maksimal 1.200 karakter per entri, kategori 48 karakter, dan payload 64 KiB. Jika ciphertext gagal dibuka, operasi tulis/backup dibatalkan agar data tidak ditimpa diam-diam. Jika penyimpanan kontak SOS tidak dapat dibuka, tindakan SMS/panggilan SOS diblokir.
 
-Backup JSON hanya dibuat atas tindakan eksplisit pengguna. Agar dapat dipindahkan, isi memori pada file backup berupa JSON yang dapat dibaca; file tersebut tidak dienkripsi oleh Kobra dan harus disimpan di lokasi tepercaya. Saat restore, data divalidasi lalu dienkripsi kembali dengan kunci Android Keystore perangkat tujuan. Kunci enkripsi tidak pernah masuk ke backup.
+Backup JSON hanya dibuat atas tindakan eksplisit pengguna. Agar dapat dipindahkan, isi memori dan kontak SOS pada file backup berupa JSON yang dapat dibaca; file tersebut tidak dienkripsi oleh Kobra dan harus disimpan di lokasi tepercaya. Saat restore, data divalidasi lalu dienkripsi kembali dengan kunci Android Keystore perangkat tujuan. Kunci enkripsi tidak pernah masuk ke backup. Kontak SOS pada tampilan web hanya berada di memori sesi dan tidak disimpan ke localStorage.
 
 Runtime Qwen3 dijadwalkan dilepas setelah 2 menit idle dan ketika Android melaporkan tekanan memori. Penutupan runtime berjalan di worker thread agar tidak memblokir UI. Versi Tahap 5: `7.3-KOBRA-SECURE`, versionCode 10. Uji Keystore, backup/restore, dan pemulihan model tetap harus dilakukan pada HP fisik.
