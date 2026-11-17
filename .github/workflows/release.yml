@@ -14,10 +14,19 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      # The pinned on-device models are large and immutable; cache verified build inputs between runs.
+      - name: Cache verified on-device models
+        uses: actions/cache@v4
+        with:
+          path: |
+            app/build/generated/qwenModelAssets
+            app/build/generated/objectDetectorAssets
+          key: kobra-model-assets-v1-${{ hashFiles('app/build.gradle.kts') }}
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
