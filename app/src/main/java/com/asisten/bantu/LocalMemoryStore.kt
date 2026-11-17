@@ -33,8 +33,10 @@ object LocalMemoryStore {
     }
 
     @JvmStatic @Synchronized
-    fun listMemories(context: Context): List<MemoryItem> =
-        decode(EncryptedLocalMemoryStore.read(context) ?: return emptyList())
+    fun listMemories(context: Context): List<MemoryItem> {
+        val raw = EncryptedLocalMemoryStore.read(context) ?: return emptyList()
+        return decode(raw)
+    }
 
     @JvmStatic @Synchronized
     fun addMemory(context: Context, text: String, category: String = "Preferensi"): MemoryItem? {
