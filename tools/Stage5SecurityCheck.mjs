@@ -13,10 +13,11 @@ const scanRoots = [
   "app/src/main/kotlin",
   "app/src/main/res",
   "app/src/main/assets",
+  "src",
   "app/build.gradle.kts",
   "build.gradle",
 ];
-const extensions = new Set([".java", ".kt", ".xml", ".json", ".properties", ".kts", ".gradle"]);
+const extensions = new Set([".java", ".kt", ".xml", ".json", ".properties", ".kts", ".gradle", ".js", ".mjs", ".ts", ".tsx", ".jsx"]);
 const forbiddenHosts = [
   /(?:^|\.)generativelanguage\.googleapis\.com$/i,
   /(?:^|\.)openrouter\.ai$/i,
@@ -60,6 +61,9 @@ function walk(entry) {
   for (const pattern of secretPatterns) {
     if (pattern.test(code)) failures.push(`${entry}: possible hard-coded credential pattern ${pattern}`);
   }
+  if (/SpeechRecognizer\\.createSpeechRecognizer\\s*\\(/.test(code)) {
+    failures.push(`${entry}: network-capable system SpeechRecognizer is forbidden; use on-device recognition only.`);
+  }
 }
 
 for (const entry of scanRoots) walk(entry);
@@ -89,6 +93,22 @@ if (!encryptedMemory.includes("AES/GCM/NoPadding") || !encryptedMemory.includes(
 }
 if (!modelRuntime.includes("IDLE_UNLOAD_MS = 120_000L") || !modelRuntime.includes("closeExecutor.execute")) {
   failures.push("LiteRT runtime must unload after idle and close away from the UI thread.");
+}
+
+const voiceServicePath = path.join(root, "app/src/main/java/com/asisten/bantu/AsistenAccessibilityService.java");
+if (fs.existsSync(voiceServicePath)) {
+  const voiceService = fs.readFileSync(voiceServicePath, "utf8");
+  if (!voiceService.includes("SpeechRecognizer.createOnDeviceSpeechRecognizer")) {
+    failures.push("Voice service must use Android on-device speech recognition.");
+  }
+  if (!voiceService.includes("RecognizerIntent.EXTRA_PREFER_OFFLINE, true")) {
+    failures.push("Voice recognition must explicitly prefer offline processing.");
+  }
+  if (voiceService.includes("preferSystemRecognizer")) {
+    failures.push("Voice service must not contain a system/network recognizer fallback.");
+  }
+} else {
+  failures.push("Voice service source is missing; offline ASR policy could not be verified.");
 }
 
 if (scanned.length === 0) failures.push("No Android source/configuration files were scanned.");
