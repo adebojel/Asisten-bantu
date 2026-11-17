@@ -568,7 +568,7 @@ public final class KobraConfig {
         safe = safe.replaceAll("(?i)\\bAIza[0-9A-Za-z_-]{20,}\\b", "[REDACTED_KEY]");
         safe = safe.replaceAll("(?i)\\bsk-[A-Za-z0-9_-]{20,}\\b", "[REDACTED_KEY]");
         if (safe.length() > 12_000) {
-            safe = safe.substring(0, 12_000) + "\\n... (dipotong demi privasi)";
+            safe = safe.substring(0, 12_000) + "\n... (dipotong demi privasi)";
         }
         return crashGuard.edit().putString("last_crash_log", safe).commit();
     }
