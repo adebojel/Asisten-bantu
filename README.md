@@ -175,6 +175,25 @@ Agen layar menjalankan urutan navigasi eksplisit secara lokal tanpa meminta renc
 
 Contoh: **“Kobra buka Chrome lalu klik Search kemudian scroll ke bawah.”**
 
+### System Control, Communication, dan Routine Automation
+
+Kontrol sistem yang tersedia memakai API Android yang memang diizinkan. Volume media dapat diatur relatif atau dengan persentase eksplisit; senter dapat dikendalikan bila perangkat menyediakan flash; mode dering/getar/senyap mengikuti izin sistem. Wi-Fi, Bluetooth, data seluler, lokasi, kecerahan, dan rotasi membuka halaman pengaturan Android agar pengguna menyetujui perubahan di sistem. Kobra tidak mengklaim dapat memaksa toggle Wi-Fi atau mobile data pada Android modern.
+
+Contoh perintah:
+- **“Kobra atur volume ke 50 persen.”**
+- **“Kobra mode senyap.”**, **“Kobra mode getar.”**, **“Kobra mode berdering.”**
+- **“Kobra Wi-Fi.”**, **“Kobra data seluler.”**, **“Kobra rotasi layar.”**
+
+Routine lokal tahap ini mendukung **pengingat suara harian** yang disimpan di perangkat, dijadwalkan dengan AlarmManager, dipulihkan setelah reboot, dan dapat dibatalkan melalui **“hapus semua agenda”**. Contoh: **“Kobra ingatkan setiap hari jam 07:00 minum obat.”** Rutinitas ini hanya membacakan pengingat; belum menjalankan tindakan UI arbitrer atau kondisi otomatis lintas aplikasi.
+
+Komunikasi tetap memakai alur terpisah: Kobra meminta isi pesan, membacakan penerima dan isi, lalu menunggu konfirmasi sebelum pengiriman SMS. Panggilan juga meminta konfirmasi. Izin yang dicabut, nomor tidak valid, layanan SMS yang tidak tersedia, atau SIM/operator bermasalah akan menghentikan tindakan.
+
+### Offline pedestrian routing
+
+BRouter menghitung rute dari segmen RD5 lokal yang telah tersimpan dan diverifikasi SHA-256. Kobra memeriksa cache terlebih dahulu. Jika segmen belum tersedia dan tidak ada internet tervalidasi, rute ditolak dengan penjelasan; segmen dapat diunduh ketika online agar perjalanan berikutnya dapat dihitung offline. Data peta dan data routing merupakan paket berbeda. Peta dasar MapLibre masih memakai style sumber eksternal saat pemuatan awal, sehingga tampilan peta tanpa jaringan bergantung pada cache/offline region yang berhasil disiapkan sebelumnya.
+
+
+
 ## ♿ Aksesibilitas dan kontrol suara
 
 Kobra dapat membaca dan berinteraksi dengan elemen yang diekspos oleh pohon aksesibilitas Android. Fitur ini tidak menjamin akses ke semua aplikasi atau seluruh elemen layar.
