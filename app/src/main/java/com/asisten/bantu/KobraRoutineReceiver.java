@@ -12,16 +12,27 @@ public final class KobraRoutineReceiver extends BroadcastReceiver {
         int hour = intent.getIntExtra(PlannerAlarmReceiver.EXTRA_HOUR, -1);
         int minute = intent.getIntExtra(PlannerAlarmReceiver.EXTRA_MINUTE, -1);
         String title = intent.getStringExtra(PlannerAlarmReceiver.EXTRA_TITLE);
+        String condition = intent.getStringExtra(RoutineAutomationManager.EXTRA_CONDITION);
+        if (condition == null) condition = "always";
+        int threshold = intent.getIntExtra(RoutineAutomationManager.EXTRA_THRESHOLD, -1);
         if (id <= 0 || hour < 0 || hour > 23 || minute < 0 || minute > 59
                 || title == null || title.trim().isEmpty()
                 || !RoutineAutomationManager.isActive(context, id)) return;
 
-        Intent reminder = new Intent(context, PlannerAlarmReceiver.class)
-                .putExtra(PlannerAlarmReceiver.EXTRA_ID, id)
-                .putExtra(PlannerAlarmReceiver.EXTRA_TITLE, title)
-                .putExtra(PlannerAlarmReceiver.EXTRA_HOUR, hour)
-                .putExtra(PlannerAlarmReceiver.EXTRA_MINUTE, minute);
-        new PlannerAlarmReceiver().onReceive(context, reminder);
-        RoutineAutomationManager.scheduleNext(context, id, hour, minute, title);
+        boolean conditionMet = RoutineAutomationManager.isConditionSatisfied(context, condition, threshold);
+        if (conditionMet) {
+            Intent reminder = new Intent(context, PlannerAlarmReceiver.class)
+                    .putExtra(PlannerAlarmReceiver.EXTRA_ID, id)
+                    .putExtra(PlannerAlarmReceiver.EXTRA_TITLE, title)
+                    .putExtra(PlannerAlarmReceiver.EXTRA_HOUR, hour)
+                    .putExtra(PlannerAlarmReceiver.EXTRA_MINUTE, minute);
+            new PlannerAlarmReceiver().onReceive(context, reminder);
+            RoutineAutomationManager.recordExecution(context, id, "dijalankan");
+        } else {
+            RoutineAutomationManager.recordExecution(context, id, "dilewati: kondisi tidak terpenuhi");
+        }
+        if (RoutineAutomationManager.isActive(context, id)) {
+            RoutineAutomationManager.scheduleNext(context, id, hour, minute, title, condition, threshold);
+        }
     }
 }
