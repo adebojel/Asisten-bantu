@@ -108,6 +108,20 @@ public final class BRouterOfflineEngine {
         return names;
     }
 
+    /**
+     * Returns required route segments that are not present or fail their local SHA-256 check.
+     * This method performs no network requests and is safe to call before offline routing.
+     */
+    public List<String> getMissingSegmentsForBounds(
+            double south, double west, double north, double east) throws IOException {
+        ensureDirectories();
+        List<String> missing = new ArrayList<>();
+        for (String name : segmentNamesForBounds(south, west, north, east)) {
+            if (!isSegmentCacheValid(new File(segmentDirectory, name))) missing.add(name);
+        }
+        return Collections.unmodifiableList(missing);
+    }
+
     /** Returns BRouter GeoJSON. Required RD5 segments must already exist locally. */
     public String route(double startLatitude, double startLongitude,
                         double endLatitude, double endLongitude) throws IOException {
