@@ -40,9 +40,12 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 2. Ucapkan “Kobra mode senyap”, lalu “Kobra mode berdering”. Pastikan status mode mengikuti kebijakan perangkat/DND.
 3. Ucapkan “Kobra Wi-Fi”, “Kobra Bluetooth”, dan “Kobra data seluler”. Kobra harus membuka halaman pengaturan Android; pengguna sendiri yang mengubah sakelar.
 4. Ucapkan “Kobra ingatkan setiap hari jam 07:00 minum obat” dengan waktu uji beberapa menit ke depan. Pastikan konfirmasi suara, notifikasi lokal, dan pengumuman muncul.
-5. Uji “hapus semua agenda”. Rutinitas dan alarm satu kali harus dibatalkan.
-6. Restart HP dan pastikan rutinitas harian dipulihkan. Jika izin exact alarm tidak tersedia, catat bahwa waktu pengingat dapat tidak presisi.
-7. Cabut izin SMS setelah Kobra meminta konfirmasi pengiriman. Pastikan Kobra menolak mengirim dan menjelaskan izin sudah tidak aktif.
+5. Uji kondisi “jika baterai di bawah 20 persen” pada perangkat dengan baterai di bawah dan di atas ambang; kondisi yang tidak terpenuhi harus melewati pengumuman, bukan menjalankan aksi.
+6. Uji kondisi “jika sedang dicas” dengan kabel daya terpasang dan dilepas.
+7. Ucapkan “daftar rutinitas”. Pastikan waktu, kondisi, dan status eksekusi terakhir dibacakan.
+8. Uji “hapus semua agenda”. Rutinitas dan alarm satu kali harus dibatalkan.
+9. Restart HP dan pastikan rutinitas harian dipulihkan. Jika izin exact alarm tidak tersedia, catat bahwa waktu pengingat dapat tidak presisi.
+10. Cabut izin SMS setelah Kobra meminta konfirmasi pengiriman. Pastikan Kobra menolak mengirim dan menjelaskan izin sudah tidak aktif.
 
 ## D4. Komunikasi
 
