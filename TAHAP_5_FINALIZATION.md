@@ -101,3 +101,15 @@ Perubahan kode/pipeline yang sudah dimasukkan:
 - Workflow build APK lama tidak lagi berjalan otomatis pada branch `kobra-os-v7`; pipeline utama tetap mengikuti `main`.
 
 Pemeriksaan statis ini tidak membuktikan semua jalur runtime bebas jaringan. Audit runtime, pemeriksaan permission berdasarkan fitur, dan pengujian fisik tetap menjadi gerbang terpisah.
+
+
+## Implementasi tambahan — memori terenkripsi dan pelepasan runtime
+
+- [x] Penyimpanan memori aktif menggunakan AES-256-GCM dengan kunci Android Keystore yang tidak diekspor.
+- [x] Migrasi satu kali dari key SharedPreferences lama ke ciphertext; key lama dibersihkan hanya setelah penyimpanan terenkripsi berhasil.
+- [x] Batas jumlah entri, panjang teks/kategori, dan ukuran payload; operasi backup gagal-tertutup jika ciphertext tidak dapat dibuka.
+- [x] Backup eksplisit mencakup memori; file backup portabel berisi JSON terbaca dan tidak membawa kunci. Restore memvalidasi data dan mengenkripsi ulang pada perangkat.
+- [x] Runtime Qwen3 dilepas setelah 2 menit idle dan pada tekanan memori Android; proses close tidak berjalan di main thread.
+- [ ] Pengujian Keystore, backup/restore, low-memory, dan RAM pada HP fisik — menunggu hasil aktual perangkat.
+
+Versi source Tahap 5: `7.3-KOBRA-SECURE` (versionCode 10). Checkbox uji perangkat tetap tidak dicentang sampai hasil nyata dicatat.
