@@ -128,3 +128,48 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 ## Melaporkan masalah
 Sertakan: merek dan versi Android, langkah nomor berapa yang gagal, apa yang diucapkan, apa yang dijawab Kobra.
 Log (opsional, lewat komputer): `adb logcat -s KobraOS AndroidRuntime`.
+
+
+---
+
+## Tahap 5 — UI/UX, resource, privasi, dan regresi
+
+### L. Aksesibilitas antarmuka
+1. Aktifkan TalkBack. Navigasikan seluruh layar KOBRA tanpa melihat layar; pastikan setiap tombol memiliki nama yang bermakna dan urutan fokus logis.
+2. Naikkan ukuran font Android dan Display size ke nilai besar. Pastikan teks tidak terpotong dan tombol penting tetap dapat dijangkau.
+3. Uji mode gelap/terang jika tersedia, kontras, status error, status izin, serta informasi yang tidak boleh hanya dibedakan dengan warna.
+4. Uji layar kecil, landscape, keyboard terbuka, dan rotasi. Pastikan tidak ada dialog atau overlay yang menutupi kontrol utama.
+5. Uji tombol berhenti ketika TTS, pengenalan suara, atau urutan aksi sedang berjalan.
+
+### M. Stabilitas dan pemakaian sumber daya
+1. Catat model HP, versi Android, RAM, ruang kosong, versi APK, dan status battery saver.
+2. Jalankan sesi kamera/OCR beberapa kali; keluar dari layar kamera setiap kali. Pastikan kamera benar-benar dilepas dan indikator kamera/mikrofon tidak tetap aktif tanpa alasan.
+3. Ulangi sesi pengenalan suara dan TTS; pastikan tidak ada dua sesi mikrofon atau antrean suara yang berjalan bersamaan.
+4. Pindah aplikasi, kunci layar, rotasi, kembali ke KOBRA, dan lakukan force-stop/relaunch. Pastikan tidak terjadi crash, ANR, atau callback ke layar yang sudah ditutup.
+5. Jalankan model lokal, tutup modul, lalu ulangi beberapa kali. Catat RAM sebelum, saat, dan sesudah penggunaan; jangan mengklaim target RAM tercapai tanpa pengukuran.
+6. Uji battery saver dan low-memory. KOBRA harus menurunkan beban atau memberi penjelasan, bukan terus memulai sesi hardware yang gagal.
+7. Catat suhu/performa dan konsumsi baterai setelah sesi 15–30 menit; hentikan jika perangkat terlalu panas.
+
+### N. Privasi dan keamanan
+1. Periksa permission Android; cabut izin mikrofon, kamera, lokasi, SMS, dan notifikasi satu per satu ketika fitur terkait sedang tidak aktif. KOBRA harus menangani penolakan tanpa crash.
+2. Putuskan internet dan uji AI lokal, OCR, pembaca layar, serta perintah dasar. Tidak boleh ada fallback AI cloud.
+3. Periksa log riwayat agen layar. Pastikan tidak ada screenshot, isi pesan, password, OTP, teks layar sensitif, atau token.
+4. Hapus riwayat lokal dan periksa kembali bahwa riwayat tidak muncul lagi setelah aplikasi dimulai ulang.
+5. Uji semua alur SMS/panggilan dengan membatalkan konfirmasi. Tidak boleh ada tindakan yang tetap dijalankan.
+6. Uji target agen layar yang tidak ada, ambigu, tidak terlihat, atau berisiko. Agen harus menolak dan tidak menebak.
+7. Jangan memasukkan PIN, password, OTP, atau data finansial asli ke dalam pengujian.
+
+### O. Checklist regresi sebelum rilis
+- [ ] Instalasi bersih dan upgrade dari build sebelumnya.
+- [ ] Kontrol suara dan TTS Bahasa Indonesia.
+- [ ] TalkBack, pembaca layar KOBRA, navigasi fokus/kata, dan tombol berhenti.
+- [ ] Kamera, OCR, barcode, label objek, dan senter.
+- [ ] SMS/panggilan dengan uji batal dan izin dicabut.
+- [ ] Rutinitas harian, kondisi baterai/charging, reboot, dan zona waktu.
+- [ ] Navigasi dengan cache lokal dan tanpa internet.
+- [ ] AI lokal tanpa jaringan dan tanpa endpoint AI cloud.
+- [ ] RAM/CPU/baterai dicatat pada perangkat yang sama.
+- [ ] Crash/ANR tidak ditemukan dalam skenario uji.
+- [ ] Build APK, checksum, README, panduan HP, dan Release mengacu pada commit yang sama.
+
+**Laporan hasil:** isi setiap checkbox berdasarkan hasil aktual. Jika perangkat belum diuji, biarkan belum dicentang; hasil CI bukan pengganti uji fisik.
