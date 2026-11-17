@@ -5,7 +5,7 @@
 # 🐍 KOBRA OS
 ### **Asisten Suara • Mata Kedua • Aksesibilitas Android**
 
-**Satu asisten untuk membantu memahami layar, berinteraksi melalui suara, dan mengakses fitur AI lokal maupun online.**
+**Satu asisten untuk membantu memahami layar, berinteraksi melalui suara, dan mengakses fitur AI lokal sepenuhnya di perangkat.**
 
 [![Unduh APK](https://img.shields.io/badge/⬇_UNDUH_APK-BUILD_TERBARU-06b6d4?style=for-the-badge)](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk)
 [![Rilis](https://img.shields.io/badge/RELEASES-LIHAT_SEMUA-2563eb?style=for-the-badge)](https://github.com/adebojel/Asisten-bantu/releases)
@@ -29,7 +29,7 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 - **Voice-first:** kendali dan navigasi melalui perintah suara.
 - **Mata Kedua:** OCR, pengenalan label objek, barcode, dan analisis visual sesuai kemampuan modul.
-- **AI hybrid:** fungsi lokal untuk kebutuhan dasar dan model lokal; AI online digunakan bila jaringan, API key, dan provider tersedia.
+- **AI offline-only:** pemrosesan percakapan menggunakan model dan basis pengetahuan lokal; tidak ada fallback AI cloud.
 - **Aksesibilitas Android:** integrasi Accessibility Service dan interoperabilitas dengan TalkBack.
 
 > **Prinsip produk:** jelas tentang apa yang benar-benar terdeteksi, apa yang belum didukung, dan kapan pengguna perlu memeriksa hasil secara langsung. Kobra tidak boleh mengarang status perangkat, objek, saldo, atau keselamatan jalur.
@@ -85,7 +85,7 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 | 🔎 **Pembaca informasi** | OCR, barcode, pembaca uang/struk, terjemahan, dan pembacaan teks yang tersedia |
 | 🧠 **Otak offline** | Perintah dasar, kalkulator, dan basis pengetahuan lokal |
 | 🤖 **AI lokal** | Jalur model MediaPipe dan LiteRT-LM, termasuk Qwen3 LiteRT-LM pada build `main` |
-| ☁️ **AI online** | Router provider jika internet dan API key tersedia |
+| 🔒 **AI offline-only** | Tidak memakai OpenRouter, Gemini API, webhook n8n, atau server AI eksternal |
 | 🧭 **Navigasi pedestrian** | Peta dan routing berbasis data yang dapat disimpan untuk penggunaan offline |
 | ♿ **Aksesibilitas** | Accessibility Service, navigasi fokus/kata, serta interoperabilitas TalkBack |
 | 📞 **Komunikasi** | Alur panggilan, SMS, notifikasi, dan aplikasi pesan dengan izin serta konfirmasi |
@@ -118,15 +118,15 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 ---
 
-## 🧠 AI hybrid: lokal + online
+## 🧠 AI lokal sepenuhnya (offline-only)
 
-Kobra menggunakan beberapa jalur pemrosesan. Jalur lokal membantu menjaga fungsi dasar tetap tersedia tanpa koneksi; AI online dapat digunakan bila provider dan konfigurasi tersedia.
+Kobra menggunakan model lokal dan basis pengetahuan perangkat. Jalur AI server eksternal dinonaktifkan; kegagalan model lokal tidak boleh mengirim prompt, screenshot, atau data pengguna ke provider cloud.
 
 | Jalur | Teknologi / format | Catatan |
 |---|---|---|
 | AI lokal Qwen | LiteRT-LM · `.litertlm` | Qwen3 0.6B INT4 disertakan pada build `main` |
 | AI lokal Gemma | MediaPipe · `.task` | Digunakan bila runtime/model kompatibel tersedia |
-| AI online | OpenRouter | Memerlukan API key pengguna, internet, dan model/provider yang tersedia |
+| AI server | Dinonaktifkan | Tidak ada panggilan ke OpenRouter, Gemini API, atau webhook AI eksternal |
 | Otak dasar offline | Mesin aturan + kalkulator + basis pengetahuan | Bukan LLM generatif penuh |
 
 ### Integritas model
@@ -202,8 +202,8 @@ Navigasi menggunakan MapLibre Native, OpenFreeMap, data OpenStreetMap, dan routi
 
 ## 🛡️ Privasi, izin, dan keselamatan
 
-- API key AI adalah rahasia pengguna; jangan memasukkannya ke source code atau commit Git.
-- AI online memerlukan API key OpenRouter dan koneksi internet. Ketersediaan model gratis/kuota tidak dijamin.
+- AI Kobra diproses secara lokal; kredensial provider cloud tidak digunakan.
+- Izin jaringan yang masih ada hanya untuk fungsi non-AI yang terpisah seperti pembaruan aplikasi, pengambilan model/peta, atau sumber data yang memang memerlukan unduhan.
 - Android membatasi aplikasi biasa untuk mengaktifkan Wi-Fi/data seluler dan mengendalikan layar sistem.
 - TalkBack adalah layanan Android terpisah. Pengguna mengaktifkannya sendiri melalui Pengaturan Aksesibilitas.
 - Pembacaan saldo hanya boleh berasal dari nominal berlabel saldo yang benar-benar tampil. Kobra tidak boleh meminta atau membaca PIN, password, CVV, maupun OTP.
@@ -217,7 +217,7 @@ Navigasi menggunakan MapLibre Native, OpenFreeMap, data OpenStreetMap, dan routi
 
 | Area | Status dokumentasi |
 |---|---|
-| Fondasi perintah offline dan router AI online | Tersedia |
+| Fondasi perintah offline dan router AI lokal | Tersedia |
 | Model Qwen3 LiteRT-LM pada build `main` | Tersedia |
 | Fallback pengenalan objek offline | Tersedia |
 | OCR dan sesi kamera Mata Kedua Terpadu | Tersedia |
@@ -238,7 +238,7 @@ Navigasi menggunakan MapLibre Native, OpenFreeMap, data OpenStreetMap, dan routi
 
 ## 🧪 Panduan pengujian di HP
 
-Ikuti [UJI_DI_HP.md](UJI_DI_HP.md) secara berurutan. Mulai dari instalasi dan izin, lanjutkan ke kontrol suara, aksesibilitas, kamera, komunikasi, dan fitur offline/online. Hentikan pengujian pada langkah yang gagal dan catat:
+Ikuti [UJI_DI_HP.md](UJI_DI_HP.md) secara berurutan. Mulai dari instalasi dan izin, lanjutkan ke kontrol suara, aksesibilitas, kamera, komunikasi, dan fitur offline. Hentikan pengujian pada langkah yang gagal dan catat:
 
 - Merek/model HP dan versi Android.
 - Nomor langkah yang gagal.
