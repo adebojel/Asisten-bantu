@@ -33,6 +33,7 @@ jobs:
         run: |
           npm ci
           node tools/NavigationSafetyCheck.mjs
+          node tools/Stage5SecurityCheck.mjs
           npm run lint
           npm run build
       - name: Build debug APK
@@ -66,7 +67,7 @@ jobs:
             Commit sumber: ${{ github.sha }}
             Branch: main
 
-            **Catatan:** ini adalah debug APK. Uji di perangkat dengan pendamping jika menggunakan fitur navigasi atau bantuan mobilitas. Fitur AI online gratis bergantung pada ketersediaan dan kuota provider; model lokal memerlukan perangkat yang kompatibel.
+            **Catatan:** ini adalah debug APK. Uji di perangkat dengan pendamping jika menggunakan fitur navigasi atau bantuan mobilitas. AI Kobra diproses secara lokal. Model lokal memerlukan perangkat yang kompatibel; uji pada perangkat fisik tetap diperlukan.
           files: |
             release/*.apk
             release/SHA256SUMS.txt
