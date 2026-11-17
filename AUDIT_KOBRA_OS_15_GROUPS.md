@@ -5,7 +5,7 @@ Repository: https://github.com/adebojel/Asisten-bantu
 Branch sasaran: `main`  
 Release baseline terverifikasi: Build 455  
 Source commit Build 455: `fad1a23372817befd1627f304550431908713ec1`  
-Follow-up security commit: `84cf236a98ede30fcc44fe55309a60b9de1d0292`
+Build 455 commit: `fad1a23372817befd1627f304550431908713ec1`
 
 ## Ringkasan verifikasi
 
@@ -13,8 +13,8 @@ Follow-up security commit: `84cf236a98ede30fcc44fe55309a60b9de1d0292`
 - Tidak ada Pull Request terbuka pada pemeriksaan terakhir.
 - Pull Request Tahap 5 #17 dan #18 sudah merged.
 - Build 455 telah dipublikasikan sebagai release non-draft; APK dan SHA256SUMS.txt tersedia pada Releases Assets.
-- Build 440 lulus Stage5 security guard, frontend lint/build, Android lint, Android unit tests, APK build, checksum, artifact upload, dan publikasi release.
-- Follow-up commit `84cf236` menambahkan fail-closed saat storage SOS tidak dapat dibuka dan menjadikan kontak SOS frontend hanya tersimpan di memori sesi. CI/release untuk follow-up ini harus diverifikasi pada run berikutnya.
+- Build 455 lulus Stage 5 privacy/offline-AI guard, navigation safety check, frontend lint/build, Android lint, Android unit tests, APK build, checksum generation, artifact upload, dan publikasi release.
+- Build 455 juga memverifikasi perbaikan SOS: lokasi GPS berbasis monotonic clock dan status SMS tidak mengklaim delivery tanpa konfirmasi operator.
 - Tidak ada pengujian fisik HP yang dapat diklaim dari CI.
 
 Status:
