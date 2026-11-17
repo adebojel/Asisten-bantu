@@ -12,25 +12,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-/** Semua pengaturan yang tersimpan: API key AI, model, suara TTS, kontras, catatan, dan kontak SOS. */
+/** Pengaturan lokal KOBRA: model perangkat, suara TTS, aksesibilitas, tema, dan data pengguna. */
 public final class KobraConfig {
 
     public static final String PREFS_CONFIG = "kobra_config";
     public static final String PREFS_SOS = "kobra_sos";
     public static final String PREFS_LLM_CRASH_GUARD = "llm_crash_guard";
-
-    /** Model gratis OpenRouter untuk percakapan teks, dicoba berurutan jika ada yang sibuk. */
-    public static final String[] TEXT_MODELS = {
-            "google/gemini-2.0-flash-exp:free",
-            "meta-llama/llama-3.3-70b-instruct:free",
-            "openrouter/free"
-    };
-
-    /** Model gratis yang bisa membaca gambar. */
-    public static final String[] VISION_MODELS = {
-            "google/gemma-3-27b-it:free",
-            "mistralai/mistral-small-3.1-24b-instruct:free"
-    };
 
     public static final String STYLE_RINGKAS = "ringkas";
     public static final String STYLE_RAMAH = "ramah";
@@ -48,15 +35,17 @@ public final class KobraConfig {
         this.crashGuard = appContext.getSharedPreferences(PREFS_LLM_CRASH_GUARD, Context.MODE_PRIVATE);
     }
 
-    public String getApiKey() { return prefs.getString("api_key", "").trim(); }
-    public void setApiKey(String v) { prefs.edit().putString("api_key", v == null ? "" : v.trim()).apply(); }
-    public boolean hasAi() { return !getApiKey().isEmpty(); }
+    /** Cloud credentials are intentionally unavailable in the offline-only build. */
+    public String getApiKey() { return ""; }
+    public void setApiKey(String v) { prefs.edit().remove("api_key").apply(); }
+    public boolean hasAi() { return false; }
 
     public String getModel() { return prefs.getString("model", "").trim(); }
     public void setModel(String v) { prefs.edit().putString("model", v == null ? "" : v.trim()).apply(); }
 
-    public String getN8nUrl() { return prefs.getString("n8n_url", "").trim(); }
-    public void setN8nUrl(String v) { prefs.edit().putString("n8n_url", v == null ? "" : v.trim()).apply(); }
+    /** External webhook automation is retired; routines must execute locally. */
+    public String getN8nUrl() { return ""; }
+    public void setN8nUrl(String v) { prefs.edit().remove("n8n_url").apply(); }
 
     public boolean isReadNotifications() { return prefs.getBoolean("read_notifications", true); }
     public void setReadNotifications(boolean v) { prefs.edit().putBoolean("read_notifications", v).apply(); }
@@ -193,8 +182,9 @@ public final class KobraConfig {
     public boolean isLayeredConfirmEnabled() { return prefs.getBoolean("layered_confirm", true); }
     public void setLayeredConfirmEnabled(boolean enabled) { prefs.edit().putBoolean("layered_confirm", enabled).apply(); }
 
-    public String getGeminiApiKey() { return prefs.getString("gemini_api_key", "").trim(); }
-    public void setGeminiApiKey(String key) { prefs.edit().putString("gemini_api_key", key == null ? "" : key.trim()).apply(); }
+    /** Gemini credentials are not used by the offline-only application. */
+    public String getGeminiApiKey() { return ""; }
+    public void setGeminiApiKey(String key) { prefs.edit().remove("gemini_api_key").apply(); }
 
     public boolean isVisualNumbersEnabled() { return prefs.getBoolean("visual_numbers_enabled", true); }
     public void setVisualNumbersEnabled(boolean enabled) { prefs.edit().putBoolean("visual_numbers_enabled", enabled).apply(); }
