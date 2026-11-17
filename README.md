@@ -118,6 +118,15 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 ---
 
+## 🎙️ Tahap 2 — Suara dan komunikasi offline
+
+- Chat voice capture hanya memakai `SpeechRecognizer.createOnDeviceSpeechRecognizer` pada perangkat Android yang mendukungnya.
+- Kobra tidak lagi berpindah ke recognizer sistem generik ketika paket bahasa offline tidak tersedia; aplikasi memberi tahu pengguna bahwa paket ASR offline Bahasa Indonesia diperlukan.
+- Pemilihan suara TTS Bahasa Indonesia memprioritaskan dan hanya memilih voice yang ditandai tidak memerlukan jaringan.
+- Kesiapan suara offline dilaporkan secara eksplisit; ketersediaan paket ASR/TTS tetap bergantung pada mesin suara dan paket bahasa yang terpasang di perangkat.
+- Pembacaan notifikasi dan balasan cepat memakai Notification Listener dan RemoteInput jika aplikasi pengirim menyediakan tindakan balas.
+- SMS memerlukan izin Android yang sesuai. WhatsApp, panggilan suara/video, voice note, dan aplikasi pesan lain harus dioperasikan melalui kontrol aksesibilitas yang tersedia; dukungan setiap aplikasi perlu diverifikasi pada perangkat nyata.
+
 ## 🧠 AI lokal sepenuhnya (offline-only)
 
 Kobra menggunakan model lokal dan basis pengetahuan perangkat. Jalur AI server eksternal dinonaktifkan; kegagalan model lokal tidak boleh mengirim prompt, screenshot, atau data pengguna ke provider cloud.
