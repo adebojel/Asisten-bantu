@@ -43,6 +43,8 @@ public final class KobraConfig {
                 .remove("model")
                 .apply();
         this.sos = appContext.getSharedPreferences(PREFS_SOS, Context.MODE_PRIVATE);
+        // Migrate SOS names and phone numbers from legacy plaintext preferences into Keystore AES-GCM.
+        EncryptedSosStore.migrate(appContext);
         this.crashGuard = appContext.getSharedPreferences(PREFS_LLM_CRASH_GUARD, Context.MODE_PRIVATE);
     }
 
@@ -373,9 +375,11 @@ public final class KobraConfig {
         return out;
     }
 
-    /** Kunci: name1, phone1, name2, phone2 (sama dengan versi sebelumnya, data lama tetap terbaca). */
-    public String getSos(String key) { return sos.getString(key, "").trim(); }
-    public void setSos(String key, String value) { sos.edit().putString(key, value == null ? "" : value.trim()).apply(); }
+    /** Kunci kompatibel: name1, phone1, name2, phone2; data lama dimigrasikan ke AES-GCM. */
+    public String getSos(String key) { return EncryptedSosStore.get(appContext, key); }
+    public boolean setSos(String key, String value) {
+        return EncryptedSosStore.set(appContext, key, value == null ? "" : value.trim());
+    }
 
     public boolean hasSosContact() {
         return !getSos("phone1").isEmpty() || !getSos("phone2").isEmpty();
@@ -603,7 +607,7 @@ public final class KobraConfig {
 
         JSONObject stores = new JSONObject();
         stores.put(PREFS_CONFIG, serializePrefs(prefs));
-        stores.put(PREFS_SOS, serializePrefs(sos));
+        stores.put(PREFS_SOS, EncryptedSosStore.exportPrefsJson(appContext));
         root.put("prefs", stores);
         // Plaintext is present only inside the user-selected backup file; live memory stays encrypted.
         root.put("local_memory", new JSONArray(localMemoryBackup));
@@ -632,7 +636,14 @@ public final class KobraConfig {
             restoredCount += restorePrefs(prefs, stores.getJSONObject(PREFS_CONFIG));
         }
         if (stores.has(PREFS_SOS)) {
+            // Replace encrypted SOS data, restore the backup payload temporarily, then re-encrypt it.
+            if (!EncryptedSosStore.clear(appContext)) {
+                throw new IllegalStateException("Tidak dapat menyiapkan penyimpanan kontak SOS terenkripsi.");
+            }
             restoredCount += restorePrefs(sos, stores.getJSONObject(PREFS_SOS));
+            if (!EncryptedSosStore.migrate(appContext)) {
+                throw new IllegalStateException("Gagal mengenkripsi ulang kontak SOS dari cadangan.");
+            }
         }
         if (memoryBackup != null) {
             restoredCount += LocalMemoryStore.importBackupJson(appContext, memoryBackup.toString());
