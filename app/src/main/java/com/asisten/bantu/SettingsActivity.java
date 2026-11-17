@@ -518,26 +518,13 @@ public class SettingsActivity extends AppCompatActivity {
         save.setOnClickListener(v -> {
             saveFields();
             tvStatus.setText("Seluruh pengaturan tersimpan.");
-            speaker.speak("Seluruh pengaturan, API key, sensor, dan keamanan telah disimpan.");
+            speaker.speak("Seluruh pengaturan, profil suara, sensor, dan keamanan telah disimpan.");
         });
 
         test.setOnClickListener(v -> {
             saveFields();
-            String providerSummary = OnlineAiRouter.getActiveProviderSummary(this);
-            tvStatus.setText("Menguji koneksi " + providerSummary + "...");
-            OnlineAiRouter.testConnection(this, new OnlineAiRouter.Callback() {
-                @Override public void onResult(String text, String providerLabel) {
-                    if (isFinishing() || isDestroyed()) return;
-                    tvStatus.setText(providerLabel + " menjawab: " + text);
-                    speaker.speak(text);
-                }
-
-                @Override public void onError(String message) {
-                    if (isFinishing() || isDestroyed()) return;
-                    tvStatus.setText("Gagal uji " + providerSummary + ": " + message);
-                    speaker.speak(message);
-                }
-            });
+            tvStatus.setText("Menguji model AI lokal yang tersedia di perangkat...");
+            loadOrTestLocalModel();
         });
 
         btnImportModel.setOnClickListener(v -> {
@@ -623,7 +610,7 @@ public class SettingsActivity extends AppCompatActivity {
         List<LocalMemoryStore.MemoryItem> items = LocalMemoryStore.listMemories(this);
         tvMemoryCountInfo.setText(items.isEmpty()
                 ? "Belum ada memori tersimpan. Tambah manual atau katakan ingat bahwa..."
-                : "Total " + items.size() + " memori tersimpan (selalu disertakan dalam konteks AI).");
+                : "Total " + items.size() + " memori tersimpan terenkripsi di perangkat.");
 
         for (LocalMemoryStore.MemoryItem item : items) {
             LinearLayout row = new LinearLayout(this);
