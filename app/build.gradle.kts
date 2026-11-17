@@ -13,8 +13,8 @@ android {
         applicationId = "com.asisten.bantu"
         minSdk = 28
         targetSdk = 36
-        versionCode = 9
-        versionName = "7.2-KOBRA-UNIFIED"
+        versionCode = 10
+        versionName = "7.3-KOBRA-SECURE"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -88,7 +88,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.2.2")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
-    // Kotlin Coroutines & Network Client (Gemini / AI Studio REST Integration)
+    // Kotlin Coroutines & HTTP client for non-AI downloads and updates; AI inference remains on-device.
     // LiteRT-LM 0.16.1 calls the SendChannel.close$default interface bridge introduced in 1.11.0.
     // Keep Android and core coroutines aligned to prevent NoSuchMethodError after local inference.
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")

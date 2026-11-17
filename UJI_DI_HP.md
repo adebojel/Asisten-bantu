@@ -3,7 +3,7 @@
 Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugging jika ingin melihat log.
 
 ## A. Build dan pasang
-1. **Tidak perlu Android Studio.** Unduh APK siap uji dari [GitHub Releases Latest](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk) atau [Release Build 314](https://github.com/adebojel/Asisten-bantu/releases/tag/kobra-os-build-314). Jika build berikutnya gagal, buka [GitHub Actions](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) dan salin pesan error.
+1. **Tidak perlu Android Studio.** Unduh APK siap uji dari [GitHub Releases Latest](https://github.com/adebojel/Asisten-bantu/releases/latest/download/Kobra-OS-main.apk). Jika build berikutnya gagal, buka [GitHub Actions](https://github.com/adebojel/Asisten-bantu/actions/workflows/release.yml) dan salin pesan error.
 2. Pasang APK, buka Kobra OS.
 
 ## B. Izin dan layanan
@@ -173,3 +173,16 @@ Log (opsional, lewat komputer): `adb logcat -s KobraOS AndroidRuntime`.
 - [ ] Build APK, checksum, README, panduan HP, dan Release mengacu pada commit yang sama.
 
 **Laporan hasil:** isi setiap checkbox berdasarkan hasil aktual. Jika perangkat belum diuji, biarkan belum dicentang; hasil CI bukan pengganti uji fisik.
+
+
+### Tahap 5 — Memori terenkripsi dan siklus hidup model
+1. Pasang versi 7.3-KOBRA-SECURE (versionCode 10) dari GitHub Releases Latest.
+2. Buka Pengaturan → Memori AI Lokal. Pastikan memori lama tetap ada setelah migrasi otomatis.
+3. Tambahkan memori uji non-sensitif, tutup aplikasi, buka ulang, dan pastikan memori tetap tersedia.
+4. Ubah satu memori dan hapus satu memori uji; pastikan hasilnya bertahan setelah aplikasi dibuka ulang.
+5. Ekspor backup JSON. File ini berisi data memori dalam bentuk yang dapat dibaca; simpan di lokasi tepercaya dan jangan bagikan data pribadi.
+6. Hapus entri uji, pulihkan backup, dan pastikan data kembali serta dienkripsi di perangkat.
+7. Uji JSON rusak/format tidak valid; Kobra harus menolak file dan tidak mengklaim restore berhasil.
+8. Jalankan model lokal, selesaikan satu permintaan, tunggu lebih dari 2 menit idle, lalu jalankan permintaan lagi. Model harus dapat dimuat ulang.
+9. Uji low-memory Android. Runtime model boleh dilepas, tetapi perintah dasar offline harus tetap dapat digunakan.
+10. Verifikasi penyimpanan aktif bernama kobra_secure_local_memory hanya berisi ciphertext; kunci AES tetap di Android Keystore dan tidak masuk ke backup.
