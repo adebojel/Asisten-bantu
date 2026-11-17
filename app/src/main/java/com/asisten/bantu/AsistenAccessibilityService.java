@@ -3178,20 +3178,45 @@ public class AsistenAccessibilityService extends AccessibilityService {
             return;
         }
         Location loc = lastKnownLocation();
-        String where = loc != null
-                ? "https://maps.google.com/?q=" + loc.getLatitude() + "," + loc.getLongitude()
-                : "lokasi belum tersedia";
-        String msg = "DARURAT dari Kobra OS. Saya tunanetra dan butuh bantuan segera. Lokasi saya: " + where;
+        long now = System.currentTimeMillis();
+        boolean locationFresh = loc != null && SosLocationFreshness.isFresh(now, loc.getTime());
+        String where;
+        String locationStatus;
+        if (loc == null) {
+            where = "lokasi belum tersedia";
+            locationStatus = "Lokasi belum tersedia; pesan tidak menyertakan koordinat.";
+        } else if (locationFresh) {
+            where = "https://maps.google.com/?q=" + loc.getLatitude() + "," + loc.getLongitude();
+            locationStatus = "Lokasi terakhir diperbarui kurang dari dua menit lalu.";
+        } else {
+            long ageMinutes = SosLocationFreshness.ageMinutes(now, loc.getTime());
+            where = "koordinat terakhir tercatat " + ageMinutes
+                    + " menit lalu (mungkin bukan posisi saat ini): https://maps.google.com/?q="
+                    + loc.getLatitude() + "," + loc.getLongitude();
+            locationStatus = "Lokasi yang tersedia sudah lama, sekitar " + ageMinutes
+                    + " menit; jangan anggap sebagai posisi saat ini.";
+        }
+        String msg = "DARURAT dari Kobra OS. Saya butuh bantuan segera. Lokasi: " + where;
 
-        int sent = 0;
-        if (Perms.has(this, Manifest.permission.SEND_SMS)) {
-            if (!p1.isEmpty() && sendSms(p1, msg)) sent++;
-            if (!p2.isEmpty() && sendSms(p2, msg)) sent++;
+        boolean smsPermission = Perms.has(this, Manifest.permission.SEND_SMS);
+        int submitted = 0;
+        int failed = 0;
+        if (smsPermission) {
+            if (!p1.isEmpty()) { if (sendSms(p1, msg)) submitted++; else failed++; }
+            if (!p2.isEmpty()) { if (sendSms(p2, msg)) submitted++; else failed++; }
         }
         String who = name1.isEmpty() ? "kontak darurat" : name1;
-        say("SOS dikirim ke " + sent + " kontak. "
-                + (loc != null ? "Lokasi terkirim." : "Lokasi belum tersedia, nyalakan GPS.")
-                + " Saya telepon " + who + ".");
+        String smsStatus;
+        if (!smsPermission) {
+            smsStatus = "Izin SMS tidak aktif, SMS tidak dikirim.";
+        } else if (submitted == 0) {
+            smsStatus = "Permintaan SMS gagal diserahkan ke Android.";
+        } else {
+            smsStatus = "Permintaan SMS diserahkan ke Android untuk " + submitted
+                    + " kontak; status terkirim atau diterima belum terverifikasi."
+                    + (failed > 0 ? " " + failed + " permintaan SMS gagal." : "");
+        }
+        say(smsStatus + " " + locationStatus + " Membuka panggilan ke " + who + ".");
         placeCall(who, p1.isEmpty() ? p2 : p1);
     }
 
