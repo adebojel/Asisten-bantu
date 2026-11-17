@@ -34,9 +34,12 @@ public final class RoutineAutomationManager {
             routine.put("hour", hour);
             routine.put("minute", minute);
             routine.put("title", cleanTitle);
-            context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .edit().putString(PREFIX + id, routine.toString()).apply();
-            return scheduleNext(context.getApplicationContext(), id, hour, minute, cleanTitle);
+            SharedPreferences prefs = context.getApplicationContext()
+                    .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            prefs.edit().putString(PREFIX + id, routine.toString()).apply();
+            boolean scheduled = scheduleNext(context.getApplicationContext(), id, hour, minute, cleanTitle);
+            if (!scheduled) prefs.edit().remove(PREFIX + id).apply();
+            return scheduled;
         } catch (Exception error) {
             return false;
         }
