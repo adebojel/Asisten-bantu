@@ -479,7 +479,8 @@ public class MainActivity extends AppCompatActivity {
         if (tvMainHeaderTitle != null) {
             tvMainHeaderTitle.setText(activeName.toUpperCase(Locale.ROOT) + " OS");
         }
-        String sosText = c.hasSosContact() ? "SOS Siap" : "SOS Default 112";
+        String sosText = !c.isSosStorageReady() ? "SOS Penyimpanan Bermasalah"
+                : (c.hasSosContact() ? "SOS Siap" : "SOS Default 112");
         String persona = KobraPersona.fromId(c.getActivePersonaId()).getTitle();
         if (tvQuickMeta != null) {
             tvQuickMeta.setText("Suara: " + activeName + " • " + sosText + " • Persona: " + persona + " • Memori: " + LocalMemoryStore.listMemories(this).size());

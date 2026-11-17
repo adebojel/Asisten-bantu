@@ -22,7 +22,7 @@ export const SosScreen: React.FC = () => {
     }
     updateSosContact(0, contact1);
     updateSosContact(1, contact2);
-    say('Kontak darurat SOS berhasil disimpan.');
+    say('Kontak SOS tersimpan sementara selama sesi web ini. Untuk penyimpanan permanen terenkripsi, gunakan menu SOS native Android.');
   };
 
   return (
@@ -60,6 +60,7 @@ export const SosScreen: React.FC = () => {
           KOBRA hanya membuka draf WhatsApp ke kontak utama yang sudah Anda simpan. Periksa isi dan penerima, lalu tekan Kirim sendiri. Koordinat GPS disertakan hanya jika tersedia. KOBRA tidak mengirim pesan diam-diam atau otomatis.
         </p>
       </div>
+      <p className="text-xs text-neutral-400 px-2">Kontak pada tampilan web hanya berada di memori sesi dan hilang saat halaman ditutup. Untuk penyimpanan permanen terenkripsi, gunakan pengaturan SOS native Android.</p>
 
       {/* Contact 1 */}
       <div className="p-6 bg-neutral-900 border-2 border-neutral-800 rounded-3xl space-y-4">

@@ -143,6 +143,26 @@ if (fs.existsSync(frontendSpeakerPath)) {
   }
 }
 
+const accessibilityServicePath = path.join(root, "app/src/main/java/com/asisten/bantu/AsistenAccessibilityService.java");
+if (fs.existsSync(accessibilityServicePath)) {
+  const accessibilityService = fs.readFileSync(accessibilityServicePath, "utf8");
+  const sosMethodStart = accessibilityService.indexOf("public void triggerSos()");
+  const sosMethodEnd = accessibilityService.indexOf("private void openMedicalCardAndRead()", sosMethodStart);
+  const sosMethod = sosMethodStart >= 0 && sosMethodEnd > sosMethodStart
+    ? accessibilityService.slice(sosMethodStart, sosMethodEnd) : "";
+  if (!sosMethod.includes("config.isSosStorageReady()")) {
+    failures.push("SOS must fail closed if encrypted emergency contacts cannot be read.");
+  }
+}
+const browserSosContextPath = path.join(root, "src/context/KobraContext.tsx");
+if (fs.existsSync(browserSosContextPath)) {
+  const browserSosContext = fs.readFileSync(browserSosContextPath, "utf8");
+  if (browserSosContext.includes("localStorage.getItem('kobra_sos')")
+      || browserSosContext.includes("localStorage.setItem('kobra_sos'")) {
+    failures.push("Browser UI must not persist SOS phone numbers in plaintext localStorage.");
+  }
+}
+
 const encryptedSosPath = path.join(root, "app/src/main/java/com/asisten/bantu/EncryptedSosStore.kt");
 const kobraConfigPath = path.join(root, "app/src/main/java/com/asisten/bantu/KobraConfig.java");
 if (fs.existsSync(encryptedSosPath) && fs.existsSync(kobraConfigPath)) {

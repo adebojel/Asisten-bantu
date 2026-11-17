@@ -129,24 +129,7 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return defaults;
   });
 
-  const [sosContacts, setSosContacts] = useState<SosContact[]>(() => {
-    try {
-      const saved = localStorage.getItem('kobra_sos');
-      if (saved) {
-        const parsed = JSON.parse(saved) as SosContact[];
-        if (Array.isArray(parsed)) {
-          // Remove legacy sample numbers that were shipped as placeholders.
-          return parsed.filter(contact => {
-            const digits = (contact?.phone || '').replace(/\D/g, '');
-            return !!contact?.name?.trim() && digits.length >= 7
-              && digits !== '081234567890'.replace(/\D/g, '')
-              && digits !== '089876543210'.replace(/\D/g, '');
-          }).slice(0, 2);
-        }
-      }
-    } catch (ignored) {}
-    return [];
-  });
+  const [sosContacts, setSosContacts] = useState<SosContact[]>([]);
 
   const [notifications, setNotifications] = useState<NotificationItem[]>(DEFAULT_NOTIFICATIONS);
   const [installedApps] = useState<InstalledApp[]>(DEFAULT_INSTALLED_APPS);
@@ -167,10 +150,6 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     speaker.setRate(settings.speechRate);
     speaker.setPitch(settings.speechPitch);
   }, [settings]);
-
-  useEffect(() => {
-    localStorage.setItem('kobra_sos', JSON.stringify(sosContacts));
-  }, [sosContacts]);
 
   useEffect(() => {
     const onStart = () => {

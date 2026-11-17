@@ -3160,6 +3160,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
 
     /** Dipakai juga dari tombol SOS di layar launcher. */
     public void triggerSos() {
+        if (!config.isSosStorageReady()) {
+            say("Penyimpanan kontak darurat tidak dapat dibuka. Tidak ada SMS atau panggilan yang dilakukan.");
+            return;
+        }
         HapticFeedback.vibrateSosMorse(this, false);
         if (!NetworkState.isOnline(this)) {
             EmergencyBeacon.startEmergencyBroadcast(this);

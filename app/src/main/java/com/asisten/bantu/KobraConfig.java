@@ -391,6 +391,10 @@ public final class KobraConfig {
         return EncryptedSosStore.setAll(appContext, values);
     }
 
+    public boolean isSosStorageReady() {
+        return EncryptedSosStore.migrate(appContext);
+    }
+
     public boolean hasSosContact() {
         return !getSos("phone1").isEmpty() || !getSos("phone2").isEmpty();
     }
