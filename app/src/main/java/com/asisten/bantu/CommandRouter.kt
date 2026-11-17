@@ -204,7 +204,8 @@ object CommandRouter {
     }
 
     /**
-     * Prioritas 3 (Gemma 3 1B Offline + Memori Lokal + Persona) -> Prioritas 4 (Gemini / OpenRouter).
+     * Offline-only conversation routing. Never consult network state or cloud providers.
+     * Qwen3 LiteRT-LM is preferred; MediaPipe is the local fallback.
      */
     @JvmStatic
     fun routeComplexFallback(
@@ -214,145 +215,32 @@ object CommandRouter {
         config: KobraConfig,
         speaker: Speaker
     ) {
-        val online = NetworkState.isOnline(service)
-        val macroCache = LocalMacroCache(service)
         val fullInstruction = KobraPersona.buildFullSystemPrompt(service)
-
-        // Jawaban pengetahuan yang sudah tersedia harus tetap bisa dijawab tanpa jaringan/model.
-        OfflineKnowledgeStore.answer(service, command)?.let { knownAnswer ->
-            speaker.speak(knownAnswer)
+        OfflineKnowledgeStore.answer(service, command)?.let {
+            speaker.speak(it)
             return
         }
 
-        // Qwen3 tertanam di APK menjadi otak percakapan utama, baik online maupun offline.
-        // Internet hanya dipakai jika model lokal tidak siap, gagal, atau perangkat kekurangan RAM.
-        if (LocalModelRuntimeManager.isModelAvailable(service)) {
-            if (LocalModelRegistry.canAttemptLiteRtModel(service)) {
-                LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\n\nPengguna: $command") { answer, error ->
-                    if (!answer.isNullOrBlank()) {
-                        speaker.speak(answer)
-                    } else if (online) {
-                        dispatchOnlineTier4(service, command, macroCache, config, speaker)
-                    } else {
-                        fallbackToMediaPipeOrSpeak(
-                            service, command, fullInstruction, speaker,
-                            error ?: "Qwen3 lokal gagal menjawab dan internet tidak tersedia."
-                        )
-                    }
-                }
-                return
-            } else if (!online) {
-                fallbackToMediaPipeOrSpeak(
-                    service, command, fullInstruction, speaker,
-                    "Memori bebas HP belum cukup untuk memuat Qwen3 dengan aman. Tutup aplikasi lain lalu coba lagi."
-                )
-                return
-            }
-        }
-
-        // Prioritas 3A: Qwen3 0.6B via LiteRT-LM bila model ringan tersedia.
-        if (!online) {
-            if (LocalModelRuntimeManager.isModelAvailable(service)) {
-                if (!LocalModelRegistry.canAttemptLiteRtModel(service)) {
-                    speaker.speak("Memori bebas HP belum cukup untuk memuat Qwen tiga dengan aman. Tutup aplikasi lain lalu coba lagi. Perintah sistem dasar tetap tersedia offline.")
-                    return
-                }
-                speaker.speak("Internet terputus. Menyiapkan model lokal ringan.")
-                LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\n\nPengguna: $command") { answer, error ->
-                    if (!answer.isNullOrBlank()) {
-                        speaker.speak(answer)
-                    } else if (localLlmEngine != null && localLlmEngine.isModelPresent && !localLlmEngine.isSafeMode) {
-                        if (localLlmEngine.isInitialized) {
-                            localLlmEngine.summarizeTextAsync(fullInstruction, "Suara", command, speaker, null)
-                        } else {
-                            localLlmEngine.initEngineAsync(false) { ok, _ ->
-                                if (ok) localLlmEngine.summarizeTextAsync(fullInstruction, "Suara", command, speaker, null)
-                                else speaker.speak(error ?: "Model lokal ringan gagal dimuat.")
-                            }
-                        }
-                    } else {
-                        speaker.speak(error ?: "Model lokal ringan gagal menjawab. Gunakan perintah suara dasar yang tetap tersedia offline.")
-                    }
-                }
-                return
-            }
-            if (localLlmEngine != null && localLlmEngine.isModelPresent) {
-                if (localLlmEngine.isSafeMode && localLlmEngine.lastError.isNotEmpty()) {
-                    speaker.speak(
-                        "Mode Aman aktif karena ${localLlmEngine.lastError}. " +
-                            "Anda tetap bisa memakai Voice Access nomor layar dan perintah sistem lokal."
-                    )
-                } else if (localLlmEngine.isInitialized) {
-                    speaker.speak("Memproses dengan otak offline...")
-                    localLlmEngine.summarizeTextAsync(fullInstruction, "Suara", command, speaker, null)
+        if (LocalModelRuntimeManager.isModelAvailable(service) &&
+            LocalModelRegistry.canAttemptLiteRtModel(service)) {
+            speaker.speak("Memproses dengan model Qwen3 lokal.")
+            LocalModelRuntimeManager.answerAsync(service, "$fullInstruction\n\nPengguna: $command") { answer, error ->
+                if (!answer.isNullOrBlank()) {
+                    speaker.speak(answer)
                 } else {
-                    speaker.speak("Menyiapkan otak offline, harap tunggu...")
-                    UnifiedAccessibilityEngine.getScope().launch(Dispatchers.IO) {
-                        val ready = localLlmEngine.initEngine()
-                        withContext(Dispatchers.Main) {
-                            if (ready) {
-                                localLlmEngine.summarizeTextAsync(fullInstruction, "Suara", command, speaker, null)
-                            } else {
-                                speaker.speak("Gagal memuat model offline. Beralih ke Mode Aman perintah sistem lokal.")
-                            }
-                        }
-                    }
+                    fallbackToMediaPipeOrSpeak(
+                        service, command, fullInstruction, speaker,
+                        error ?: "Model Qwen3 lokal gagal. Tidak ada koneksi AI server yang digunakan."
+                    )
                 }
-            } else {
-                speaker.speak("Internet terputus dan model offline titik task belum terpasang.")
             }
             return
         }
 
-        // Opsional webhook n8n bila dikonfigurasi
-        if (config.n8nUrl.isNotEmpty()) {
-            speaker.speak("Sebentar, saya teruskan ke otomatisasi.")
-            N8nClient.send(config.n8nUrl, command, object : N8nClient.Callback {
-                override fun onResult(text: String) {
-                    speaker.speak(text)
-                }
-
-                override fun onError(message: String) {
-                    dispatchOnlineTier4(service, command, macroCache, config, speaker)
-                }
-            })
-            return
-        }
-
-        dispatchOnlineTier4(service, command, macroCache, config, speaker)
-    }
-
-    private fun dispatchOnlineTier4(
-        service: AsistenAccessibilityService,
-        command: String,
-        macroCache: LocalMacroCache,
-        config: KobraConfig,
-        speaker: Speaker
-    ) {
-        // Tidak ada jalur Gemini API otomatis: seluruh routing online melewati
-        // OnlineAiRouter yang hanya mengizinkan model dengan harga nol.
-        speaker.speak("Sebentar.")
-        val sysPrompt = KobraPersona.buildFullSystemPrompt(service)
-        OnlineAiRouter.askAsync(service, command, sysPrompt, object : OnlineAiRouter.Callback {
-            override fun onResult(text: String, providerLabel: String) {
-                speaker.speak(text)
-            }
-
-            override fun onError(message: String) {
-                if (LocalModelRuntimeManager.isModelAvailable(service) &&
-                    LocalModelRegistry.canAttemptLiteRtModel(service)) {
-                    LocalModelRuntimeManager.answerAsync(service, "$sysPrompt\n\nPengguna: $command") { localAnswer, localError ->
-                        if (!localAnswer.isNullOrBlank()) {
-                            speaker.speak(localAnswer)
-                        } else {
-                            fallbackToMediaPipeOrSpeak(service, command, sysPrompt, speaker, localError ?: message)
-                        }
-                    }
-                    return
-                }
-                fallbackToMediaPipeOrSpeak(service, command, sysPrompt, speaker, message)
-            }
-        })
+        fallbackToMediaPipeOrSpeak(
+            service, command, fullInstruction, speaker,
+            "Model Qwen3 belum tersedia atau RAM belum cukup. Menggunakan fallback lokal."
+        )
     }
 
     private fun fallbackToMediaPipeOrSpeak(
@@ -364,16 +252,16 @@ object CommandRouter {
     ) {
         val engine = service.localLlmEngine
         if (engine != null && engine.isModelPresent && !engine.isSafeMode) {
-                    if (engine.isInitialized) {
-                        engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
-                    } else {
-                        engine.initEngineAsync(false) { ok, _ ->
-                            if (ok) engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
-                            else speaker.speak(errorMessage)
-                        }
-                    }
+            if (engine.isInitialized) {
+                engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
+            } else {
+                engine.initEngineAsync(false) { ok, _ ->
+                    if (ok) engine.summarizeTextAsync(sysPrompt, "Suara", command, speaker, null)
+                    else speaker.speak("$errorMessage Perintah dasar offline tetap tersedia.")
+                }
+            }
         } else {
-            speaker.speak(errorMessage)
+            speaker.speak("$errorMessage Perintah dasar offline tetap tersedia.")
         }
     }
 
