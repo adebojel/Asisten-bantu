@@ -12,6 +12,7 @@ internal object SystemControlCommandParser {
         RegexOption.IGNORE_CASE
     )
 
+    @JvmStatic
     fun parseVolumePercent(command: String?): Int? {
         if (command.isNullOrBlank()) return null
         val match = volumePercentPattern.matchEntire(command.trim().lowercase(Locale.ROOT)) ?: return null
