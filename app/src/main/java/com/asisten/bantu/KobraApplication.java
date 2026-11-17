@@ -1,6 +1,7 @@
 package com.asisten.bantu;
 
 import android.app.Application;
+import android.content.ComponentCallbacks2;
 import android.content.Intent;
 import android.os.Process;
 import android.util.Log;
@@ -67,6 +68,20 @@ public class KobraApplication extends Application {
             Process.killProcess(Process.myPid());
             System.exit(10);
         });
+    }
+
+    @Override
+    public void onTrimMemory(int level) {
+        super.onTrimMemory(level);
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+            LocalModelRuntimeManager.release();
+        }
+    }
+
+    @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        LocalModelRuntimeManager.release();
     }
 
     static String buildCrashSummary(String threadName, Throwable throwable) {
