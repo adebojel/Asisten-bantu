@@ -216,7 +216,7 @@ public final class RoutineAutomationManager {
         }
     }
 
-    private static boolean isValidCondition(String condition, int threshold) {
+    static boolean isValidCondition(String condition, int threshold) {
         return "always".equals(condition) || "charging".equals(condition)
                 || ("battery_below".equals(condition) && threshold >= 1 && threshold <= 100);
     }
