@@ -37,6 +37,9 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
     var isSleepMode: Boolean = false
         private set
 
+    private var lastAnnouncedFocus: String = ""
+    private var lastFocusAnnouncementAt: Long = 0L
+
     fun onDestroy() {
         numberOverlay.hide()
         gridOverlay.hide()
@@ -67,8 +70,17 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
             android.view.accessibility.AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> focusOutline.hide()
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED,
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_FOCUSED -> {
-                if (!cfg.isFocusOutlineEnabled()) return
-                refreshFocusOutline()
+                if (cfg.isFocusOutlineEnabled()) refreshFocusOutline()
+                if (event.eventType == android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUSED &&
+                    cfg.isKobraScreenReaderEnabled()) {
+                    val label = NodeIndexer.focusedLabel(service).trim()
+                    val now = System.currentTimeMillis()
+                    if (label.isNotEmpty() && label != lastAnnouncedFocus && now - lastFocusAnnouncementAt >= 350L) {
+                        lastAnnouncedFocus = label
+                        lastFocusAnnouncementAt = now
+                        com.asisten.bantu.Speaker.get(service).speak(label)
+                    }
+                }
             }
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_ACCESSIBILITY_FOCUS_CLEARED -> focusOutline.hide()
             android.view.accessibility.AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED,
@@ -173,6 +185,20 @@ class VoiceAccessEngine(private val service: AccessibilityService) {
 
         // 2) Tampilan Nomor Layar & Grid 3x3
         val cfg = KobraConfig(service)
+
+        if (c == "aktifkan pembaca layar kobra" || c == "aktifkan talkback kobra" ||
+            c == "nyalakan pembaca layar") {
+            cfg.setKobraScreenReaderEnabled(true)
+            lastAnnouncedFocus = ""
+            sayCallback.accept("Pembaca layar Kobra aktif. Saya akan membacakan elemen yang mendapat fokus aksesibilitas.")
+            return true
+        }
+        if (c == "matikan pembaca layar kobra" || c == "nonaktifkan talkback kobra" ||
+            c == "matikan pembaca layar") {
+            cfg.setKobraScreenReaderEnabled(false)
+            sayCallback.accept("Pembaca layar Kobra dimatikan.")
+            return true
+        }
 
         if (c == "bicara lebih cepat" || c == "talk faster" || c == "naikkan kecepatan bicara") {
             val rate = VoiceProfileManager.adjustSpeechRate(service, 0.1f)
