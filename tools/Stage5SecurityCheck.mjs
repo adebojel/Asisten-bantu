@@ -77,6 +77,20 @@ if (fs.existsSync(manifestPath)) {
   }
 }
 
+const memoryStore = fs.readFileSync(path.join(root, "app/src/main/java/com/asisten/bantu/LocalMemoryStore.kt"), "utf8");
+const encryptedMemory = fs.readFileSync(path.join(root, "app/src/main/java/com/asisten/bantu/EncryptedLocalMemoryStore.kt"), "utf8");
+const modelRuntime = fs.readFileSync(path.join(root, "app/src/main/java/com/asisten/bantu/LocalModelRuntimeManager.kt"), "utf8");
+if (!memoryStore.includes("EncryptedLocalMemoryStore.read") || !memoryStore.includes("EncryptedLocalMemoryStore.write")) {
+  failures.push("Local AI memory must use the encrypted storage adapter.");
+}
+if (!encryptedMemory.includes("AES/GCM/NoPadding") || !encryptedMemory.includes("AndroidKeyStore")
+    || !encryptedMemory.includes("setRandomizedEncryptionRequired(true)")) {
+  failures.push("Local memory must use randomized AES-GCM with an Android Keystore key.");
+}
+if (!modelRuntime.includes("IDLE_UNLOAD_MS = 120_000L") || !modelRuntime.includes("closeExecutor.execute")) {
+  failures.push("LiteRT runtime must unload after idle and close away from the UI thread.");
+}
+
 if (scanned.length === 0) failures.push("No Android source/configuration files were scanned.");
 if (failures.length) {
   console.error("KOBRA Stage 5 privacy/security guard FAILED:");
