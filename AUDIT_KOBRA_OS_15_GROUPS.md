@@ -3,8 +3,8 @@
 Tanggal: 18 November 2026  
 Repository: https://github.com/adebojel/Asisten-bantu  
 Branch sasaran: `main`  
-Release baseline terverifikasi: Build 440  
-Source commit Build 440: `95055a23cbbe83686abd0d6f8977275e8df6a460`  
+Release baseline terverifikasi: Build 455  
+Source commit Build 455: `fad1a23372817befd1627f304550431908713ec1`  
 Follow-up security commit: `84cf236a98ede30fcc44fe55309a60b9de1d0292`
 
 ## Ringkasan verifikasi
@@ -12,7 +12,7 @@ Follow-up security commit: `84cf236a98ede30fcc44fe55309a60b9de1d0292`
 - Repository publik, branch `main`, branch aktif, Pull Request, commit, Actions, release, dan assets diperiksa.
 - Tidak ada Pull Request terbuka pada pemeriksaan terakhir.
 - Pull Request Tahap 5 #17 dan #18 sudah merged.
-- Build 438 dan Build 440 telah dipublikasikan. Build 440 mencakup enkripsi kontak SOS native.
+- Build 455 telah dipublikasikan sebagai release non-draft; APK dan SHA256SUMS.txt tersedia pada Releases Assets.
 - Build 440 lulus Stage5 security guard, frontend lint/build, Android lint, Android unit tests, APK build, checksum, artifact upload, dan publikasi release.
 - Follow-up commit `84cf236` menambahkan fail-closed saat storage SOS tidak dapat dibuka dan menjadikan kontak SOS frontend hanya tersimpan di memori sesi. CI/release untuk follow-up ini harus diverifikasi pada run berikutnya.
 - Tidak ada pengujian fisik HP yang dapat diklaim dari CI.
@@ -41,7 +41,7 @@ Status:
 | 11 | Resource dan Memory Manager | PARTIAL | Runtime model memiliki idle unload dan penanganan tekanan memori. Benchmark RAM/CPU/baterai, ANR, sesi panjang, dan kebocoran kamera/audio belum dijalankan pada HP target. |
 | 12 | Database dan Local Memory | PARTIAL | Memori lokal dan kontak SOS native memakai AES-GCM/Android Keystore; migrasi legacy dan backup/restore tersedia. Backup JSON berisi plaintext atas tindakan eksplisit pengguna. Database Room, recovery, dan migrasi pada perangkat nyata belum diverifikasi. Kontak SOS frontend hanya berada di memori sesi. |
 | 13 | UI/UX | PARTIAL | Preferensi lokal, kontras, ukuran teks, getaran, dan status baterai dibuat lebih jujur. Pengujian aksesibilitas visual, sentuh, ukuran layar, dan TalkBack fisik belum dilakukan. |
-| 14 | QA, Security, Release | PARTIAL | Build 440 lulus seluruh gerbang CI yang tercatat. Follow-up commit setelah Build 440 menunggu CI/release berikutnya. Signing produksi, dynamic security test, packet capture, instrumented test, dan uji HP fisik belum selesai. |
+| 14 | QA, Security, Release | PARTIAL | Build 455 lulus seluruh gerbang CI yang tercatat. Follow-up commit setelah Build 440 menunggu CI/release berikutnya. Signing produksi, dynamic security test, packet capture, instrumented test, dan uji HP fisik belum selesai. |
 
 ## Temuan prioritas
 
@@ -79,3 +79,14 @@ Status:
 - Pemulihan data terenkripsi setelah upgrade/reboot.
 
 **Kesimpulan:** Build 440 adalah release CI yang berhasil, bukan bukti bahwa seluruh 15 kelompok telah selesai atau KOBRA OS sudah tervalidasi sebagai perangkat bantu keselamatan. Status mayoritas kelompok tetap PARTIAL sampai pengujian fisik dan pekerjaan P0/P1 diselesaikan.
+
+
+## Pembaruan verifikasi — 18 November 2026 (Build 455)
+
+- Branch `main` pada saat pemeriksaan mengarah ke commit `fad1a23372817befd1627f304550431908713ec1`.
+- GitHub Actions run #455 (`44146141307`) berstatus `completed/success`; seluruh job build dan release yang dijalankan berhasil.
+- Release `kobra-os-build-455` berstatus published/non-draft dan memuat `Kobra-OS-main.apk` serta `SHA256SUMS.txt`.
+- SHA-256 APK menurut metadata GitHub Release: `e936c3771382d650fb00518cf05d99c526388cf6d999244c64e29c15474a0d95`.
+- Perbaikan SOS Build 455: timestamp GPS divalidasi memakai monotonic clock, lokasi kedaluwarsa diberi label usia, timestamp tidak valid tidak menghasilkan koordinat, dan status SMS tidak menyatakan terkirim hanya karena Android menerima permintaan.
+- Uji instalasi, mikrofon, kamera, GPS, TalkBack, SIM/operator, dan layanan latar belakang pada perangkat nyata tetap belum dapat disimpulkan dari CI.
+- Paket rilis tetap debug APK, bukan APK release-signed untuk distribusi produksi.
