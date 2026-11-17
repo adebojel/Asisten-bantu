@@ -175,7 +175,7 @@
                 android:layout_height="46dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_glass_card"
-                android:text="Tanya AI Kamera"
+                android:text="Tanya Mata KOBRA"
                 android:textAllCaps="false"
                 android:textColor="#E2E8F0"
                 android:textSize="12sp"
