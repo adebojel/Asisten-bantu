@@ -173,16 +173,13 @@ object CommandRouter {
             return true
         }
 
-        // Agen layar hanya dipakai untuk perintah multi-langkah yang tidak mengandung
-        // maksud berisiko. Model online harus tersedia melalui model vision berharga nol.
+        // Agen lokal hanya menerima urutan navigasi eksplisit dan dibatasi parser aman.
         if (shouldUseScreenAgent(c)) {
             runMultiStepAgentAsync(service, raw, sayCallback)
             return true
         }
 
-        // Analisis visual layar memakai satu router online yang hanya menerima model
-        // multimodal dengan harga input/output nol yang telah diverifikasi saat runtime.
-        // Jika screenshot/provider tidak tersedia, berikan fallback teks lokal yang jujur.
+        // Analisis layar tetap lokal dan hanya membaca pohon aksesibilitas Android.
         if (isVisualScreenQuery(c)) {
             analyzeScreenVisuallyAsync(service, raw, sayCallback)
             return true
@@ -362,34 +359,121 @@ object CommandRouter {
     }
 
     /**
-     * No cloud-backed autonomous agent is enabled in offline-only mode.
-     * Existing locally recorded, safety-checked macros remain available separately.
+     * Deterministic offline agent: executes only explicit navigation steps.
+     * It never asks an LLM to infer clicks or enter text.
      */
+    internal data class AgentStep(val action: String, val target: String = "")
+
+    internal fun parseExplicitAgentPlan(goal: String): List<AgentStep>? {
+        val segments = goal.trim().split(
+            Regex("\\s+(?:lalu|kemudian|setelah itu)\\s+", RegexOption.IGNORE_CASE)
+        )
+        if (segments.size !in 2..MAX_AGENT_STEPS) return null
+        val steps = ArrayList<AgentStep>(segments.size)
+        for (rawSegment in segments) {
+            val segment = rawSegment.trim().lowercase(Locale.ROOT)
+            if (segment.isEmpty()) return null
+            val step = when {
+                segment.startsWith("buka aplikasi ") ->
+                    AgentStep("open-app", segment.removePrefix("buka aplikasi ").trim())
+                segment.startsWith("buka ") &&
+                    !segment.startsWith("buka chat ") &&
+                    !segment.startsWith("buka pesan ") ->
+                    AgentStep("open-app", segment.removePrefix("buka ").trim())
+                segment.startsWith("klik ") ->
+                    AgentStep("click-label", segment.removePrefix("klik ").trim())
+                segment.startsWith("tekan ") ->
+                    AgentStep("click-label", segment.removePrefix("tekan ").trim())
+                segment in setOf("scroll bawah", "scroll ke bawah", "geser bawah", "geser ke bawah") ->
+                    AgentStep("scroll-down")
+                segment in setOf("scroll atas", "scroll ke atas", "geser atas", "geser ke atas") ->
+                    AgentStep("scroll-up")
+                segment in setOf("kembali", "tekan kembali", "tombol kembali") ->
+                    AgentStep("back")
+                segment in setOf("beranda", "layar utama", "ke beranda", "ke layar utama") ->
+                    AgentStep("home")
+                else -> return null
+            }
+            if ((step.action == "open-app" || step.action == "click-label") &&
+                (step.target.isBlank() || step.target.length > 80 || isRiskyAgentTarget(step.target))) {
+                return null
+            }
+            steps.add(step)
+        }
+        return steps
+    }
+
     private fun runMultiStepAgentAsync(
         service: AccessibilityService,
         goal: String,
         sayCallback: Consumer<String>
     ) {
-        sayCallback.accept(
-            "Agen AI multi-langkah belum tersedia secara lokal. " +
-            "Gunakan perintah navigasi langsung atau makro lokal yang sudah tersimpan."
-        )
+        val plan = parseExplicitAgentPlan(goal)
+        if (plan == null) {
+            sayCallback.accept(
+                "Saya belum dapat memetakan semua langkah itu ke tindakan navigasi lokal yang aman. " +
+                    "Gunakan langkah buka aplikasi, klik label yang unik, scroll, kembali, atau beranda. " +
+                    "Mengetik, mengirim pesan, transaksi, mengubah izin, dan mengubah setelan tidak dijalankan agen."
+            )
+            return
+        }
+        if (!screenAgentRunning.compareAndSet(false, true)) {
+            sayCallback.accept("Agen layar sedang menjalankan tugas lain. Ucapkan hentikan agen layar untuk membatalkannya.")
+            return
+        }
+        screenAgentCancelRequested.set(false)
+        UnifiedAccessibilityEngine.getScope().launch {
+            var completed = 0
+            var failure = ""
+            try {
+                sayCallback.accept("Agen lokal dimulai. Ada " + plan.size + " langkah navigasi yang akan dijalankan.")
+                for ((index, step) in plan.withIndex()) {
+                    if (screenAgentCancelRequested.get()) {
+                        failure = "Tugas dibatalkan atas permintaan pengguna."
+                        break
+                    }
+                    if (activeWindowPackage(service).isBlank()) {
+                        failure = "Layar aktif tidak dapat diverifikasi. Agen dihentikan tanpa menebak."
+                        break
+                    }
+                    if (!executeAgentStep(service, step)) {
+                        failure = "Langkah " + (index + 1) + " gagal atau target tidak unik/aman. Langkah berikutnya tidak dijalankan."
+                        break
+                    }
+                    delay(if (step.action == "open-app") 1_000L else 400L)
+                    if (activeWindowPackage(service).isBlank()) {
+                        failure = "Perubahan layar tidak dapat diverifikasi setelah langkah " + (index + 1) + ". Agen dihentikan."
+                        break
+                    }
+                    completed++
+                }
+                if (screenAgentCancelRequested.get() && failure.isBlank()) {
+                    failure = "Tugas dibatalkan atas permintaan pengguna."
+                }
+                if (failure.isBlank() && completed == plan.size) {
+                    sayCallback.accept("Selesai. " + completed + " langkah navigasi lokal berhasil dijalankan.")
+                } else {
+                    sayCallback.accept("Agen berhenti setelah " + completed + " dari " + plan.size + " langkah. " + failure)
+                }
+            } finally {
+                screenAgentCancelRequested.set(false)
+                screenAgentRunning.set(false)
+            }
+        }
     }
 
     private fun executeAgentStep(
         service: AccessibilityService,
-        decision: AgentDecision
+        step: AgentStep
     ): Boolean {
-        return when (decision.action) {
-            "open-app" -> decision.target.isNotBlank() &&
-                !isRiskyAgentTarget(decision.target) &&
-                UnifiedAccessibilityEngine.openAppSmart(service, decision.target)
+        return when (step.action) {
+            "open-app" -> step.target.isNotBlank() &&
+                !isRiskyAgentTarget(step.target) &&
+                UnifiedAccessibilityEngine.openAppSmart(service, step.target)
             "click-label" -> {
-                if (decision.target.isBlank() || isRiskyAgentTarget(decision.target)) return false
+                if (step.target.isBlank() || isRiskyAgentTarget(step.target)) return false
                 val nodes = NodeIndexer.indexScreen(service)
-                val target = NodeIndexer.findByLabel(nodes, decision.target) ?: return false
-                // Re-check the actual resolved node, not only the model's query.
-                // A harmless-looking query must not bypass a risky visible label or resource ID.
+                val target = NodeIndexer.findByLabel(nodes, step.target) ?: return false
                 if (isRiskyAgentTarget(target.label) || isRiskyAgentTarget(target.viewId)) return false
                 if (!target.isClickable || target.isEditable || target.isCheckable) return false
                 NodeIndexer.performClickAt(service, target.centerX, target.centerY)
