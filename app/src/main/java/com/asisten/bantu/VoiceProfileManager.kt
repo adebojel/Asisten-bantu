@@ -288,6 +288,14 @@ object VoiceProfileManager {
         }
     }
 
+    /** True only when the selected TTS voice is Indonesian and explicitly does not require network. */
+    @JvmStatic
+    fun hasOfflineIndonesianVoice(tts: TextToSpeech?): Boolean {
+        val voice = try { tts?.voice } catch (_: Throwable) { null } ?: return false
+        val language = voice.locale?.language?.lowercase(Locale.ROOT).orEmpty()
+        return (language == "id" || language == "in") && !voice.isNetworkConnectionRequired
+    }
+
     private fun selectBestIndonesianVoice(tts: TextToSpeech, genderHint: GenderHint): Voice? {
         val voices = try {
             tts.voices
