@@ -60,8 +60,8 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 37. Matikan WiFi dan data (lewat pengaturan HP, bukan Kobra). Ucapkan "Kobra hitung dua puluh lima kali empat" (harus 100), "Kobra tersedak", "Kobra warna apa" lalu scan, "Kobra baca KTP".
 38. "Kobra cari resep" harus dijawab butuh internet.
 
-## K. AI online
-39. Isi API key OpenRouter di Pengaturan AI, tekan Tes AI. Lalu tanyakan sesuatu yang tidak ada di perintah, misalnya "Kobra ceritakan tentang Candi Borobudur".
+## K. AI lokal
+39. Pastikan tidak ada menu pengisian API key cloud atau webhook AI. Putuskan internet, jalankan pertanyaan yang didukung model lokal, dan pastikan Kobra tidak mencoba menghubungi server AI. Jika model tidak tersedia/gagal, Kobra harus menjelaskan keterbatasan dan tetap menyediakan perintah dasar offline.
 
 ## Melaporkan masalah
 Sertakan: merek dan versi Android, langkah nomor berapa yang gagal, apa yang diucapkan, apa yang dijawab Kobra.
