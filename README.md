@@ -184,7 +184,7 @@ Contoh perintah:
 - **“Kobra mode senyap.”**, **“Kobra mode getar.”**, **“Kobra mode berdering.”**
 - **“Kobra Wi-Fi.”**, **“Kobra data seluler.”**, **“Kobra rotasi layar.”**
 
-Routine lokal tahap ini mendukung **pengingat suara harian** yang disimpan di perangkat, dijadwalkan dengan AlarmManager, dipulihkan setelah reboot, dan dapat dibatalkan melalui **“hapus semua agenda”**. Contoh: **“Kobra ingatkan setiap hari jam 07:00 minum obat.”** Rutinitas ini hanya membacakan pengingat; belum menjalankan tindakan UI arbitrer atau kondisi otomatis lintas aplikasi.
+Routine lokal tahap ini mendukung **pengingat suara harian** yang disimpan di perangkat, dijadwalkan dengan AlarmManager, dipulihkan setelah reboot, dan dapat dibatalkan melalui **“hapus semua agenda”**. Contoh: **“Kobra ingatkan setiap hari jam 07:00 minum obat.”** Kondisi opsional yang didukung: **“jika baterai di bawah 20 persen”** atau **“jika sedang dicas”**. Kobra dapat membacakan daftar rutinitas dan status eksekusi melalui **“daftar rutinitas”**. Aksi yang diizinkan hanya notifikasi dan pengumuman suara lokal; belum menjalankan tindakan UI arbitrer atau kondisi lintas aplikasi.
 
 Komunikasi tetap memakai alur terpisah: Kobra meminta isi pesan, membacakan penerima dan isi, lalu menunggu konfirmasi sebelum pengiriman SMS. Panggilan juga meminta konfirmasi. Jika lebih dari satu SIM aktif dan izin status telepon tersedia, Kobra meminta konfirmasi tambahan bahwa pengiriman memakai SIM default SMS Android; pemilihan SIM per pesan belum dilakukan di dalam Kobra. Izin yang dicabut, nomor tidak valid, layanan SMS yang tidak tersedia, atau SIM/operator bermasalah akan menghentikan tindakan.
 
