@@ -98,7 +98,7 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 34. Uji apakah suara TalkBack dan Kobra bertumpuk. Catat konfigurasi layanan yang aktif; jangan menonaktifkan layanan yang diperlukan pengguna tanpa persetujuan.
 
 ## I. Keselamatan
-35. "Kobra tolong" lalu "iya": SMS berisi tautan lokasi harus sampai ke kontak uji dan Kobra menelepon. Coba dengan GPS menyala dan mati.
+35. Uji alur SOS hanya dalam sesi terkendali dengan kontak uji yang sudah memberi persetujuan; jangan gunakan 112 atau nomor layanan darurat untuk pengujian. Pastikan konfirmasi diperlukan sebelum SMS/panggilan. Kobra harus membedakan permintaan SMS yang diserahkan ke Android dari SMS yang benar-benar terkirim/diterima. Uji izin SMS dicabut: Kobra harus menyebut SMS tidak dikirim tetapi tetap membuka jalur panggilan. Uji GPS dengan fix baru, fix lebih dari dua menit, dan tanpa fix; lokasi lama harus diberi label waktu dan tidak boleh disebut posisi saat ini.
 36. "Kobra mode tongkat", "mulai", arahkan ke dinding atau kursi.
 
 ## K. Mata KOBRA dan pembaca layar
