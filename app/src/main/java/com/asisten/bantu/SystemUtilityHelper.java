@@ -204,7 +204,32 @@ public final class SystemUtilityHelper {
         }
         boolean repeatDaily = raw.toLowerCase(Locale.ROOT).contains("setiap hari")
                 || raw.toLowerCase(Locale.ROOT).contains("tiap hari");
+        String routineCondition = "always";
+        int conditionThreshold = -1;
+        Matcher batteryCondition = Pattern.compile(
+                "(?i)\\b(?:jika|kalau)\\s+baterai\\s+(?:di bawah|kurang dari)\\s+(\\d{1,3})\\s*(?:persen|%)?\\b"
+        ).matcher(raw);
+        Matcher chargingCondition = Pattern.compile(
+                "(?i)\\b(?:jika|kalau)\\s+(?:sedang dicas|hp sedang diisi daya)\\b"
+        ).matcher(raw);
+        if (batteryCondition.find() && chargingCondition.find()) {
+            return "Untuk rutinitas harian, gunakan satu kondisi saja: baterai di bawah persentase tertentu atau HP sedang dicas.";
+        }
+        if (batteryCondition.find(0)) {
+            conditionThreshold = parseIntSafe(batteryCondition.group(1), -1);
+            if (conditionThreshold < 1 || conditionThreshold > 100) {
+                return "Ambang baterai harus antara 1 sampai 100 persen.";
+            }
+            routineCondition = "battery_below";
+        } else if (chargingCondition.find(0)) {
+            routineCondition = "charging";
+        }
+        if (!repeatDaily && !"always".equals(routineCondition)) {
+            return "Kondisi otomatis saat ini hanya tersedia untuk rutinitas harian. Tambahkan frasa setiap hari.";
+        }
         title = title.replaceAll("(?i)\\b(?:setiap|tiap) hari\\b", " ")
+                .replaceAll("(?i)\\b(?:jika|kalau)\\s+baterai\\s+(?:di bawah|kurang dari)\\s+\\d{1,3}\\s*(?:persen|%)?\\b", " ")
+                .replaceAll("(?i)\\b(?:jika|kalau)\\s+(?:sedang dicas|hp sedang diisi daya)\\b", " ")
                 .replaceFirst("^(untuk|buat)\\s+", "")
                 .replaceAll("\\s+", " ").trim();
         if (title.isEmpty()) title = "Pengingat agenda";
@@ -223,7 +248,8 @@ public final class SystemUtilityHelper {
         int id = config.nextPlannerId();
         long triggerMs = target.getTimeInMillis();
         boolean exactOrFallbackScheduled = repeatDaily
-                ? RoutineAutomationManager.scheduleDailyReminder(context, id, hour, minute, title)
+                ? RoutineAutomationManager.scheduleDailyReminder(
+                        context, id, hour, minute, title, routineCondition, conditionThreshold)
                 : scheduleAlarm(context, id, hour, minute, title, triggerMs);
         if (exactOrFallbackScheduled) {
             config.addPlannerItem(id, hour, minute, title, triggerMs);
@@ -234,9 +260,13 @@ public final class SystemUtilityHelper {
                     + " dicatat untuk pukul " + timeStr
                     + ", tetapi alarm tidak dapat dipasang. Periksa izin alarm dan notifikasi.";
         }
+        String conditionSpeech = "always".equals(routineCondition) ? ""
+                : ("battery_below".equals(routineCondition)
+                    ? " hanya jika baterai di bawah " + conditionThreshold + " persen"
+                    : " hanya ketika HP sedang diisi daya");
         return repeatDaily
                 ? "Rutinitas harian lokal dipasang pukul " + timeStr + ": " + title
-                    + ". Rutinitas hanya membacakan pengingat, dan akan dipulihkan setelah HP dinyalakan ulang."
+                    + conditionSpeech + ". Rutinitas hanya membacakan pengingat dan notifikasi lokal, serta dipulihkan setelah HP dinyalakan ulang."
                 : "Agenda dicatat dan pengingat dipasang untuk "
                     + (tomorrow ? "besok " : "") + "pukul " + timeStr + ": " + title + ".";
     }
