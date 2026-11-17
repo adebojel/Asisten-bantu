@@ -14,10 +14,9 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { deviceSensors } from '../services/deviceSensors';
-import { askOpenRouterAi } from '../services/aiClient';
 
 export const VisionScreen: React.FC = () => {
-  const { visionInitialMode, setCurrentScreen, say, settings } = useKobra();
+  const { visionInitialMode, setCurrentScreen, say } = useKobra();
   const [mode, setMode] = useState<VisionMode>(visionInitialMode);
   const [torchOn, setTorchOn] = useState<boolean>(false);
   const [resultText, setResultText] = useState<string>('');
@@ -112,7 +111,7 @@ export const VisionScreen: React.FC = () => {
     return `Warna dominan RGB: ${r}, ${g}, ${b}`;
   };
 
-  const captureFrame = useCallback((): { canvas: HTMLCanvasElement; dataUrl: string } | null => {
+  const captureFrame = useCallback((): { canvas: HTMLCanvasElement } | null => {
     if (!videoRef.current || !canvasRef.current) return null;
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -123,8 +122,7 @@ export const VisionScreen: React.FC = () => {
     if (!ctx) return null;
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    return { canvas, dataUrl };
+    return { canvas };
   }, []);
 
   const handleScan = async () => {
@@ -143,61 +141,21 @@ export const VisionScreen: React.FC = () => {
       if (mode === 'color') {
         const detected = detectColorFromCanvas(frame.canvas);
         setResultText(detected);
-        say(`Warna yang terdeteksi adalah: ${detected}.`);
-      } else if (mode === 'money') {
-        if (settings.apiKey) {
-          const aiRes = await askOpenRouterAi(
-            settings.apiKey,
-            'Berapa nominal uang rupiah pada gambar ini? Jawab HANYA nominal uangnya saja dalam format singkat seperti: Uang sepuluh ribu rupiah, atau Uang seratus ribu rupiah.',
-            settings.model,
-            frame.dataUrl
-          );
-          setResultText(aiRes);
-          say(aiRes);
-        } else {
-          const fallback = 'Pecahan uang terdeteksi: nominal uang rupiah (hubungkan API Key OpenRouter untuk deteksi nilai presisi).';
-          setResultText(fallback);
-          say(fallback);
-        }
-      } else if (mode === 'ktp') {
-        if (settings.apiKey) {
-          const aiRes = await askOpenRouterAi(
-            settings.apiKey,
-            'Baca teks penting dari KTP atau dokumen ini: NIK, Nama, dan Alamat saja secara singkat tanpa simbol markdown.',
-            settings.model,
-            frame.dataUrl
-          );
-          setResultText(aiRes);
-          say(aiRes);
-        } else {
-          const fallback = 'Dokumen / KTP terdeteksi di depan kamera. Pastikan posisi tegak lurus dan pencahayaan terang.';
-          setResultText(fallback);
-          say(fallback);
-        }
-      } else if (mode === 'face') {
-        const detectedFaces = Math.floor(Math.random() * 2) + 1;
-        const msg = `Terdeteksi ${detectedFaces} orang berada di depan kamera.`;
-        setResultText(msg);
-        say(msg);
-      } else if (mode === 'describe') {
-        if (settings.apiKey) {
-          const aiRes = await askOpenRouterAi(
-            settings.apiKey,
-            'Deskripsikan apa yang ada di depan kamera secara singkat dan praktis untuk tunanetra (jarak, objek penting, jalan terbuka).',
-            settings.model,
-            frame.dataUrl
-          );
-          setResultText(aiRes);
-          say(aiRes);
-        } else {
-          const fallback = 'Di depan Anda terlihat ruangan dengan meja dan kursi. Jalanan di depan terbuka.';
-          setResultText(fallback);
-          say(fallback);
-        }
+        say(`Warna dominan yang terdeteksi adalah: ${detected}.`);
+      } else {
+        const localOnlyMessages: Record<Exclude<VisionMode, 'color'>, string> = {
+          ktp: 'OCR KTP belum tersedia pada tampilan ini. Gambar tidak dikirim ke server.',
+          money: 'Pengenalan nominal uang belum tersedia pada tampilan ini. KOBRA tidak menebak nilai uang dan tidak mengunggah gambar.',
+          face: 'Deteksi jumlah orang belum tersedia pada tampilan ini. KOBRA tidak membuat perkiraan acak.',
+          describe: 'Deskripsi adegan lokal belum tersedia pada tampilan ini. KOBRA tidak mengirim gambar ke AI cloud.',
+        };
+        const message = localOnlyMessages[mode];
+        setResultText(message);
+        say(message);
       }
     } catch (err: any) {
       console.warn('Scan failed', err);
-      say('Gagal memproses gambar. Periksa koneksi atau coba lagi.');
+      say('Pemrosesan kamera lokal gagal. Periksa izin kamera dan coba lagi.');
     } finally {
       setIsProcessing(false);
     }

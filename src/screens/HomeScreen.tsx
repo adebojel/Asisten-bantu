@@ -72,12 +72,12 @@ export const HomeScreen: React.FC = () => {
     },
     {
       num: 4,
-      title: 'Pengaturan AI & n8n',
-      desc: 'Konfigurasi OpenRouter API key, model AI, dan n8n webhook.',
+      title: 'Pengaturan Offline & Aksesibilitas',
+      desc: 'Atur suara lokal, kontras, ukuran teks, getaran, dan notifikasi.',
       icon: <Cpu className="w-8 h-8 text-purple-400" />,
       action: () => {
         setCurrentScreen('settings');
-        say('Membuka pengaturan AI dan otomatisasi.');
+        say('Membuka pengaturan offline dan aksesibilitas.');
       },
     },
     {

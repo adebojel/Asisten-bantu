@@ -32,11 +32,12 @@ class SpeakerService {
   private initVoices() {
     if (!this.synth) return;
     const voices = this.synth.getVoices();
-    this.indonesianVoice =
-      voices.find(v => v.lang.toLowerCase().startsWith('id')) ||
-      voices.find(v => v.lang.toLowerCase().includes('id-id')) ||
-      voices.find(v => v.name.toLowerCase().includes('indonesia')) ||
-      null;
+    this.indonesianVoice = voices.find(v =>
+      v.localService &&
+      (v.lang.toLowerCase().startsWith('id') ||
+       v.lang.toLowerCase().includes('id-id') ||
+       v.name.toLowerCase().includes('indonesia'))
+    ) || null;
   }
 
   public setRate(rate: number) {
@@ -45,6 +46,10 @@ class SpeakerService {
 
   public setPitch(pitch: number) {
     this.pitch = Math.max(0.5, Math.min(1.5, pitch));
+  }
+
+  public isOfflineIndonesianVoiceReady(): boolean {
+    return !!this.indonesianVoice && this.indonesianVoice.localService;
   }
 
   public isSpeaking(): boolean {
@@ -89,7 +94,8 @@ class SpeakerService {
 
   public speak(text: string, callback?: () => void) {
     if (!text || !text.trim()) return;
-    if (!this.synth) {
+    if (!this.synth || !this.isOfflineIndonesianVoiceReady()) {
+      // Never fall back to a browser voice that may synthesize through a network service.
       if (callback) callback();
       return;
     }
@@ -106,9 +112,7 @@ class SpeakerService {
     utterance.lang = 'id-ID';
     utterance.rate = this.rate;
     utterance.pitch = this.pitch;
-    if (this.indonesianVoice) {
-      utterance.voice = this.indonesianVoice;
-    }
+    utterance.voice = this.indonesianVoice!;
 
     utterance.onstart = () => {
       this.speaking = true;

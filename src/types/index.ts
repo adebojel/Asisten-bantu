@@ -12,9 +12,6 @@ export interface SosContact {
 }
 
 export interface KobraSettings {
-  apiKey: string;
-  model: string;
-  n8nUrl: string;
   speechRate: number;
   speechPitch: number;
   readNotifications: boolean;
@@ -38,7 +35,7 @@ export interface ChatMessage {
   sender: 'user' | 'kobra';
   text: string;
   timestamp: Date;
-  source?: 'offline_brain' | 'n8n' | 'openrouter' | 'system';
+  source?: 'offline_brain' | 'system';
 }
 
 export type VisionMode = 'ktp' | 'money' | 'color' | 'face' | 'describe';

@@ -14,7 +14,6 @@ import { getOfflineAnswer } from '../utils/offlineBrain';
 import { findApps, isClearMatch, normalize } from '../utils/appMatcher';
 import { toInternational } from '../utils/phoneFormat';
 import { deviceSensors } from '../services/deviceSensors';
-import { askOpenRouterAi, askN8nWebhook, DEFAULT_TEXT_MODELS } from '../services/aiClient';
 
 export const DEFAULT_INSTALLED_APPS: InstalledApp[] = [
   { label: 'WhatsApp', pkg: 'com.whatsapp', category: 'komunikasi', actionUrl: 'https://web.whatsapp.com' },
@@ -107,14 +106,7 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [pending, setPending] = useState<PendingConfirmation | null>(null);
 
   const [settings, setSettings] = useState<KobraSettings>(() => {
-    try {
-      const saved = localStorage.getItem('kobra_settings');
-      if (saved) return JSON.parse(saved);
-    } catch (ignored) {}
-    return {
-      apiKey: '',
-      model: DEFAULT_TEXT_MODELS[0],
-      n8nUrl: '',
+    const defaults: KobraSettings = {
       speechRate: 0.95,
       speechPitch: 1.0,
       readNotifications: true,
@@ -122,6 +114,23 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       largeFont: true,
       hapticFeedback: true,
     };
+    try {
+      const saved = localStorage.getItem('kobra_settings');
+      if (saved) {
+        const legacy = JSON.parse(saved) as Partial<KobraSettings>;
+        // Rebuild an allowlisted settings object so legacy API keys/webhook URLs
+        // are not retained in memory or written back to localStorage.
+        return {
+          speechRate: typeof legacy.speechRate === 'number' ? legacy.speechRate : defaults.speechRate,
+          speechPitch: typeof legacy.speechPitch === 'number' ? legacy.speechPitch : defaults.speechPitch,
+          readNotifications: typeof legacy.readNotifications === 'boolean' ? legacy.readNotifications : defaults.readNotifications,
+          highContrast: typeof legacy.highContrast === 'boolean' ? legacy.highContrast : defaults.highContrast,
+          largeFont: typeof legacy.largeFont === 'boolean' ? legacy.largeFont : defaults.largeFont,
+          hapticFeedback: typeof legacy.hapticFeedback === 'boolean' ? legacy.hapticFeedback : defaults.hapticFeedback,
+        };
+      }
+    } catch (ignored) {}
+    return defaults;
   });
 
   const [sosContacts, setSosContacts] = useState<SosContact[]>(() => {
@@ -147,7 +156,6 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     },
   ]);
 
-  const recognitionRef = useRef<any>(null);
   const conversationUntilRef = useRef<number>(0);
 
   useEffect(() => {
@@ -525,97 +533,19 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
-    if (!navigator.onLine) {
-      say('Perintah itu butuh internet, dan saat ini internet terputus. Coba lagi saat tersambung.');
-      return;
-    }
-
-    if (settings.n8nUrl) {
-      try {
-        say('Sebentar, saya teruskan ke otomatisasi.');
-        const n8nReply = await askN8nWebhook(settings.n8nUrl, cmd);
-        say(n8nReply);
-        return;
-      } catch (ignored) {}
-    }
-
-    if (settings.apiKey) {
-      try {
-        say('Sebentar, saya tanyakan ke AI.');
-        const aiReply = await askOpenRouterAi(settings.apiKey, cmd, settings.model);
-        say(aiReply);
-        return;
-      } catch (ignored) {
-        say('Maaf, layanan AI sedang sibuk. Coba beberapa saat lagi.');
-        return;
-      }
-    }
-
-    say('Perintah tidak dikenali. Katakan Kobra bantuan untuk melihat apa saja yang bisa saya bantu.');
+    say('Perintah belum dikenali oleh kemampuan lokal KOBRA. Katakan Kobra bantuan untuk melihat daftar perintah yang tersedia.');
   }, [pending, currentScreen, say, lastSpokenText, notifications, installedApps, openAppByLabel, sosContacts, settings, triggerSos]);
 
   const startListening = useCallback(() => {
     if (!micOn || speaker.isSpeaking()) return;
-
-    const SpeechRecognitionClass = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognitionClass) {
-      setIndicatorState('error');
-      setIndicatorEmoji('🎤✖');
-      return;
-    }
-
-    try {
-      if (recognitionRef.current) {
-        recognitionRef.current.abort();
-      }
-
-      const rec = new SpeechRecognitionClass();
-      rec.lang = 'id-ID';
-      rec.continuous = true;
-      rec.interimResults = false;
-
-      rec.onstart = () => {
-        setIsListening(true);
-        setIndicatorState('listen');
-        setIndicatorEmoji('🎤');
-      };
-
-      rec.onresult = (event: any) => {
-        const last = event.results.length - 1;
-        const spoken = event.results[last][0].transcript;
-        if (spoken) {
-          processSpokenCommand(spoken);
-        }
-      };
-
-      rec.onerror = (e: any) => {
-        if (e.error === 'not-allowed') {
-          setIndicatorState('error');
-          setIndicatorEmoji('🎤✖');
-        }
-      };
-
-      rec.onend = () => {
-        setIsListening(false);
-        if (micOn && !speaker.isSpeaking()) {
-          setIndicatorState('idle');
-          setIndicatorEmoji('🐍');
-        }
-      };
-
-      recognitionRef.current = rec;
-      rec.start();
-    } catch (err) {
-      console.warn('Failed to start speech recognition', err);
-    }
-  }, [micOn, processSpokenCommand]);
+    // Web Speech API does not guarantee local processing. Disable it rather than
+    // risk uploading microphone audio from this browser-based UI.
+    setIndicatorState('error');
+    setIndicatorEmoji('🎤✖');
+    say('Pengenalan suara browser dinonaktifkan demi privasi karena tidak dapat menjamin pemrosesan offline. Gunakan layanan suara offline native KOBRA pada Android.');
+  }, [micOn, say]);
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.abort();
-      } catch (ignored) {}
-    }
     setIsListening(false);
   }, []);
 
@@ -687,40 +617,10 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
-    if (!navigator.onLine) {
-      const offlineNotice = 'Internet sedang terputus, hanya fitur offline dasar yang tersedia.';
-      setChatMessages(prev => [...prev, { id: Date.now().toString(), sender: 'kobra', text: offlineNotice, timestamp: new Date(), source: 'system' }]);
-      say(offlineNotice);
-      return;
-    }
-
-    if (settings.n8nUrl) {
-      try {
-        const reply = await askN8nWebhook(settings.n8nUrl, text);
-        setChatMessages(prev => [...prev, { id: Date.now().toString(), sender: 'kobra', text: reply, timestamp: new Date(), source: 'n8n' }]);
-        say(reply);
-        return;
-      } catch (ignored) {}
-    }
-
-    if (settings.apiKey) {
-      try {
-        const reply = await askOpenRouterAi(settings.apiKey, text, settings.model);
-        setChatMessages(prev => [...prev, { id: Date.now().toString(), sender: 'kobra', text: reply, timestamp: new Date(), source: 'openrouter' }]);
-        say(reply);
-        return;
-      } catch (e: any) {
-        const errMsg = 'Maaf, gagal menghubungi AI. Periksa API key atau koneksi Anda.';
-        setChatMessages(prev => [...prev, { id: Date.now().toString(), sender: 'kobra', text: errMsg, timestamp: new Date(), source: 'system' }]);
-        say(errMsg);
-        return;
-      }
-    }
-
-    const friendlyFallback = `Saya mendengarkan: "${text}". Hubungkan API Key OpenRouter di menu Pengaturan AI untuk percakapan bebas tanpa batas.`;
-    setChatMessages(prev => [...prev, { id: Date.now().toString(), sender: 'kobra', text: friendlyFallback, timestamp: new Date(), source: 'system' }]);
-    say(friendlyFallback);
-  }, [say, settings]);
+    const fallback = 'Saya belum memiliki jawaban lokal untuk pertanyaan ini. KOBRA tidak mengirim percakapan ke layanan AI online.';
+    setChatMessages(prev => [...prev, { id: Date.now().toString(), sender: 'kobra', text: fallback, timestamp: new Date(), source: 'system' }]);
+    say(fallback);
+  }, [say]);
 
   const clearChat = useCallback(() => {
     setChatMessages([]);

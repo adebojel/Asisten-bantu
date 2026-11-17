@@ -75,13 +75,7 @@ export const AiChatScreen: React.FC = () => {
                 {isKobra && (
                   <div className="mt-2 flex items-center justify-between pt-2 border-t border-neutral-800 text-xs text-neutral-400 font-bold">
                     <span>
-                      {m.source === 'offline_brain'
-                        ? '⚡ Otak Offline'
-                        : m.source === 'n8n'
-                        ? '🔄 Webhook n8n'
-                        : m.source === 'openrouter'
-                        ? '🌐 OpenRouter AI'
-                        : 'Sistem Kobra'}
+                      {m.source === 'offline_brain' ? '⚡ Otak Lokal' : 'Sistem Kobra'}
                     </span>
                     <button
                       onClick={() => say(m.text)}
