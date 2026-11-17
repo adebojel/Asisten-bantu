@@ -46,6 +46,7 @@ import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.telecom.TelecomManager;
 import android.telephony.SmsManager;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -1147,6 +1148,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
                 if (yes && !no) sendSmsMessage(p.a, p.c, p.b);
                 else say("Pesan dibatalkan.");
                 break;
+            case "sms_default_sim_confirm":
+                if (yes && !no) sendSmsMessage(p.a, p.b, p.c, true);
+                else say("Pengiriman SMS dibatalkan. Anda dapat mengubah SIM default SMS di Pengaturan Android.");
+                break;
             case "notif_reply_body":
                 if (VoiceSilenceCommandParser.isExplicitCancelCommand(text)) {
                     say("Balasan dibatalkan.");
@@ -2154,7 +2159,25 @@ public class AsistenAccessibilityService extends AccessibilityService {
         say("Apa isi SMS untuk " + found[0] + "?");
     }
 
+    private boolean hasMultipleActiveSubscriptions() {
+        if (Build.VERSION.SDK_INT < 22 || !Perms.has(this, Manifest.permission.READ_PHONE_STATE)) return false;
+        try {
+            SubscriptionManager manager = (SubscriptionManager) getSystemService(TELEPHONY_SUBSCRIPTION_SERVICE);
+            List<android.telephony.SubscriptionInfo> active =
+                    manager != null ? manager.getActiveSubscriptionInfoList() : null;
+            return active != null && active.size() > 1;
+        } catch (SecurityException denied) {
+            return false;
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
     private void sendSmsMessage(String name, String number, String body) {
+        sendSmsMessage(name, number, body, false);
+    }
+
+    private void sendSmsMessage(String name, String number, String body, boolean defaultSimConfirmed) {
         String cleanNumber = number == null ? "" : number.replaceAll("[^0-9+]", "");
         String cleanBody = body == null ? "" : body.trim();
         if (!Perms.has(this, Manifest.permission.SEND_SMS)) {
@@ -2164,6 +2187,11 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
         if (!cleanNumber.matches("\\+?[0-9]{6,20}") || cleanBody.isEmpty() || cleanBody.length() > 1600) {
             say("Nomor atau isi SMS tidak valid. Batas isi pesan adalah 1.600 karakter. Pesan tidak dikirim.");
+            return;
+        }
+        if (!defaultSimConfirmed && hasMultipleActiveSubscriptions()) {
+            pending = new Pending("sms_default_sim_confirm", name, cleanNumber, cleanBody);
+            say("Terdeteksi lebih dari satu SIM aktif. Kobra akan memakai SIM default SMS Android. Pastikan SIM default sudah benar di Pengaturan SIM, lalu bilang iya untuk mengirim atau tidak untuk membatalkan.");
             return;
         }
         try {
