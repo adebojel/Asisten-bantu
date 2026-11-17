@@ -1509,6 +1509,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
         // Kontrol sistem
         if (has(c, "bluetooth")) { openSettings(Settings.ACTION_BLUETOOTH_SETTINGS, "Pengaturan Bluetooth dibuka."); return; }
         if (has(c, "senter", "flash")) { setTorch(!has(c, "matikan", "mati")); return; }
+        Integer requestedVolume = SystemControlCommandParser.parseVolumePercent(c);
+        if (requestedVolume != null) { setVolumePercent(requestedVolume); return; }
         if (has(c, "volume")) { adjustVolume(!has(c, "pelan", "kecil", "turun")); return; }
         if (has(c, "gps", "lokasi")) { openSettings(Settings.ACTION_LOCATION_SOURCE_SETTINGS, "Pengaturan lokasi dibuka."); return; }
         if (has(c, "kecerahan")) { openSettings(Settings.ACTION_DISPLAY_SETTINGS, "Pengaturan layar dibuka."); return; }
@@ -1942,8 +1944,6 @@ public class AsistenAccessibilityService extends AccessibilityService {
         if (has(c, "batalkan semua timer", "hapus semua timer", "hentikan timer", "matikan timer")) { cancelAllTimers(); return true; }
         if (has(c, "timer", "hitung mundur")) { setTimer(c); return true; }
         if (has(c, "pasang alarm", "set alarm", "setel alarm", "atur alarm", "alarm jam", "alarm pukul", "bangunkan")) { setAlarm(c); return true; }
-        Integer requestedVolume = SystemControlCommandParser.parseVolumePercent(c);
-        if (requestedVolume != null) { setVolumePercent(requestedVolume); return true; }
         if (has(c, "mode senyap", "mode hening")) {
             setRinger(AudioManager.RINGER_MODE_SILENT, "Mode senyap diminta. Periksa indikator suara Android.");
             return true;
