@@ -1584,11 +1584,10 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
         if (has(c, "arahkan ke", "navigasi ke", "antar ke")) { navigateTo(afterAny(c, "arahkan ke", "navigasi ke", "antar ke")); return; }
 
-        // Otak offline dulu: kalkulator dan pengetahuan dasar. Online hanya jika tidak ada jawaban lokal.
+        // Jalur pengetahuan dan percakapan inti tetap lokal. Tidak ada fallback AI cloud.
         String local = OfflineAi.get(this).answer(c);
         if (local != null) { say(local); return; }
 
-        // Sisanya: Hybrid CommandRouter (Jalur 2 Gemma 3 1B Offline <-> Jalur 3 Gemini API / OpenRouter)
         CommandRouter.routeComplexFallback(this, c, getLocalLlmEngine(), config, speaker);
     }
 
