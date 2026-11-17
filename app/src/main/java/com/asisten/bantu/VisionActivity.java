@@ -63,7 +63,7 @@ import java.util.regex.Pattern;
  * - SCAN Semua Objek di Depan (menyebutkan seluruh objek & posisi secara suara)
  * - Baca Teks / OCR instan
  * - Deteksi Uang & Warna
- * - Tanya AI tentang Kamera (Gemini Vision / OpenRouter / Offline fallback)
+ * - Tanya kamera secara lokal menggunakan OCR dan model objek perangkat
  * - Mendukung seluruh mode spesifik (money_count, receipt, barcode, find_object, translate_ocr, ktp, face, outfit, digital_screen)
  */
 public class VisionActivity extends AppCompatActivity {
@@ -89,7 +89,6 @@ public class VisionActivity extends AppCompatActivity {
     private boolean autoTorchEnabled = false;
     private Speaker speaker;
     private KobraConfig config;
-    private AiClient ai;
     private boolean busy = false;
     private final KobraScreenHelper screenHelper = new KobraScreenHelper();
     private final ExecutorService cameraExec = Executors.newSingleThreadExecutor();
@@ -142,7 +141,6 @@ public class VisionActivity extends AppCompatActivity {
         mode = m == null ? "describe" : m;
         speaker = Speaker.get(this);
         config = new KobraConfig(this);
-        ai = new AiClient(config);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
             lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
@@ -210,10 +208,10 @@ public class VisionActivity extends AppCompatActivity {
         input.setTextColor(0xFFE2E8F0);
         input.setHintTextColor(0xFF94A3B8);
         new AlertDialog.Builder(this)
-                .setTitle("Tanya AI tentang Kamera")
+                .setTitle("Tanya Mata KOBRA (Offline)")
                 .setMessage("Tulis pertanyaan singkat, lalu kamera akan langsung memotret dan menjawab:")
                 .setView(input)
-                .setPositiveButton("Potret & Tanya AI", (d, w) -> {
+                .setPositiveButton("Potret & Analisis Lokal", (d, w) -> {
                     String q = input.getText().toString().trim();
                     pendingAiCameraQuestion = q.isEmpty() ? "Jelaskan apa yang terlihat di depan kamera secara rinci dan aman untuk tunanetra." : q;
                     mode = "ask_ai_camera";
@@ -730,7 +728,7 @@ public class VisionActivity extends AppCompatActivity {
         }
         tvStatus.setText("Meringkas bacaan...");
         speak("Sebentar, saya ringkas hasil bacaannya.");
-        LocalLlmEngine.getInstance(this).summarizeText("hasil kamera", source, ai, speaker, summary -> {
+        LocalLlmEngine.getInstance(this).summarizeText("hasil kamera", source, null, speaker, summary -> {
             tvStatus.setText("Ringkasan selesai.");
             tvResult.setText(summary);
             speak(summary);
@@ -914,56 +912,23 @@ public class VisionActivity extends AppCompatActivity {
     }
 
     private void askAiWithBitmap(Bitmap bmp, String prompt) {
-        tvStatus.setText("Menghubungi Vision AI...");
-        speak("Sebentar, saya analisis gambar kamera.");
-        if (!NetworkState.isOnline(this)) {
-            OfflineVision.describe(bmp, this::done);
-            return;
-        }
-        String geminiKey = CommandRouter.resolveGeminiApiKey(this);
-        if (!geminiKey.isEmpty()) {
-            cameraExec.execute(() -> {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                bmp.compress(Bitmap.CompressFormat.JPEG, 76, baos);
-                String b64 = Base64.encodeToString(baos.toByteArray(), Base64.NO_WRAP);
-                String reply = CommandRouter.callGeminiBlocking(this, prompt, b64);
-                runOnUiThread(() -> {
-                    if (reply != null && !reply.isEmpty()) {
-                        lastCapturedRawText = reply;
-                        done(reply);
-                    } else if (config.hasAi()) {
-                        describeWithOpenRouterVision(bmp, prompt);
-                    } else {
-                        OfflineVision.describe(bmp, this::done);
-                    }
-                });
-            });
-            return;
-        }
-        if (config.hasAi()) {
-            describeWithOpenRouterVision(bmp, prompt);
-        } else {
-            OfflineVision.describe(bmp, this::done);
-        }
+        analyzeLocalQuestion(bmp, prompt);
     }
 
-    private void describeWithOpenRouterVision(Bitmap bmp, String prompt) {
-        ai.describeImage(prompt, bmp, new AiClient.Callback() {
-            @Override public void onResult(String text) {
-                if (text != null && !text.trim().isEmpty()) {
-                    lastCapturedRawText = text.trim();
-                    done(lastCapturedRawText);
-                } else {
-                    OfflineVision.describe(bmp, VisionActivity.this::done);
-                }
-            }
-
-            @Override public void onError(String message) {
-                OfflineVision.describe(bmp, VisionActivity.this::done);
-            }
-        });
+    private void analyzeLocalQuestion(Bitmap bmp, String question) {
+        if (bmp == null) { done("Gambar tidak tersedia untuk dianalisis."); return; }
+        String q = question == null ? "" : question.toLowerCase(Locale.ROOT);
+        if (q.contains("teks") || q.contains("tulisan") || q.contains("baca")) readInstantOcr(bmp);
+        else if (q.contains("uang") || q.contains("nominal") || q.contains("duit")) detectMoneyAndColor(bmp);
+        else if (q.contains("warna")) done("Warna dominan: " + OfflineVision.detailedColorName(bmp) + ".");
+        else if (q.contains("wajah") || q.contains("orang")) OfflineVision.countFaces(bmp, this::done);
+        else if (q.contains("barcode") || q.contains("qr") || q.contains("kode")) analyzeBarcodeAndPackage(bmp);
+        else if (q.contains("struk") || q.contains("transfer") || q.contains("transaksi")) analyzeReceiptOrScreen(bmp, true);
+        else OfflineVision.describe(this, bmp, result -> done("Analisis lokal: " + result + " Model visual percakapan bebas belum dipasang pada perangkat."));
     }
 
+    private boolean canUseAi() { return false; }
+    private void askAi(Bitmap bmp, String prompt) { analyzeLocalQuestion(bmp, prompt); }
     private void analyzeOutfit(Bitmap bmp) {
         String centerColor = OfflineVision.detailedColorName(bmp);
         if (firstOutfitColor == null) {
