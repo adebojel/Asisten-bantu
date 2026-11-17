@@ -170,6 +170,7 @@ Agen layar menjalankan urutan navigasi eksplisit secara lokal tanpa meminta renc
 - Setiap target klik dicari ulang dari pohon aksesibilitas aktif; target ambigu, tidak terlihat, tidak clickable, editable, checkable, atau berisiko ditolak.
 - Perubahan layar diverifikasi setelah setiap langkah. Jika layar tidak dapat diverifikasi, agen berhenti dan tidak melanjutkan.
 - Perintah **“hentikan agen layar”** atau **“batalkan agen layar”** meminta pembatalan di antara langkah.
+- Perintah **“riwayat agen layar”** membacakan catatan lokal; **“hapus riwayat agen layar”** menghapusnya. Riwayat hanya menyimpan jenis aksi, label target yang dibatasi panjangnya, dan hasil. Screenshot, isi layar, isi pesan, password, serta notifikasi tidak disimpan.
 - Agen tahap awal tidak mengetik teks, mengirim pesan, melakukan panggilan, transaksi, mengubah izin, atau mengubah pengaturan sistem.
 - Klik yang tidak didukung harus dilakukan secara manual melalui kontrol suara biasa.
 
