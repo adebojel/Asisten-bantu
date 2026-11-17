@@ -596,13 +596,15 @@ public final class KobraConfig {
     public String exportBackupJson() throws Exception {
         JSONObject root = new JSONObject();
         root.put("app", "KobraOS");
-        root.put("backup_version", 1);
+        root.put("backup_version", 2);
         root.put("exported_at", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(new Date()));
 
         JSONObject stores = new JSONObject();
         stores.put(PREFS_CONFIG, serializePrefs(prefs));
         stores.put(PREFS_SOS, serializePrefs(sos));
         root.put("prefs", stores);
+        // Plaintext is present only inside the user-selected backup file; live memory stays encrypted.
+        root.put("local_memory", new JSONArray(LocalMemoryStore.exportBackupJson(appContext)));
         return root.toString(2);
     }
 
@@ -624,6 +626,9 @@ public final class KobraConfig {
         }
         if (stores.has(PREFS_SOS)) {
             restoredCount += restorePrefs(sos, stores.getJSONObject(PREFS_SOS));
+        }
+        if (root.has("local_memory") && root.opt("local_memory") instanceof JSONArray) {
+            restoredCount += LocalMemoryStore.importBackupJson(appContext, root.getJSONArray("local_memory").toString());
         }
         return restoredCount;
     }
