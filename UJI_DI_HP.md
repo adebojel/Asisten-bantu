@@ -34,6 +34,35 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 6. Pastikan agen tidak mengetik, mengirim, menelepon, mengubah izin, atau mengubah pengaturan sistem secara otomatis.
 7. Catat aplikasi, versi Android, langkah, dan hasil aktual. Pengujian ini tetap harus dilakukan di HP fisik.
 
+## D3. System Control dan rutinitas harian
+
+1. Ucapkan “Kobra atur volume ke 50 persen”. Pastikan slider volume media Android berubah mendekati 50%.
+2. Ucapkan “Kobra mode senyap”, lalu “Kobra mode berdering”. Pastikan status mode mengikuti kebijakan perangkat/DND.
+3. Ucapkan “Kobra Wi-Fi”, “Kobra Bluetooth”, dan “Kobra data seluler”. Kobra harus membuka halaman pengaturan Android; pengguna sendiri yang mengubah sakelar.
+4. Ucapkan “Kobra ingatkan setiap hari jam 07:00 minum obat” dengan waktu uji beberapa menit ke depan. Pastikan konfirmasi suara, notifikasi lokal, dan pengumuman muncul.
+5. Uji “hapus semua agenda”. Rutinitas dan alarm satu kali harus dibatalkan.
+6. Restart HP dan pastikan rutinitas harian dipulihkan. Jika izin exact alarm tidak tersedia, catat bahwa waktu pengingat dapat tidak presisi.
+7. Cabut izin SMS setelah Kobra meminta konfirmasi pengiriman. Pastikan Kobra menolak mengirim dan menjelaskan izin sudah tidak aktif.
+
+## D4. Komunikasi
+
+1. Uji pencarian kontak dengan nama yang hanya cocok ke satu kontak.
+2. Uji nama ambigu. Kobra harus meminta pemilihan kontak dan tidak menebak penerima.
+3. Susun SMS uji ke nomor milik sendiri. Pastikan Kobra membacakan penerima dan isi lalu meminta konfirmasi.
+4. Jawab “tidak”; pastikan SMS tidak dikirim.
+5. Ulangi dengan “iya” hanya untuk nomor uji yang benar. Periksa status kirim pada aplikasi pesan/operator; ucapan Kobra bahwa permintaan diserahkan ke Android bukan bukti SMS diterima.
+6. Uji panggilan dengan membatalkan konfirmasi. Panggilan tidak boleh dimulai.
+
+## D5. Navigasi offline
+
+1. Ketika internet tersedia, unduh segmen routing BRouter untuk wilayah uji dan siapkan area peta offline.
+2. Putuskan internet sepenuhnya.
+3. Pilih titik awal dan tujuan yang masih berada dalam cakupan segmen tersimpan, lalu hitung rute.
+4. Pastikan rute dihitung dari cache lokal tanpa percobaan unduhan jaringan.
+5. Uji tujuan di luar cakupan cache. Kobra harus menyatakan segmen belum tersedia dan tidak boleh mengarang rute.
+6. Uji keluar jalur. Jika segmen untuk rute ulang tidak tersedia, panduan harus dihentikan dengan peringatan suara.
+7. Ingat: petunjuk rute bukan jaminan trotoar aman, penyeberangan aman, atau bebas hambatan.
+
 ## E. Layar, kata, dan tampilan minimal
 15. Buka aplikasi apa saja, ucapkan "Kobra baca layar". Pastikan Kobra membacakan teks, label, dan kontrol yang benar-benar diekspos aplikasi.
 16. Ucapkan "Kobra klik [nama tombol]" pada satu target unik. Jika ada beberapa target mirip, Kobra harus meminta pemilihan yang lebih tepat dan tidak menebak.
