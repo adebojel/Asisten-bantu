@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.Executors
 
 /**
  * Owns the packaged LiteRT-LM model instance for the process.
@@ -16,6 +17,9 @@ object LocalModelRuntimeManager {
     private val busy = AtomicBoolean(false)
     private val idleHandler = Handler(Looper.getMainLooper())
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val closeExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "Kobra-Model-Releaser").apply { isDaemon = true }
+    }
     private const val QWEN_FILE = "qwen3_0.6b_nothink_q4_block32_ekv1280.litertlm"
     private const val IDLE_UNLOAD_MS = 120_000L
 
@@ -37,7 +41,8 @@ object LocalModelRuntimeManager {
             postResult(callback, null, "Pertanyaan kosong.")
             return
         }
-        if (!busy.compareAndSet(false, true)) {
+        val accepted = synchronized(this) { busy.compareAndSet(false, true) }
+        if (!accepted) {
             postResult(callback, null, "Model lokal sedang memproses permintaan lain. Coba lagi sebentar.")
             return
         }
@@ -107,17 +112,19 @@ object LocalModelRuntimeManager {
     }
 
     private fun finishRequest() {
-        busy.set(false)
+        synchronized(this) { busy.set(false) }
         idleHandler.removeCallbacks(idleUnload)
         idleHandler.postDelayed(idleUnload, IDLE_UNLOAD_MS)
     }
 
+    /** Detaches the runtime under lock and closes it off the UI thread. */
     @JvmStatic fun release() {
         idleHandler.removeCallbacks(idleUnload)
-        if (busy.get()) return
-        synchronized(this) {
-            engine?.close()
-            engine = null
+        val retired = synchronized(this) {
+            if (busy.get()) null else engine.also { engine = null }
+        } ?: return
+        closeExecutor.execute {
+            try { retired.close() } catch (_: Throwable) {}
         }
     }
 }
