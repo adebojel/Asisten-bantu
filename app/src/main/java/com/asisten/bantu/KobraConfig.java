@@ -199,6 +199,11 @@ public final class KobraConfig {
 
     public boolean isVisualNumbersEnabled() { return prefs.getBoolean("visual_numbers_enabled", true); }
     public void setVisualNumbersEnabled(boolean enabled) { prefs.edit().putBoolean("visual_numbers_enabled", enabled).apply(); }
+    public boolean isKobraScreenReaderEnabled() { return prefs.getBoolean("kobra_screen_reader_enabled", false); }
+    public void setKobraScreenReaderEnabled(boolean enabled) {
+        prefs.edit().putBoolean("kobra_screen_reader_enabled", enabled).apply();
+    }
+
     public boolean isFocusOutlineEnabled() { return prefs.getBoolean("focus_outline_enabled", true); }
     public void setFocusOutlineEnabled(boolean enabled) { prefs.edit().putBoolean("focus_outline_enabled", enabled).apply(); }
 
