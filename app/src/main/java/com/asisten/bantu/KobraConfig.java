@@ -627,8 +627,13 @@ public final class KobraConfig {
         if (stores.has(PREFS_SOS)) {
             restoredCount += restorePrefs(sos, stores.getJSONObject(PREFS_SOS));
         }
-        if (root.has("local_memory") && root.opt("local_memory") instanceof JSONArray) {
-            restoredCount += LocalMemoryStore.importBackupJson(appContext, root.getJSONArray("local_memory").toString());
+        if (root.has("local_memory")) {
+            JSONArray memory = root.optJSONArray("local_memory");
+            if (memory == null) throw new IllegalArgumentException("Format memori pada backup tidak valid.");
+            restoredCount += LocalMemoryStore.importBackupJson(appContext, memory.toString());
+        } else {
+            // Backward compatibility: migrate legacy plaintext memory included in version-1 backups.
+            LocalMemoryStore.exportBackupJson(appContext);
         }
         return restoredCount;
     }
