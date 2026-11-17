@@ -2,6 +2,7 @@ package com.asisten.bantu
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -102,6 +103,17 @@ class CommandRouterSafetyTest {
         assertFalse(CommandRouter.parseExplicitAgentPlan("buka Chrome lalu ketik alamat situs") != null)
         assertFalse(CommandRouter.parseExplicitAgentPlan("buka Chrome lalu scroll bawah lalu kembali lalu beranda lalu buka Maps lalu klik Search") != null)
         assertFalse(CommandRouter.parseExplicitAgentPlan("buka Chrome lalu") != null)
+    }
+
+    @Test
+    fun systemControlVolumeParserAcceptsOnlyExplicitBoundedPercentages() {
+        assertEquals(50, SystemControlCommandParser.parseVolumePercent("atur volume ke 50 persen"))
+        assertEquals(0, SystemControlCommandParser.parseVolumePercent("volume 0%"))
+        assertEquals(100, SystemControlCommandParser.parseVolumePercent("suara menjadi 100 persen"))
+        assertNull(SystemControlCommandParser.parseVolumePercent("volume naik"))
+        assertNull(SystemControlCommandParser.parseVolumePercent("volume 101 persen"))
+        assertNull(SystemControlCommandParser.parseVolumePercent("volume"))
+        assertNull(SystemControlCommandParser.parseVolumePercent(null))
     }
 
 }
