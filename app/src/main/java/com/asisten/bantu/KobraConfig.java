@@ -561,8 +561,14 @@ public final class KobraConfig {
 
     public boolean saveLastCrashLog(String logText) {
         String safe = logText == null ? "" : logText;
-        if (safe.length() > 24_000) {
-            safe = safe.substring(0, 24_000) + "\n... (dipotong)";
+        // Crash diagnostics stay local and must not preserve obvious credentials or secrets
+        // accidentally included in exception messages or request metadata.
+        safe = safe.replaceAll("(?i)(authorization\\s*[:=]\\s*bearer\\s+)[^\\s,;]+", "$1[REDACTED]");
+        safe = safe.replaceAll("(?i)((?:api[_-]?key|access[_-]?token|refresh[_-]?token|password|passwd|otp|pin)\\s*[:=]\\s*)[^\\s,;]+", "$1[REDACTED]");
+        safe = safe.replaceAll("(?i)\\bAIza[0-9A-Za-z_-]{20,}\\b", "[REDACTED_KEY]");
+        safe = safe.replaceAll("(?i)\\bsk-[A-Za-z0-9_-]{20,}\\b", "[REDACTED_KEY]");
+        if (safe.length() > 12_000) {
+            safe = safe.substring(0, 12_000) + "\\n... (dipotong demi privasi)";
         }
         return crashGuard.edit().putString("last_crash_log", safe).commit();
     }
