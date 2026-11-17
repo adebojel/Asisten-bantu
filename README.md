@@ -333,3 +333,12 @@ Laporkan masalah melalui [GitHub Issues](https://github.com/adebojel/Asisten-ban
 Tahap 5 menambahkan pemeriksaan regresi privasi/offline pada pipeline rilis. Workflow menjalankan `tools/Stage5SecurityCheck.mjs` sebelum build: memindai sumber Android dan konfigurasi untuk endpoint AI cloud yang dilarang serta pola kredensial tertanam, dan memastikan backup aplikasi serta cleartext traffic tetap dinonaktifkan. Pemeriksaan statis ini adalah tripwire, bukan bukti mutlak bahwa seluruh aliran data runtime selalu lokal.
 
 Gerbang penerimaan lengkap, batasan, dan status pengujian ada di [TAHAP_5_FINALIZATION.md](TAHAP_5_FINALIZATION.md). Daftar uji fisik ada di [UJI_DI_HP.md](UJI_DI_HP.md). Fitur yang bergantung pada mikrofon, kamera, GPS, SIM, TalkBack, dan layanan latar belakang tetap memerlukan verifikasi HP nyata.
+
+
+### Memori lokal terenkripsi dan Resource Manager
+
+Memori AI aktif disimpan dengan AES-256-GCM dan kunci yang dikelola Android Keystore. Data lama dimigrasikan ke format terenkripsi ketika pertama kali dibaca. Batas penyimpanan adalah 60 entri, maksimal 1.200 karakter per entri, kategori 48 karakter, dan payload 64 KiB. Jika ciphertext gagal dibuka, operasi tulis/backup dibatalkan agar data tidak ditimpa diam-diam.
+
+Backup JSON hanya dibuat atas tindakan eksplisit pengguna. Agar dapat dipindahkan, isi memori pada file backup berupa JSON yang dapat dibaca; file tersebut tidak dienkripsi oleh Kobra dan harus disimpan di lokasi tepercaya. Saat restore, data divalidasi lalu dienkripsi kembali dengan kunci Android Keystore perangkat tujuan. Kunci enkripsi tidak pernah masuk ke backup.
+
+Runtime Qwen3 dijadwalkan dilepas setelah 2 menit idle dan ketika Android melaporkan tekanan memori. Penutupan runtime berjalan di worker thread agar tidak memblokir UI. Versi Tahap 5: `7.3-KOBRA-SECURE`, versionCode 10. Uji Keystore, backup/restore, dan pemulihan model tetap harus dilakukan pada HP fisik.
