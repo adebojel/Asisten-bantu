@@ -87,10 +87,8 @@ public class Speaker implements TextToSpeech.OnInitListener {
     public void onInit(int status) {
         if (status != TextToSpeech.SUCCESS) return;
         if (tts == null) return;
-        int r = tts.setLanguage(new Locale("id", "ID"));
-        if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-            tts.setLanguage(Locale.getDefault());
-        }
+        // Do not fall back to the device default voice: it may require a network service.
+        tts.setLanguage(new Locale("id", "ID"));
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) {
@@ -154,17 +152,13 @@ public class Speaker implements TextToSpeech.OnInitListener {
 
     private void refreshOfflineIndonesianVoiceStatus() {
         try {
-            Voice voice = tts == null ? null : tts.getVoice();
-            String language = voice == null || voice.getLocale() == null
-                    ? "" : voice.getLocale().getLanguage();
-            boolean isIndonesian = "id".equalsIgnoreCase(language) || "in".equalsIgnoreCase(language);
-            offlineIndonesianVoiceReady = isIndonesian && !voice.isNetworkConnectionRequired();
+            offlineIndonesianVoiceReady = VoiceProfileManager.hasOfflineIndonesianVoice(tts);
             offlineIndonesianVoiceStatus = offlineIndonesianVoiceReady
                     ? "Suara Bahasa Indonesia tersedia secara offline."
-                    : "Paket suara Bahasa Indonesia offline belum tersedia; suara TTS mungkin memerlukan internet.";
+                    : "Paket suara Bahasa Indonesia offline belum tersedia; KOBRA menonaktifkan ucapan agar tidak memakai layanan jaringan.";
         } catch (Exception ignored) {
             offlineIndonesianVoiceReady = false;
-            offlineIndonesianVoiceStatus = "Status suara offline tidak dapat diperiksa.";
+            offlineIndonesianVoiceStatus = "Status suara offline tidak dapat diperiksa; ucapan dinonaktifkan demi privasi.";
         }
     }
 
@@ -197,6 +191,11 @@ public class Speaker implements TextToSpeech.OnInitListener {
                 return;
             }
         }
+        // Never submit text to a TTS voice that requires network access.
+        if (!offlineIndonesianVoiceReady) {
+            notifySpeechEnd();
+            return;
+        }
         // Tandai sedang bicara sejak pemanggilan untuk mencegah loop mikrofon.
         String utteranceId = "kobra_" + utteranceSequence.incrementAndGet();
         activeUtteranceId = utteranceId;
@@ -220,6 +219,7 @@ public class Speaker implements TextToSpeech.OnInitListener {
                 return;
             }
         }
+        if (!offlineIndonesianVoiceReady) return;
         try {
             String utteranceId = "kobra_q_" + utteranceSequence.incrementAndGet();
             engine.speak(teks, TextToSpeech.QUEUE_ADD, null, utteranceId);
