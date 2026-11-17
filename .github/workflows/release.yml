@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 
-# Prevent parallel main pushes from racing to mark an older release as Latest.
+# Avoid concurrent main pushes racing to publish an older commit as Latest.
 concurrency:
   group: kobra-os-main-release
   cancel-in-progress: true
@@ -22,24 +22,27 @@ jobs:
         with:
           java-version: '17'
           distribution: temurin
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/setup-gradle@v4
         with:
           gradle-version: 9.3.1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Stage 5 privacy and offline-AI regression guard
+        run: node tools/Stage5SecurityCheck.mjs
       - name: Validate web navigation safety and frontend
         run: |
-          npm ci
           node tools/NavigationSafetyCheck.mjs
           npm run lint
           npm run build
-      - name: Build debug APK
+      - name: Build and run Android unit tests
         run: |
           chmod +x gradlew
           ./gradlew testDebugUnitTest assembleDebug --stacktrace
-      - name: Prepare release files
+      - name: Prepare APK and checksum
         run: |
           mkdir -p release
           cp app/build/outputs/apk/debug/app-debug.apk release/Kobra-OS-main.apk
@@ -61,12 +64,16 @@ jobs:
           make_latest: true
           generate_release_notes: true
           body: |
-            APK Kobra OS terbaru dari branch main. Rilis ini otomatis dijadikan Latest dan menyediakan nama aset stabil Kobra-OS-main.apk.
+            APK KOBRA OS dari branch main.
 
             Commit sumber: ${{ github.sha }}
             Branch: main
 
-            **Catatan:** ini adalah debug APK. Uji di perangkat dengan pendamping jika menggunakan fitur navigasi atau bantuan mobilitas. Fitur AI online gratis bergantung pada ketersediaan dan kuota provider; model lokal memerlukan perangkat yang kompatibel.
+            AI percakapan dan analisis visual berjalan melalui jalur lokal yang tersedia; tidak ada fallback AI cloud. Internet tetap dapat dipakai untuk unduhan model/peta atau fungsi non-AI yang dijelaskan aplikasi.
+
+            **Jenis paket:** debug APK, bukan sertifikasi produksi.
+            **Verifikasi:** cocokkan SHA-256SUMS.txt sebelum instalasi.
+            **Uji perangkat:** CI bukan pengganti pengujian mikrofon, kamera, GPS, TalkBack, SIM/operator, dan layanan latar belakang pada HP nyata.
           files: |
             release/*.apk
             release/SHA256SUMS.txt
