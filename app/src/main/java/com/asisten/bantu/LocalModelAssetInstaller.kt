@@ -18,6 +18,7 @@ object LocalModelAssetInstaller {
     private const val EXPECTED_MODEL_BYTES = 347_251_840L
     private const val EXPECTED_MODEL_SHA256 = "2df6821ec12702dafd33915e7a1a1adc7c4b053f3672fd9555dfaf3a114c4139"
     private val executor = Executors.newSingleThreadExecutor()
+    @Volatile private var verifiedFileKey: String? = null
 
     @JvmStatic
     fun isBundled(context: Context): Boolean = try {
@@ -33,8 +34,7 @@ object LocalModelAssetInstaller {
             try {
                 val directory = LocalModelRegistry.directory(app)
                 val destination = File(directory, MODEL_FILE)
-                if (isValid(destination) && ModelFileIntegrity.matches(
-                        destination, EXPECTED_MODEL_BYTES, EXPECTED_MODEL_SHA256)) {
+                if (isVerified(destination)) {
                     callback(true, null)
                     return@execute
                 }
@@ -62,6 +62,7 @@ object LocalModelAssetInstaller {
                 check(temporary.renameTo(destination)) {
                     "Gagal memasang model Qwen3 ke penyimpanan privat aplikasi."
                 }
+                verifiedFileKey = fileKey(destination)
                 Log.i(TAG, "Qwen3 model installed: ${destination.length()} bytes")
                 callback(true, null)
             } catch (error: Exception) {
@@ -70,6 +71,21 @@ object LocalModelAssetInstaller {
             }
         }
     }
+
+    private fun isVerified(file: File): Boolean {
+        if (!isValid(file)) {
+            verifiedFileKey = null
+            return false
+        }
+        val key = fileKey(file)
+        if (verifiedFileKey == key) return true
+        val valid = ModelFileIntegrity.matches(file, EXPECTED_MODEL_BYTES, EXPECTED_MODEL_SHA256)
+        verifiedFileKey = if (valid) key else null
+        return valid
+    }
+
+    private fun fileKey(file: File): String =
+        "${file.absolutePath}:${file.length()}:${file.lastModified()}"
 
     private fun isValid(file: File): Boolean =
         file.isFile && file.length() in MIN_MODEL_BYTES..MAX_MODEL_BYTES
