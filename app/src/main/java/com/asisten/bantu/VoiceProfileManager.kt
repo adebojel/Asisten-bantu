@@ -295,9 +295,10 @@ object VoiceProfileManager {
             null
         } ?: return null
 
+        // KOBRA Stage 2 is offline-first: never select a voice that requires network access.
         val indonesianVoices = voices.filter { v ->
             val lang = v.locale?.language?.lowercase(Locale.ROOT).orEmpty()
-            lang == "id" || lang == "in"
+            (lang == "id" || lang == "in") && !v.isNetworkConnectionRequired
         }
         if (indonesianVoices.isEmpty()) return null
 
