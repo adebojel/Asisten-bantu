@@ -60,6 +60,14 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 37. Matikan WiFi dan data (lewat pengaturan HP, bukan Kobra). Ucapkan "Kobra hitung dua puluh lima kali empat" (harus 100), "Kobra tersedak", "Kobra warna apa" lalu scan, "Kobra baca KTP".
 38. "Kobra cari resep" harus dijawab butuh internet.
 
+## J. Suara dan komunikasi offline
+1. Putuskan koneksi internet sebelum menguji input suara.
+2. Pastikan Kobra hanya memulai pengenalan suara on-device; bila mesin/paket Bahasa Indonesia offline tidak tersedia, Kobra harus memberi tahu pengguna dan tidak beralih ke layanan jaringan.
+3. Uji tombol berhenti saat TTS membacakan teks panjang; suara dan antrean bacaan harus berhenti.
+4. Periksa status voice TTS Bahasa Indonesia dan pastikan voice yang dipilih tidak memerlukan jaringan.
+5. Uji pembacaan notifikasi serta balasan RemoteInput hanya pada aplikasi yang menyediakan action balas.
+6. Uji SMS, WhatsApp, voice note, telepon, dan video call secara terpisah; catat aplikasi/versi Android dan hasil aktual. Jangan menganggap fitur berhasil hanya karena aplikasi dapat dibuka.
+
 ## K. AI lokal
 39. Pastikan tidak ada menu pengisian API key cloud atau webhook AI. Putuskan internet, jalankan pertanyaan yang didukung model lokal, dan pastikan Kobra tidak mencoba menghubungi server AI. Jika model tidak tersedia/gagal, Kobra harus menjelaskan keterbatasan dan tetap menyediakan perintah dasar offline.
 
