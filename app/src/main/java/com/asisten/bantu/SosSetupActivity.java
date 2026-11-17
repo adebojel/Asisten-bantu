@@ -79,8 +79,8 @@ public class SosSetupActivity extends AppCompatActivity {
                     ? (config.getSos("name1").isEmpty() ? config.getSos("phone1") : config.getSos("name1"))
                     : "nomor darurat 112";
             String simMsg = "Mode Latihan SOS aktif. Ini hanya simulasi, tidak ada SMS atau panggilan telepon asli yang dikirim. "
-                    + "Pada keadaan darurat nyata, Kobra akan mengirim SMS koordinat GPS Google Maps ke " + target
-                    + ", menyalakan getaran Morse SOS, lalu menelepon secara otomatis.";
+                    + "Pada keadaan darurat nyata, setelah konfirmasi, Kobra akan mencoba menyerahkan SMS ke " + target
+                    + ", menyertakan lokasi yang tersedia dengan penanda usia bila sudah lama, menyalakan getaran Morse SOS, lalu membuka panggilan sesuai izin Android.";
             tvStatus.setText("Simulasi Latihan SOS selesai (tidak mengirim SMS/telepon asli).");
             Speaker.get(this).speak(simMsg);
         });
@@ -98,7 +98,7 @@ public class SosSetupActivity extends AppCompatActivity {
         String n2 = config.getSos("name2");
         String p2 = config.getSos("phone2");
         if (p1.isEmpty() && p2.isEmpty()) {
-            tvStatus.setText("Belum diatur (Default: 112)");
+            tvStatus.setText("Kontak belum diatur. SOS akan menawarkan panggilan ke 112 setelah konfirmasi.");
         } else {
             StringBuilder sb = new StringBuilder("Tersimpan: ");
             if (!p1.isEmpty()) {
