@@ -9,6 +9,17 @@ export const SosScreen: React.FC = () => {
   const [contact2, setContact2] = useState(sosContacts[1] || { name: '', phone: '', relation: 'Kerabat' });
 
   const handleSave = () => {
+    const primaryDigits = contact1.phone.replace(/\\D/g, '');
+    if (!contact1.name.trim() || primaryDigits.length < 7 || primaryDigits.length > 15) {
+      say('Nama dan nomor kontak darurat utama yang valid wajib diisi.');
+      return;
+    }
+    const secondaryDigits = contact2.phone.replace(/\\D/g, '');
+    if ((contact2.name.trim() || contact2.phone.trim()) &&
+        (!contact2.name.trim() || secondaryDigits.length < 7 || secondaryDigits.length > 15)) {
+      say('Kontak cadangan belum lengkap atau nomornya tidak valid.');
+      return;
+    }
     updateSosContact(0, contact1);
     updateSosContact(1, contact2);
     say('Kontak darurat SOS berhasil disimpan.');
@@ -46,8 +57,7 @@ export const SosScreen: React.FC = () => {
       <div className="p-4 bg-red-950/40 border-2 border-red-500/60 rounded-3xl flex items-start gap-3">
         <ShieldAlert className="w-6 h-6 text-red-400 shrink-0 mt-0.5" />
         <p className="text-sm text-red-200 leading-relaxed font-medium">
-          Saat Anda mengucap <strong className="text-yellow-400">"Kobra tolong"</strong> atau menekan tombol SOS,
-          Kobra akan meminta konfirmasi suara lalu mengirim pesan WhatsApp/SMS darurat berisi koordinat lokasi GPS langsung Anda.
+          KOBRA hanya membuka draf WhatsApp ke kontak utama yang sudah Anda simpan. Periksa isi dan penerima, lalu tekan Kirim sendiri. Koordinat GPS disertakan hanya jika tersedia. KOBRA tidak mengirim pesan diam-diam atau otomatis.
         </p>
       </div>
 
@@ -123,7 +133,7 @@ export const SosScreen: React.FC = () => {
         className="w-full py-5 bg-red-600 hover:bg-red-500 active:scale-95 text-white border-4 border-red-400 rounded-3xl font-black text-xl tracking-wider shadow-2xl flex items-center justify-center gap-3 transition-transform focus-accessible"
       >
         <AlertOctagon className="w-7 h-7 stroke-[2.5]" />
-        UJI SINYAL SOS SEKARANG
+        BUAT DRAF SOS
       </button>
     </div>
   );

@@ -25,6 +25,7 @@ export const HomeScreen: React.FC = () => {
     settings,
     sosContacts,
     startListening,
+    updateSettings,
   } = useKobra();
 
   const handleSpeakStatus = () => {
@@ -44,8 +45,9 @@ export const HomeScreen: React.FC = () => {
       icon: <ShieldCheck className="w-8 h-8 text-emerald-400" />,
       action: async () => {
         try {
-          await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-          say('Izin mikrofon dan kamera sudah diberikan.');
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+          stream.getTracks().forEach(track => track.stop());
+          say('Izin mikrofon dan kamera diberikan. Aliran media uji sudah ditutup.');
         } catch (e) {
           say('Meminta izin mikrofon dan kamera.');
         }
@@ -57,7 +59,8 @@ export const HomeScreen: React.FC = () => {
       desc: 'Pengaturan visual kontras tinggi dan ukuran huruf besar.',
       icon: <Eye className="w-8 h-8 text-yellow-400" />,
       action: () => {
-        say('Aksesibilitas kontras tinggi aktif untuk kemudahan penglihatan.');
+        updateSettings({ highContrast: true, largeFont: true });
+        say('Preferensi kontras tinggi dan huruf besar diaktifkan. Simpan pengaturan untuk menerapkannya.');
       },
     },
     {
@@ -96,7 +99,7 @@ export const HomeScreen: React.FC = () => {
       desc: 'Optimalisasi daya latar belakang untuk respon suara cepat.',
       icon: <BatteryCharging className="w-8 h-8 text-green-400" />,
       action: () => {
-        say('Optimalisasi baterai aktif. Kobra berjalan hemat daya di latar.');
+        say('KOBRA tidak dapat mengubah optimasi baterai Android dari tampilan ini. Atur izin penggunaan baterai melalui Pengaturan Android jika layanan latar diperlukan.');
       },
     },
     {
@@ -190,13 +193,13 @@ export const HomeScreen: React.FC = () => {
         <button
           onClick={() => {
             setCurrentScreen('aichat');
-            say('Membuka Teman Ngobrol AI.');
+            say('Membuka Tanya Jawab Lokal.');
           }}
           className="p-4 bg-neutral-900 hover:bg-neutral-800 border-2 border-purple-500/50 rounded-2xl flex flex-col items-center text-center gap-2 focus-accessible"
         >
           <MessageSquare className="w-8 h-8 text-purple-400" />
           <span className="font-bold text-white text-base">Teman Ngobrol</span>
-          <span className="text-xs text-neutral-400">Offline & AI</span>
+          <span className="text-xs text-neutral-400">Basis pengetahuan lokal</span>
         </button>
 
         <button

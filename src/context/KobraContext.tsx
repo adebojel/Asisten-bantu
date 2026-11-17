@@ -38,11 +38,7 @@ export const DEFAULT_INSTALLED_APPS: InstalledApp[] = [
   { label: 'Play Store', pkg: 'com.android.vending', category: 'sistem' },
 ];
 
-const DEFAULT_NOTIFICATIONS: NotificationItem[] = [
-  { id: '1', sender: 'Ibu', app: 'WhatsApp', title: 'Pesan Baru', message: 'Nanti pulang jam berapa nak?', time: '10:15', read: false },
-  { id: '2', sender: 'Sistem', app: 'Baterai', title: 'Peringatan Baterai', message: 'Baterai tersisa 85 persen.', time: '09:30', read: false },
-  { id: '3', sender: 'Budi Darurat', app: 'SMS', title: 'SMS Masuk', message: 'Posisi sudah aman.', time: '08:00', read: true },
-];
+const DEFAULT_NOTIFICATIONS: NotificationItem[] = [];
 
 const HELP_TEXT =
   'Perintah Kobra. Sebut kata Kobra lalu: baca KTP. Baca uang. Warna apa. Ada orang berapa. ' +
@@ -136,12 +132,20 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [sosContacts, setSosContacts] = useState<SosContact[]>(() => {
     try {
       const saved = localStorage.getItem('kobra_sos');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved) as SosContact[];
+        if (Array.isArray(parsed)) {
+          // Remove legacy sample numbers that were shipped as placeholders.
+          return parsed.filter(contact => {
+            const digits = (contact?.phone || '').replace(/\\D/g, '');
+            return !!contact?.name?.trim() && digits.length >= 7
+              && digits !== '081234567890'.replace(/\\D/g, '')
+              && digits !== '089876543210'.replace(/\\D/g, '');
+          }).slice(0, 2);
+        }
+      }
     } catch (ignored) {}
-    return [
-      { name: 'Ibu', phone: '081234567890', relation: 'Keluarga' },
-      { name: 'Budi (Pendamping)', phone: '089876543210', relation: 'Relawan' },
-    ];
+    return [];
   });
 
   const [notifications, setNotifications] = useState<NotificationItem[]>(DEFAULT_NOTIFICATIONS);
@@ -193,36 +197,48 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const triggerSos = useCallback(() => {
-    say('PERINGATAN SOS. Mengaktifkan sirine darurat dan mengirim lokasi ke kontak darurat.');
+    const contact = sosContacts.find(item => item.name.trim() && item.phone.replace(/\\D/g, '').length >= 7);
+    if (!contact) {
+      setCurrentScreen('sos');
+      say('SOS belum dijalankan. Tambahkan dan simpan kontak darurat utama yang benar terlebih dahulu.');
+      return;
+    }
+    const internationalPhone = toInternational(contact.phone);
+    if (!internationalPhone) {
+      setCurrentScreen('sos');
+      say('Nomor kontak darurat tidak valid. Periksa kembali pengaturan SOS.');
+      return;
+    }
+
+    say('Membuka WhatsApp dengan draf pesan darurat. Periksa pesan dan tekan Kirim sendiri untuk mengirim.');
     deviceSensors.startEmergencySiren();
+    const openDraft = (locationText?: string) => {
+      const msg = locationText
+        ? `TOLONG! Sinyal Darurat SOS Kobra OS dari ${contact.name}. Lokasi saya: ${locationText}`
+        : `TOLONG! Sinyal Darurat SOS Kobra OS. Saya membutuhkan bantuan. Lokasi GPS tidak tersedia.`;
+      window.open(`https://wa.me/${internationalPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    };
 
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         pos => {
           const { latitude, longitude } = pos.coords;
           const mapUrl = `https://maps.google.com/?q=${latitude},${longitude}`;
-          const contact = sosContacts[0] || { name: 'Keluarga', phone: '112' };
-          const msg = `TOLONG! Sinyal Darurat SOS Kobra OS dari ${contact.name}. Lokasi saya: ${mapUrl}`;
-          const intl = toInternational(contact.phone);
-          const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
-          say(`Lokasi didapatkan: garis lintang ${latitude.toFixed(4)}, bujur ${longitude.toFixed(4)}. Tautan dikirim.`);
-          window.open(waUrl, '_blank');
+          say('Lokasi GPS diperoleh. Draf WhatsApp dibuka; Anda tetap harus memeriksa dan mengirim pesan secara manual.');
+          openDraft(mapUrl);
         },
         () => {
-          say('Gagal membaca GPS. Mengirim pesan darurat tanpa koordinat pasti.');
-          const contact = sosContacts[0] || { name: 'Keluarga', phone: '112' };
-          const msg = `TOLONG! Sinyal Darurat SOS Kobra OS. Harap hubungi saya sekarang.`;
-          window.open(`https://wa.me/${toInternational(contact.phone)}?text=${encodeURIComponent(msg)}`, '_blank');
+          say('GPS tidak tersedia. Membuka draf WhatsApp tanpa koordinat. Anda harus mengirimnya sendiri.');
+          openDraft();
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
+    } else {
+      openDraft();
     }
 
-    setTimeout(() => {
-      deviceSensors.stopEmergencySiren();
-    }, 8000);
-  }, [say, sosContacts]);
-
+    setTimeout(() => deviceSensors.stopEmergencySiren(), 8000);
+  }, [say, sosContacts, setCurrentScreen]);
   const openAppByLabel = useCallback((label: string) => {
     const match = installedApps.find(a => normalize(a.label) === normalize(label));
     if (match) {
@@ -578,8 +594,12 @@ export const KobraProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateSosContact = useCallback((index: number, contact: SosContact) => {
     setSosContacts(prev => {
       const next = [...prev];
-      next[index] = contact;
-      return next;
+      if (contact.name.trim() && contact.phone.replace(/\\D/g, '').length >= 7) {
+        next[index] = contact;
+      } else {
+        next.splice(index, 1);
+      }
+      return next.slice(0, 2);
     });
   }, []);
 
