@@ -8,7 +8,7 @@ import java.util.Locale
  */
 internal object SystemControlCommandParser {
     private val volumePercentPattern = Regex(
-        """(?:atur\\s+)?(?:volume|suara)\\s+(?:(?:ke|menjadi)\\s+)?(100|[1-9]?\\d)\\s*(?:persen|%)""",
+        """(?:atur\s+)?(?:volume|suara)\s+(?:(?:ke|menjadi)\s+)?(100|[1-9]?\d)\s*(?:persen|%)""",
         RegexOption.IGNORE_CASE
     )
 
