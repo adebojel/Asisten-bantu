@@ -16,7 +16,7 @@ public class ModelFileIntegrityTest {
             try (FileOutputStream output = new FileOutputStream(file)) {
                 output.write("kobra-integrity".getBytes(StandardCharsets.UTF_8));
             }
-            assertEquals("4d0b52bbcbf5f8a35b1c9d6f3f1a7ec30b5e31fbc7d4c3d0c6a3aabdbf0a5f82",
+            assertEquals("cdd4d49456f7b912f384db270b61db9b395e189cbf198120f59df97fb7c55de3",
                     ModelFileIntegrity.sha256(file));
         } finally {
             //noinspection ResultOfMethodCallIgnored
