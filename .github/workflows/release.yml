@@ -41,7 +41,7 @@ jobs:
       - name: Build and run Android unit tests
         run: |
           chmod +x gradlew
-          ./gradlew testDebugUnitTest assembleDebug --stacktrace
+          ./gradlew lintDebug testDebugUnitTest assembleDebug --stacktrace
       - name: Prepare APK and checksum
         run: |
           mkdir -p release
