@@ -61,10 +61,10 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 ### Status build dan pengujian
 
-- Commit build: `8b4a97a1c87b635636ccecb117d271e054b0b5a4`
-- GitHub Actions run: [44132013350](https://github.com/adebojel/Asisten-bantu/actions/runs/44132013350) — seluruh job yang dilaporkan selesai dengan sukses, termasuk tes, build, upload artefak, dan publikasi Release.
+- Commit build baseline Build 406: `8b4a97a1c87b635636ccecb117d271e054b0b5a4` (bukan commit terbaru setelah pekerjaan Tahap 5).
+- GitHub Actions run baseline: [44132013350](https://github.com/adebojel/Asisten-bantu/actions/runs/44132013350). Hasil tersebut hanya berlaku untuk commit build tersebut; status commit Tahap 5 harus diperiksa pada tab Actions.
 - APK: `Kobra-OS-main.apk`; checksum SHA-256: `f72ea7a746efab0ac2e7d0143dc876457fe3a678b63d58f3399bd07377a5f41e`.
-- **Penting:** CI sukses membuktikan proses otomatis, bukan pengujian pada perangkat Android fisik. Mikrofon ketika layar terkunci/latar belakang, kamera, TalkBack, sensor, GPS, SIM/operator, dan navigasi harus diuji pada HP nyata. Build ini adalah debug APK, bukan sertifikasi rilis produksi.
+- **Penting:** Build 406 adalah baseline rilis yang tercatat. Commit Tahap 5 setelahnya memicu pipeline rilis baru; gunakan [Releases Latest](https://github.com/adebojel/Asisten-bantu/releases/latest) untuk APK dari commit terbaru. CI sukses membuktikan proses otomatis, bukan pengujian pada perangkat Android fisik. Mikrofon ketika layar terkunci/latar belakang, kamera, TalkBack, sensor, GPS, SIM/operator, dan navigasi harus diuji pada HP nyata. APK yang diterbitkan workflow saat ini adalah debug APK, bukan sertifikasi rilis produksi.
 
 ---
 ## 🧭 Jelajahi fitur
@@ -94,7 +94,7 @@ Kobra menggabungkan beberapa jalur dalam satu pengalaman:
 
 ### Bagaimana Kobra bekerja
 
-<img src="docs/kobra-overview.svg" width="100%" alt="Diagram arsitektur Kobra OS: input, router, Android accessibility, AI lokal, AI online, dan output suara">
+<img src="docs/kobra-overview.svg" width="100%" alt="Diagram arsitektur Kobra OS: input, router, Android accessibility, AI lokal, dan output suara">
 
 <sub>Diagram arsitektur konseptual. Jalur yang tersedia bergantung pada izin, perangkat, model, jaringan, dan provider.</sub>
 
@@ -326,3 +326,10 @@ Laporkan masalah melalui [GitHub Issues](https://github.com/adebojel/Asisten-ban
 <sub>Artwork 3D dan diagram adalah ilustrasi konsep. Fitur nyata, kompatibilitas, dan keselamatan tetap harus diverifikasi pada perangkat.</sub>
 
 </div>
+
+
+## 🛡️ Tahap 5 — Finalisasi dan gerbang kualitas
+
+Tahap 5 menambahkan pemeriksaan regresi privasi/offline pada pipeline rilis. Workflow menjalankan `tools/Stage5SecurityCheck.mjs` sebelum build: memindai sumber Android dan konfigurasi untuk endpoint AI cloud yang dilarang serta pola kredensial tertanam, dan memastikan backup aplikasi serta cleartext traffic tetap dinonaktifkan. Pemeriksaan statis ini adalah tripwire, bukan bukti mutlak bahwa seluruh aliran data runtime selalu lokal.
+
+Gerbang penerimaan lengkap, batasan, dan status pengujian ada di [TAHAP_5_FINALIZATION.md](TAHAP_5_FINALIZATION.md). Daftar uji fisik ada di [UJI_DI_HP.md](UJI_DI_HP.md). Fitur yang bergantung pada mikrofon, kamera, GPS, SIM, TalkBack, dan layanan latar belakang tetap memerlukan verifikasi HP nyata.
