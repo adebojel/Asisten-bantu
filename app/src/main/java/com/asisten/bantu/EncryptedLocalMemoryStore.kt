@@ -25,8 +25,12 @@ internal object EncryptedLocalMemoryStore {
         val app = context.applicationContext
         val secure = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (secure.contains(PAYLOAD)) {
-            return try { decrypt(secure.getString(PAYLOAD, null) ?: return null) }
-            catch (_: Exception) { null } // Fail closed; never fall back to plaintext.
+            return try {
+                val plain = decrypt(secure.getString(PAYLOAD, null) ?: return null)
+                app.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+                    .edit().remove(LEGACY_KEY).commit()
+                plain
+            } catch (_: Exception) { null } // Fail closed; never fall back to plaintext.
         }
         val legacyPrefs = app.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
         val legacy = legacyPrefs.getString(LEGACY_KEY, null)?.takeIf { it.isNotBlank() } ?: return "[]"
@@ -45,8 +49,12 @@ internal object EncryptedLocalMemoryStore {
             cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
             val packed = Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + "." +
                 Base64.encodeToString(cipher.doFinal(bytes), Base64.NO_WRAP)
-            context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            val app = context.applicationContext
+            val stored = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit().putString(PAYLOAD, packed).commit()
+            if (stored) app.getSharedPreferences(LEGACY_PREFS, Context.MODE_PRIVATE)
+                .edit().remove(LEGACY_KEY).commit()
+            stored
         } catch (_: Exception) { false }
     }
 
