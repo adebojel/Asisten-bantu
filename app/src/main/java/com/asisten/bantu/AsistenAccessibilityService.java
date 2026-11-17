@@ -3170,6 +3170,7 @@ public class AsistenAccessibilityService extends AccessibilityService {
         }
 
         String name1 = config.getSos("name1");
+        String name2 = config.getSos("name2");
         String p1 = config.getSos("phone1");
         String p2 = config.getSos("phone2");
         if (p1.isEmpty() && p2.isEmpty()) {
@@ -3212,7 +3213,8 @@ public class AsistenAccessibilityService extends AccessibilityService {
             if (!p1.isEmpty()) { if (sendSms(p1, msg)) submitted++; else failed++; }
             if (!p2.isEmpty()) { if (sendSms(p2, msg)) submitted++; else failed++; }
         }
-        String who = name1.isEmpty() ? "kontak darurat" : name1;
+        String selectedName = p1.isEmpty() ? name2 : name1;
+        String who = selectedName.isEmpty() ? "kontak darurat" : selectedName;
         String smsStatus;
         if (!smsPermission) {
             smsStatus = "Izin SMS tidak aktif, SMS tidak dikirim.";
