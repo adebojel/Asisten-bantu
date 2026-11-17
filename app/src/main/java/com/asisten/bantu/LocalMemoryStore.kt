@@ -46,7 +46,7 @@ object LocalMemoryStore {
         val list = decode(raw).toMutableList()
         list.removeAll { it.text.equals(clean, ignoreCase = true) }
         val item = MemoryItem(
-            "mem_\${System.currentTimeMillis()}_\${UUID.randomUUID().toString().take(8)}",
+            "mem_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}",
             clean, category.trim().take(MAX_CATEGORY_LENGTH).ifBlank { "Preferensi" },
             System.currentTimeMillis()
         )
@@ -110,9 +110,9 @@ object LocalMemoryStore {
         val items = listMemories(context)
         if (items.isEmpty()) return ""
         return buildString {
-            append("Memori pengguna yang harus diingat:\\n")
+            append("Memori pengguna yang harus diingat:\n")
             items.take(maxItems.coerceIn(0, MAX_MEMORIES)).forEach {
-                append("- [").append(it.category).append("] ").append(it.text).append('\\n')
+                append("- [").append(it.category).append("] ").append(it.text).append('\n')
             }
         }.trim()
     }
