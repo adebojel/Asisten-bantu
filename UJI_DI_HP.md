@@ -33,8 +33,8 @@ Siapkan: HP Android 9 ke atas, satu kontak uji (teman yang tahu), dan USB debugg
 5. Saat urutan berjalan, ucapkan “Kobra hentikan agen layar”. Agen harus berhenti sebelum langkah berikutnya.
 6. Ucapkan “Kobra riwayat agen layar”. Pastikan hanya jenis aksi, label target terbatas, dan hasil yang dibacakan; tidak boleh ada screenshot atau isi pesan.
 7. Ucapkan “Kobra hapus riwayat agen layar”, lalu ulangi perintah riwayat. Pastikan catatan lokal kosong.
-6. Pastikan agen tidak mengetik, mengirim, menelepon, mengubah izin, atau mengubah pengaturan sistem secara otomatis.
-7. Catat aplikasi, versi Android, langkah, dan hasil aktual. Pengujian ini tetap harus dilakukan di HP fisik.
+8. Pastikan agen tidak mengetik, mengirim, menelepon, mengubah izin, atau mengubah pengaturan sistem secara otomatis.
+9. Catat aplikasi, versi Android, langkah, dan hasil aktual. Pengujian ini tetap harus dilakukan di HP fisik.
 
 ## D3. System Control dan rutinitas harian
 
