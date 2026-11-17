@@ -82,7 +82,7 @@ Nomor build, commit sumber, ukuran APK, dan checksum yang benar selalu tercantum
 | 🧭 **Navigasi pedestrian** | Peta dan routing berbasis data yang dapat disimpan untuk penggunaan offline |
 | ♿ **Aksesibilitas** | Accessibility Service, navigasi fokus/kata, serta interoperabilitas TalkBack |
 | 📞 **Komunikasi** | Alur panggilan, SMS, notifikasi, dan aplikasi pesan dengan izin serta konfirmasi |
-| 🚨 **SOS** | Membuka draf WhatsApp hanya ke kontak darurat yang dikonfigurasi; pengguna memeriksa penerima dan menekan Kirim sendiri |
+| 🚨 **SOS** | Kontak darurat terenkripsi; setelah konfirmasi, SMS native diserahkan ke Android dan panggilan dibuka sesuai izin. Status SMS tidak diklaim terkirim tanpa verifikasi |
 
 ## 🖼️ Identitas visual & arsitektur
 
