@@ -47,6 +47,16 @@ object CommandRouter {
         val c = raw.lowercase(Locale.ROOT)
         if (c.isEmpty()) return false
 
+        if (c == "riwayat agen layar" || c == "baca riwayat agen layar") {
+            sayCallback.accept(LocalAgentActionLog.describe(service))
+            return true
+        }
+        if (c == "hapus riwayat agen layar" || c == "bersihkan riwayat agen layar") {
+            LocalAgentActionLog.clear(service)
+            sayCallback.accept("Riwayat tindakan agen layar dihapus dari penyimpanan lokal.")
+            return true
+        }
+
         if (c == "hentikan agen layar" || c == "batalkan agen layar" || c == "stop agen layar") {
             val requested = synchronized(screenAgentLock) {
                 if (screenAgentRunning.get()) {
@@ -395,14 +405,17 @@ object CommandRouter {
                         break
                     }
                     if (!executeAgentStep(service, step)) {
+                        LocalAgentActionLog.record(service, step.action, step.target, "gagal atau target tidak unik/aman")
                         failure = "Langkah " + (index + 1) + " gagal atau target tidak unik/aman. Langkah berikutnya tidak dijalankan."
                         break
                     }
                     delay(if (step.action == "open-app") 1_000L else 400L)
                     if (activeWindowPackage(service).isBlank()) {
+                        LocalAgentActionLog.record(service, step.action, step.target, "perubahan layar tidak terverifikasi")
                         failure = "Perubahan layar tidak dapat diverifikasi setelah langkah " + (index + 1) + ". Agen dihentikan."
                         break
                     }
+                    LocalAgentActionLog.record(service, step.action, step.target, "dijalankan")
                     completed++
                 }
                 if (screenAgentCancelRequested.get() && failure.isBlank()) {
